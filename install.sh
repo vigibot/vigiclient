@@ -3,7 +3,7 @@
 set -e
 set -u
 
-BASEDIR=/usr/bin/vigiclient
+BASEDIR=/usr/lib/vigiclient
 BASEURL=https://www.vigibot.com
 
 fgrep bcm2835-v4l2 /etc/modules || echo bcm2835-v4l2 >> /etc/modules
@@ -19,9 +19,11 @@ rm -f clientrobotp.js
 rm -f trame.js
 rm -f run.sh
 
-wget $BASEURL/clientrobotpi.js
-wget $BASEURL/trame.js
-wget $BASEURL/run.sh
+wget $BASEURL/run.sh -P $BASEDIR -N
+wget $BASEURL/clientrobotpi.js -P $BASEDIR -N
+wget $BASEURL/trame.js -P $BASEDIR -N
+wget $BASEURL/robot.json -P /boot -N
+wget $BASEURL/vigiclient.service -P /etc/systemd/system -N
 
 rm -f processdiffusion
 rm -f processdiffaudio
@@ -29,8 +31,4 @@ rm -f processdiffaudio
 ln -s /bin/cat $BASEDIR/processdiffusion
 ln -s $(which ffmpeg || echo ffmpegnotfound) $BASEDIR/processdiffaudio
 
-fgrep run.sh /etc/rc.local || echo "$BASEDIR/run.sh &" >> /etc/rc.local
-
-#cp vigibot.service /etc/systemd/system
-#systemctl enable vigibot
-
+systemctl enable vigibot

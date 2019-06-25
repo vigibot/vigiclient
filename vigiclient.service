@@ -1,0 +1,18 @@
+[Unit]
+Description=Vigibot Client Service
+Documentation=https://www.vigibot.com
+After=network.target
+
+[Service]
+Type=simple
+
+User=root
+Group=root
+
+WorkingDirectory=/usr/lib/vigiclient
+ExecStart=node /usr/lib/vigiclient/clientrobotpi.js
+ExecReload=
+ExecStop=
+
+Restart=always
+RestartSec=1s

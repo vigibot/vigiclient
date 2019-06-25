@@ -1,6 +1,6 @@
 "use strict";
 
-const CONF = require("robot.json");
+const CONF = require("/boot/robot.json");
 
 const TRAME = require("trame.js");
 
