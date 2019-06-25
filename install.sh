@@ -19,7 +19,6 @@ rm -f clientrobotp.js
 rm -f trame.js
 rm -f run.sh
 
-wget $BASEURL/run.sh -P $BASEDIR -N
 wget $BASEURL/clientrobotpi.js -P $BASEDIR -N
 wget $BASEURL/trame.js -P $BASEDIR -N
 wget $BASEURL/robot.json -P /boot -N
