@@ -3,7 +3,7 @@
 set -e
 set -u
 
-BASEDIR=/usr/local/src/vigiclient
+BASEDIR=/usr/bin/vigiclient
 
 while true
 do
