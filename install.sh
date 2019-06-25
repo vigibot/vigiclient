@@ -17,10 +17,10 @@ npm install socket.io-client stream-split rpio rpio-pwm
 
 rm -f clientrobotp.js
 rm -f trame.js
-rm -f run.sh
 
 wget $BASEURL/clientrobotpi.js -P $BASEDIR -N
 wget $BASEURL/trame.js -P $BASEDIR -N
+
 wget $BASEURL/robot.json -P /boot -N
 wget $BASEURL/vigiclient.service -P /etc/systemd/system -N
 
