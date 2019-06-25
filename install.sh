@@ -30,3 +30,7 @@ ln -s /bin/cat $BASEDIR/processdiffusion
 ln -s $(which ffmpeg || echo ffmpegnotfound) $BASEDIR/processdiffaudio
 
 fgrep run.sh /etc/rc.local || echo "$BASEDIR/run.sh &" >> /etc/rc.local
+
+#cp vigibot.service /etc/systemd/system
+#systemctl enable vigibot
+
