@@ -10,9 +10,12 @@ User=root
 Group=root
 
 WorkingDirectory=/usr/lib/vigiclient
-ExecStart=node /usr/lib/vigiclient/clientrobotpi.js
+ExecStart=/usr/local/bin/node /usr/lib/vigiclient/clientrobotpi.js
 ExecReload=
 ExecStop=
 
 Restart=always
 RestartSec=1s
+
+[Install]
+WantedBy=multi-user.target
