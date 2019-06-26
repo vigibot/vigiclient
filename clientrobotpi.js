@@ -2,13 +2,13 @@
 
 const CONF = require("/boot/robot.json");
 
-const TRAME = require("trame.js");
+const TRAME = require("./trame.js");
 
 const PORTROBOTS = 86;
 const PORTTCPVIDEO = 8003;
 const PORTTCPAUDIO = 8004;
 
-const REPERTOIRETXT = "txt";
+const REPERTOIRETXT = ".";
 const FICHIERLOG = "clientrobotpilog.txt";
 
 const INTERFACEWIFI = "wlan0";
