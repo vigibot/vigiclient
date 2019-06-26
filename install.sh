@@ -26,4 +26,4 @@ ln -s $(which ffmpeg || echo ffmpegnotfound) $BASEDIR/processdiffaudio
 
 npm install socket.io-client stream-split rpio rpio-pwm
 
-systemctl enable vigibot
+systemctl enable vigiclient
