@@ -114,7 +114,10 @@ for i in $@ ; do
     ;;
     "--all")
         get_image
+        mount_image
         update_image
+        umount_image
+        export_image
         shift
     ;;
     "--debug")
