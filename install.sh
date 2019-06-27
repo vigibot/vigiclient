@@ -17,13 +17,14 @@ cd $BASEDIR
 wget $BASEURL/clientrobotpi.js
 wget $BASEURL/trame.js
 wget $BASEURL/vigiupdate.sh
+chmod +x vigiupdate.sh
 
 wget $BASEURL/robot.json -P /boot -N
 wget $BASEURL/vigiclient.service -P /etc/systemd/system -N
 wget $BASEURL/vigicron -P /etc/cron.d -N
 
-ln -s /bin/cat $BASEDIR/processdiffusion
-ln -s $(which ffmpeg || echo ffmpegnotfound) $BASEDIR/processdiffaudio
+ln -s /bin/cat processdiffusion
+ln -s $(which ffmpeg || echo ffmpegnotfound) processdiffaudio
 
 wget $BASEURL/package.json
 npm install
