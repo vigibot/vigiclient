@@ -16,6 +16,7 @@ cd $BASEDIR
 
 wget $BASEURL/clientrobotpi.js
 wget $BASEURL/trame.js
+wget $BASEURL/vigiupdate.sh
 
 wget $BASEURL/robot.json -P /boot -N
 wget $BASEURL/vigiclient.service -P /etc/systemd/system -N
