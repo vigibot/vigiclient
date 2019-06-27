@@ -16,14 +16,14 @@ const FICHIERSTATS = "/proc/net/wireless";
 const STATSRATE = 250;
 
 const CMDDIFFUSION = [
- "/usr/lib/vigiclient/processdiffusion",
+ "/usr/local/vigiclient/processdiffusion",
  " SOURCEVIDEO",
  " | /bin/nc 127.0.0.1 PORTTCPVIDEO",
  " -w 2"
 ];
 
 const CMDDIFFAUDIO = [
- "/usr/lib/vigiclient/processdiffaudio",
+ "/usr/local/vigiclient/processdiffaudio",
  " -loglevel warning",
  " -f alsa",
  " -ac 1",

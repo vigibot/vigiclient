@@ -4,7 +4,7 @@ set -e
 set -u
 
 BASEURL=https://www.vigibot.com/vigiclient
-BASEDIR=/usr/lib/vigiclient
+BASEDIR=/usr/local/vigiclient
 
 fgrep bcm2835-v4l2 /etc/modules || echo bcm2835-v4l2 >> /etc/modules
 
