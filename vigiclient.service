@@ -10,7 +10,7 @@ User=root
 Group=root
 
 WorkingDirectory=/usr/local/vigiclient
-ExecStart=/usr/local/bin/node /usr/local/vigiclient/clientrobotpi.js
+ExecStart=/usr/bin/node /usr/local/vigiclient/clientrobotpi.js
 ExecReload=
 ExecStop=
 
