@@ -6,6 +6,12 @@ set -u
 BASEURL=https://www.vigibot.com/vigiclient
 BASEDIR=/usr/local/vigiclient
 
+if [[ $EUID -ne 0 ]]
+then
+ echo "This script must be run as root" 1>&2
+ exit 1
+fi
+
 fgrep bcm2835-v4l2 /etc/modules || echo bcm2835-v4l2 >> /etc/modules
 
 apt install -y nodejs npm ffmpeg
