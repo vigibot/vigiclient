@@ -2,7 +2,7 @@
 
 https://www.vigibot.com
 
-Installation on a clean Raspbian minimal :
+Installation on a clean Raspbian Stretch Lite :
 
 wget https://raw.githubusercontent.com/vigibot/vigiclient/master/install.sh
 
