@@ -2,11 +2,11 @@
 
 https://www.vigibot.com
 
-Installation on a clean Raspbian Stretch Lite:
+### Installation on a clean Raspbian Stretch Lite
 
-Last Raspbian Stretch Lite image: http://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2019-04-09
+Last Raspbian Stretch Lite image: https://www.vigibot.com/raspbian
 
-wget https://raw.githubusercontent.com/vigibot/vigiclient/master/install.sh
+wget https://www.vigibot.com/vigiclient/install.sh
 
 sudo bash install.sh
 
