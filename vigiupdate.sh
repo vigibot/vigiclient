@@ -31,8 +31,8 @@ check package.json
 if [ $updated == "yes" ]
 then
  cd $BASEDIR
- rm -rf node_modules
- npm install
+ #rm -rf node_modules
+ #npm install
  exit 0
 fi
 
