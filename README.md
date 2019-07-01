@@ -4,12 +4,20 @@ https://www.vigibot.com
 
 ### Installation on a clean Raspbian Stretch Lite
 
-Last Raspbian Stretch Lite image: https://www.vigibot.com/raspbian
+- Flash the last Raspbian Stretch Lite image: https://www.vigibot.com/raspbian
 
-wget https://www.vigibot.com/vigiclient/install.sh
+- Put your "wpa_supplicant.conf" and an empty "ssh" file inside the boot partition
 
-sudo bash install.sh
+- Connect to your Raspberry Pi via SSH
 
-sudo nano /boot/robot.json
+- sudo raspi-config
 
-Change "Demo" login and "Default" password to match your own robot account and reboot.
+- Enable camera and I2C
+
+- wget https://www.vigibot.com/vigiclient/install.sh
+
+- sudo bash install.sh
+
+- sudo nano /boot/robot.json
+
+- Change "Demo" login and "Default" password to match your own robot account and reboot
