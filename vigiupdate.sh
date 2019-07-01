@@ -31,9 +31,18 @@ check package.json
 if [ $updated == "yes" ]
 then
  cd $BASEDIR
- #rm -rf node_modules
- #npm install
- exit 0
+
+ rm -rf node_modules.old
+ mv node_modules node_modules.old
+
+ npm install > npm.log 2>&1 && {
+  rm -rf node_modules.old
+  echo Success >> npm.log
+ } || {
+  rm -rf node_modules
+  mv node_modules.old node_modules
+  echo Rollback >> npm.log
+ }
 fi
 
 check clientrobotpi.js
