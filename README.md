@@ -1,8 +1,8 @@
-# Raspberry PI robot client for Vigibot.com
+# Make your own Vigibot.com raspberry PI
 
-https://www.vigibot.com
+## Installation on a clean Raspbian Stretch Lite
 
-### Installation on a clean Raspbian Stretch Lite
+### Prerequisites
 
 - Flash the last Raspbian Stretch Lite image: https://www.vigibot.com/raspbian
 
@@ -14,10 +14,16 @@ https://www.vigibot.com
 
 - Enable camera and I2C
 
+### Installation
+
 - wget https://www.vigibot.com/vigiclient/install.sh
 
 - sudo bash install.sh
 
 - sudo nano /boot/robot.json
 
-- Change "Demo" login and "Default" password to match your own robot account and reboot
+- Change "Demo" login and "Default" password to match your own robot account
+
+- sudo reboot
+
+- Take a look at the default server: https://www.vigibot.com
