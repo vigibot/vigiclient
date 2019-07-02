@@ -1,4 +1,4 @@
-# Make your own Vigibot.com raspberry PI
+# Make your own Vigibot.com raspberry PI robot
 
 ## Installation on a clean Raspbian Stretch Lite
 
