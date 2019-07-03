@@ -65,6 +65,8 @@ const HTTP = require("http");
 const RPIO = require("rpio");
 const PWMDMA = require("rpio-pwm");
 
+const VERSION = Math.trunc(FS.statSync(__filename).mtimeMs);
+
 let sockets = {};
 let serveurCourant = "";
 
@@ -291,7 +293,8 @@ CONF.SERVEURS.forEach(function(serveur) {
  sockets[serveur].on("connect", function() {
   trace("Connecté sur " + serveur + "/" + PORTROBOTS);
   sockets[serveur].emit("serveurrobotlogin", {
-   conf: CONF
+   conf: CONF,
+   version: VERSION
   });
  });
 
