@@ -19,6 +19,11 @@ function check() {
  fi
 }
 
+if pidof -x $0 -o $$ > /dev/null
+then
+ exit 1
+fi
+
 check vigiupdate.sh
 
 if [ $updated == "yes" ]
