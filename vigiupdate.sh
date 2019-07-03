@@ -19,16 +19,18 @@ function check() {
  fi
 }
 
-if pidof -x $0 -o $$ > /dev/null
-then
- exit 1
-fi
-
 check vigiupdate.sh
 
 if [ $updated == "yes" ]
 then
+ echo Self-updating script
  exit 0
+fi
+
+if pidof -x $0 -o $$ > /dev/null
+then
+ echo Only one instance is allowed
+ exit 1
 fi
 
 check package.json
