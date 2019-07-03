@@ -10,6 +10,10 @@
 
 - Connect to your Raspberry Pi via SSH
 
+- sudo apt update
+
+- sudo apt upgrade
+
 - sudo raspi-config
 
 - Enable camera and I2C
