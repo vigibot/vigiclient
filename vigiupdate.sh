@@ -28,10 +28,10 @@ fi
 
 check package.json
 
+cd $BASEDIR
+
 if [ $updated == "yes" -o ! -d node_modules ]
 then
- cd $BASEDIR
-
  rm -rf node_modules.old
 
  if [ -d node_modules ]
