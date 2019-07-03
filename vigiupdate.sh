@@ -28,7 +28,7 @@ fi
 
 check package.json
 
-if [ $updated == "yes" ]
+if [ $updated == "yes" -o ! -d node_modules ]
 then
  cd $BASEDIR
 
