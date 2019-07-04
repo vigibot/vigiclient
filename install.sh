@@ -15,7 +15,7 @@ fi
 fgrep bcm2835-v4l2 /etc/modules || echo bcm2835-v4l2 >> /etc/modules
 
 apt update
-apt install -y nodejs npm ffmpeg
+apt install -y ffmpeg npm
 
 rm -rf $BASEDIR
 mkdir -p $BASEDIR
