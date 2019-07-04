@@ -21,8 +21,6 @@ rm -rf $BASEDIR
 mkdir -p $BASEDIR
 cd $BASEDIR
 
-wget $BASEURL/clientrobotpi.js
-wget $BASEURL/trame.js
 wget $BASEURL/vigiupdate.sh
 chmod +x vigiupdate.sh
 
@@ -32,8 +30,5 @@ wget $BASEURL/vigicron -P /etc/cron.d -N
 
 ln -s /bin/cat processdiffusion
 ln -s $(which ffmpeg || echo ffmpegnotfound) processdiffaudio
-
-wget $BASEURL/package.json
-npm install
 
 systemctl enable vigiclient
