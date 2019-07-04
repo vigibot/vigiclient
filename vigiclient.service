@@ -1,7 +1,7 @@
 [Unit]
 Description=Vigibot Client Service
 Documentation=https://www.vigibot.com
-After=network.target
+After=network-online.target
 
 [Service]
 Type=simple
