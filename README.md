@@ -4,7 +4,7 @@
 
 ### Prerequisites
 
-- Flash the last Raspbian Stretch Lite image: https://www.vigibot.com/raspbian
+- Flash the last Raspbian Stretch Lite image: https://www.vigibot.com/raspbian/raspbian_lite-2019-04-09
 - Put your "wpa_supplicant.conf" and an empty "ssh" file inside the boot partition
 - Connect to your Raspberry Pi via SSH
 - sudo apt update
