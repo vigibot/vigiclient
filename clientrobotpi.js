@@ -452,9 +452,9 @@ CONF.SERVEURS.forEach(function(serveur) {
 
   for(let i = 0; i < hard.OUTILS.length; i++) {
    if(tx.outils[i] < old[i])
-    rattrapage[i] = -hard.OUTILS[i].RATTRAPAGE;
+    rattrapage[i] = -hard.OUTILS[i].RATTRAPAGE * 0x10000 / 360;
    else if(tx.outils[i] > old[i])
-    rattrapage[i] = hard.OUTILS[i].RATTRAPAGE;
+    rattrapage[i] = hard.OUTILS[i].RATTRAPAGE * 0x10000 / 360;
 
    old[i] = tx.outils[i];
 
