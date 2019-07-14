@@ -472,12 +472,16 @@ CONF.SERVEURS.forEach(function(serveur) {
   moteurs[1] = constrain(tx.vitesses[1] + tx.vitesses[2] / hard.DIVISEURCONSIGNEVZ, -0x80, 0x80);
 
   for(let i = 0; i < hard.MOTEURS.length; i++) {
-   if(moteurs[i] < 0)
-    moteurs[i] += hard.MOTEURS[i].NEUTREAR;
-   else if(moteurs[i] > 0)
-    moteurs[i] += hard.MOTEURS[i].NEUTREAV;
+   let pwm;
 
-   PWMDMA.add_channel_pulse(CANALDMA, hard.MOTEURS[i].PIN, 0, map(moteurs[i], -0x80, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
+   if(moteurs[i] < 0)
+    pwm = map(moteurs[i] + hard.MOTEURS[i].NEUTREAR, -0x80 + hard.MOTEURS[i].NEUTREAR, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX);
+   else if(moteurs[i] > 0)
+    pwm = map(moteurs[i] + hard.MOTEURS[i].NEUTREAV, -0x80, 0x80 + hard.MOTEURS[i].NEUTREAV, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX);
+   else
+    pwm = map(0, -0x80, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX);
+
+   PWMDMA.add_channel_pulse(CANALDMA, hard.MOTEURS[i].PIN, 0, pwm);
   }
 
   for(let i = 0; i < 8; i++)
