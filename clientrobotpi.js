@@ -476,7 +476,7 @@ CONF.SERVEURS.forEach(function(serveur) {
    let pwmNeutre = (hard.MOTEURS[i].PWMMAX + hard.MOTEURS[i].PWMMIN) / 2;
 
    if(moteurs[i] < 0)
-    pwm = map(moteurs[i] + hard.MOTEURS[i].NEUTREAR, -0x80 + hard.MOTEURS[i].NEUTREAR, 0x80, hard.MOTEURS[i].PWMMIN, pwmNeutre);
+    pwm = map(moteurs[i] + hard.MOTEURS[i].NEUTREAR, -0x80 + hard.MOTEURS[i].NEUTREAR, 0, hard.MOTEURS[i].PWMMIN, pwmNeutre);
    else if(moteurs[i] > 0)
     pwm = map(moteurs[i] + hard.MOTEURS[i].NEUTREAV, 0, 0x80 + hard.MOTEURS[i].NEUTREAV, pwmNeutre, hard.MOTEURS[i].PWMMAX);
    else
