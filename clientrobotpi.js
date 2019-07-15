@@ -473,13 +473,14 @@ CONF.SERVEURS.forEach(function(serveur) {
 
   for(let i = 0; i < hard.MOTEURS.length; i++) {
    let pwm;
+   let pwmNeutre = (hard.MOTEURS[i].PWMMAX + hard.MOTEURS[i].PWMMIN) / 2;
 
    if(moteurs[i] < 0)
-    pwm = map(moteurs[i] + hard.MOTEURS[i].NEUTREAR, -0x80 + hard.MOTEURS[i].NEUTREAR, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX);
+    pwm = map(moteurs[i] + hard.MOTEURS[i].NEUTREAR, -0x80 + hard.MOTEURS[i].NEUTREAR, 0x80, hard.MOTEURS[i].PWMMIN, pwmNeutre);
    else if(moteurs[i] > 0)
-    pwm = map(moteurs[i] + hard.MOTEURS[i].NEUTREAV, -0x80, 0x80 + hard.MOTEURS[i].NEUTREAV, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX);
+    pwm = map(moteurs[i] + hard.MOTEURS[i].NEUTREAV, 0, 0x80 + hard.MOTEURS[i].NEUTREAV, pwmNeutre, hard.MOTEURS[i].PWMMAX);
    else
-    pwm = map(0, -0x80, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX);
+    pwm = pwmNeutre;
 
    PWMDMA.add_channel_pulse(CANALDMA, hard.MOTEURS[i].PIN, 0, pwm);
   }
