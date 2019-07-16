@@ -33,9 +33,6 @@ then
  exit 1
 fi
 
-# Temporary
-rm -f $BASEDIR/clientrobotpilog.txt
-
 check package.json
 
 cd $BASEDIR
