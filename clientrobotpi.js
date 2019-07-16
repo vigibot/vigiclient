@@ -8,8 +8,7 @@ const PORTROBOTS = 86;
 const PORTTCPVIDEO = 8003;
 const PORTTCPAUDIO = 8004;
 
-const REPERTOIRETXT = ".";
-const FICHIERLOG = "clientrobotpilog.txt";
+const FICHIERLOG = "/var/log/vigiclient.log";
 
 const INTERFACEWIFI = "wlan0";
 const FICHIERSTATS = "/proc/net/wireless";
@@ -134,7 +133,7 @@ function trace(message) {
 
  trace += " | " + message;
 
- FS.appendFile(REPERTOIRETXT + "/" + FICHIERLOG, trace + "\n", function(err) {
+ FS.appendFile(FICHIERLOG, trace + "\n", function(err) {
  });
 
  CONF.SERVEURS.forEach(function(serveur) {
