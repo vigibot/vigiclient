@@ -51,8 +51,11 @@ then
   echo Success >> npm.log
  } || {
   rm -rf node_modules
-  mv node_modules.old node_modules
-  echo Rollback >> npm.log
+  mv node_modules.old node_modules && {
+   echo Rollback >> npm.log
+  } || {
+   echo Rollback impossible >> npm.log
+  }
  }
 fi
 
