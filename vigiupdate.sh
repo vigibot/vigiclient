@@ -54,7 +54,7 @@ then
   mv node_modules.old node_modules && {
    echo Rollback >> npm.log
   } || {
-   echo Can't rollback >> npm.log
+   echo "Can't rollback" >> npm.log
   }
  }
 fi
