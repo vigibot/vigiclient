@@ -266,7 +266,12 @@ function confVideo() {
 function confDynamiqueVideo() {
  trace("Modification de la configuration Video4Linux");
 
- exec(0, "v4l2-ctl", V4L2 + " -c rotate=" + confDynamique.ROTATION +
+ exec(0, "v4l2-ctl", V4L2 + " -c h264_profile=0" +
+                               ",repeat_sequence_header=1" +
+                               ",white_balance_auto_preset=0" +
+                               ",red_balance=1300" +
+                               ",blue_balance=1300" +
+                               ",rotate=" + confDynamique.ROTATION +
                                ",video_bitrate=" + confDynamique.BITRATE +
                                ",brightness=" + confDynamique.LUMINOSITE +
                                ",contrast=" + confDynamique.CONTRASTE, function(code) {
@@ -511,7 +516,7 @@ function failSafe() {
 }
 
 setInterval(function() {
- if(!up)
+ if(!up || !init)
   return;
 
  let latencePredictive = Math.max(latence, Date.now() - lastTimestamp);
