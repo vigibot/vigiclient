@@ -9,9 +9,9 @@ BASEDIR=/usr/local/vigiclient
 updated=no
 
 function check() {
- before=$(date -r $BASEDIR/$1 +%s || echo 0)
- wget $BASEURL/$1 -P $BASEDIR -N
- after=$(date -r $BASEDIR/$1 +%s)
+ before=$(date -r $1/$2 +%s || echo 0)
+ wget $BASEURL/$2 -P $1 -N
+ after=$(date -r $1/$2 +%s)
 
  if [ $before != $after ]
  then
@@ -19,7 +19,7 @@ function check() {
  fi
 }
 
-check vigiupdate.sh
+check $BASEDIR vigiupdate.sh
 
 if [ $updated == "yes" ]
 then
@@ -27,13 +27,21 @@ then
  exit 0
 fi
 
+check /etc/systemd/system/ vigiclient.service
+
+if [ $updated == "yes" ]
+then
+ echo Updating systemd unit file
+ sudo reboot
+fi
+
 if pidof -x $0 -o $$ > /dev/null
 then
- echo Only one instance is allowed
+ echo Only one instance is allowed from here
  exit 1
 fi
 
-check package.json
+check $BASEDIR package.json
 
 cd $BASEDIR
 
@@ -59,8 +67,8 @@ then
  }
 fi
 
-check clientrobotpi.js
-check trame.js
+check $BASEDIR clientrobotpi.js
+check $BASEDIR trame.js
 
 if [ $updated == "yes" ]
 then

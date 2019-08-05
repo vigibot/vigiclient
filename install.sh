@@ -44,6 +44,6 @@ wget $BASEURL/vigicron -P /etc/cron.d -N
 echo "Adding the default config file"
 wget $BASEURL/robot.json -P /boot -N
 
-echo "Service installation"
+echo "Systemd unit file installation"
 wget $BASEURL/vigiclient.service -P /etc/systemd/system -N
 systemctl enable vigiclient
