@@ -2,6 +2,10 @@
 
 ## Installation on a clean Raspbian Stretch Lite
 
+### Everything is already done
+
+- You can directly download the image https://www.vigibot.com/vigimage/vigimage.zip and jump to the "Windows or Linux headless installation" part from https://github.com/vigibot/vigimage
+
 ### Prerequisites
 
 - Flash the last Raspbian Stretch Lite image: https://www.vigibot.com/raspbian/raspbian_lite-2019-04-09
