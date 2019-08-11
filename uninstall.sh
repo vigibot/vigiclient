@@ -36,5 +36,5 @@ rm -f /boot/robot.json
 echo "Cleaning"
 rm -rf $BASEDIR
 
-echo "To uninstall FFmpeg and Node.js please do:"
-echo "sudo apt remove --purge ffmpeg npm"
+echo "To uninstall eSpeak, FFmpeg and Node.js please do:"
+echo "sudo apt remove --purge espeak ffmpeg npm"
