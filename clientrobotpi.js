@@ -71,6 +71,7 @@ let serveurCourant = "";
 
 let up = false;
 let init = false;
+let initVideo = false;
 let conf;
 let hard;
 let tx;
@@ -234,7 +235,7 @@ function confUnique() {
   RPIO.open(hard.INTERRUPTEURSPIN[i], RPIO.OUTPUT, hard.INVERSEURS[i]);
 }
 
-function confVideo() {
+function confVideo(callback) {
  cmdDiffusion = CONF.CMDDIFFUSION.join("").replace("SOURCEVIDEO", confStatique.SOURCE
                                          ).replace("PORTTCPVIDEO", PORTTCPVIDEO
                                          ).replace("ROTATIONVIDEO", confDynamique.ROTATION
@@ -259,6 +260,7 @@ function confVideo() {
                                 ",contrast=" + confDynamique.CONTRASTE, function(code) {
    if(up)
     diffusion();
+   callback(code);
   });
  });
 }
@@ -322,7 +324,9 @@ CONF.SERVEURS.forEach(function(serveur) {
   confStatique = conf.CONFSSTATIQUE[oldIdConfStatique];
   confDynamique = conf.CONFSDYNAMIQUE[oldIdConfDynamique];
 
-  confVideo();
+  confVideo(function(code) {
+   initVideo = true;
+  });
 
   if(!init) {
    init = true;
@@ -344,7 +348,7 @@ CONF.SERVEURS.forEach(function(serveur) {
  });
 
  sockets[serveur].on("clientsrobotdebout", function() {
-  if(!init) {
+  if(!init || !initVideo) {
    trace("Ce robot n'est pas initialisé");
    notification(serveur, "Ce robot n'est pas initialisé", "error");
    sockets[serveur].emit("serveurrobotdebout", false);
@@ -439,7 +443,8 @@ CONF.SERVEURS.forEach(function(serveur) {
    if(idConfStatique != oldIdConfStatique) {
     confStatique = conf.CONFSSTATIQUE[idConfStatique];
     confDynamique = conf.CONFSDYNAMIQUE[idConfDynamique];
-    confVideo();
+    confVideo(function(code) {
+    });
    } else if(idConfDynamique != oldIdConfDynamique) {
     confDynamique = conf.CONFSDYNAMIQUE[idConfDynamique];
     confDynamiqueVideo();
