@@ -377,13 +377,11 @@ CONF.SERVEURS.forEach(function(serveur) {
  });
 
  sockets[serveur].on("clientsrobottts", function(data) {
-  FS.writeFile("/tmp/pico2wave.txt", data, function(err) {
+  FS.writeFile("/tmp/tts.txt", data, function(err) {
    if(err)
     trace(err);
-   exec(0, "Pico2wave", '/usr/bin/pico2wave -l fr-FR -w /tmp/pico2wave.wav "$(cat /tmp/pico2wave.txt)"', function(code) {
-    exec(0, "Sox", "/usr/bin/sox /tmp/pico2wave.wav /tmp/sox.wav treble +12", function(code) {
-     exec(0, "Aplay", "/usr/bin/aplay -D plughw:1 /tmp/sox.wav", function(code) {
-     });
+   exec(0, "eSpeak", "/usr/bin/espeak -v fr -f /tmp/tts.txt --stdout > /tmp/tts.wav", function(code) {
+    exec(0, "Aplay", "/usr/bin/aplay -D plughw:1 /tmp/tts.wav", function(code) {
     });
    });
   });
