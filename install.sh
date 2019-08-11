@@ -23,9 +23,9 @@ fgrep gpu_mem=128 /boot/config.txt || echo gpu_mem=128 >> /boot/config.txt
 echo "Enable Video4Linux"
 fgrep bcm2835-v4l2 /etc/modules || echo bcm2835-v4l2 >> /etc/modules
 
-echo "FFmpeg and Node.js installation"
+echo "eSpeak, FFmpeg and Node.js installation"
 apt update
-apt install -y ffmpeg npm
+apt install -y espeak ffmpeg npm
 
 echo "Cleaning"
 rm -rf $BASEDIR
