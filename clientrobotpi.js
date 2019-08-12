@@ -44,9 +44,6 @@ const BITRATEVIDEOFAIBLE = 100000;
 const TXRATE = 50;
 const BEACONRATE = 10000;
 
-const CANALDMA = 14;
-const PWMRATE = 20000;
-
 const SEPARATEURNALU = new Buffer.from([0, 0, 0, 1]);
 
 const GAUGESLAVEADDRESS = 0x62;
@@ -62,7 +59,7 @@ const NET = require("net");
 const SPLIT = require("stream-split");
 const HTTP = require("http");
 const RPIO = require("rpio");
-const PWMDMA = require("rpio-pwm");
+const GPIO = require('pigpio').Gpio;
 
 const VERSION = Math.trunc(FS.statSync(__filename).mtimeMs);
 
@@ -94,6 +91,10 @@ let rattrapage = {};
 
 let gaugeBuffer = new Buffer.alloc(256);
 
+let gpioOutils = [];
+let gpioMoteurs = [];
+let gpioInterrupteurs = [];
+
 if(typeof CONF.CMDDIFFUSION === "undefined")
  CONF.CMDDIFFUSION = CMDDIFFUSION;
 
@@ -110,11 +111,6 @@ RPIO.i2cBegin();
 RPIO.i2cSetSlaveAddress(GAUGESLAVEADDRESS);
 RPIO.i2cSetBaudRate(GAUGEBAUDRATE);
 RPIO.i2cWrite(GAUGEWAKEUP);
-
-trace("Initialisation PWM DMA");
-
-PWMDMA.setup(1);
-PWMDMA.init_channel(CANALDMA, PWMRATE);
 
 trace("Démarrage du client");
 
@@ -212,7 +208,7 @@ function dodo() {
  failSafe();
 
  for(let i = 0; i < 8; i++)
-  RPIO.write(hard.INTERRUPTEURSPIN[i], hard.INVERSEURS[i]);
+  gpioInterrupteurs[i].digitalWrite(hard.INVERSEURS[i]);
 
  sighup(0, "Diffusion", "processdiffusion", function(code) {
  });
@@ -226,13 +222,16 @@ function dodo() {
 function confUnique() {
  trace("Initialisation des I/O Raspberry PI");
 
- RPIO.init({
-  gpiomem: false,
-  mapping: "gpio"
- });
+ for(let i = 0; i < hard.OUTILS.length; i++)
+  gpioOutils[i] = new GPIO(hard.OUTILS[i].PIN, {mode: GPIO.OUTPUT});
 
- for(let i = 0; i < 8; i++)
-  RPIO.open(hard.INTERRUPTEURSPIN[i], RPIO.OUTPUT, hard.INVERSEURS[i]);
+ for(let i = 0; i < hard.MOTEURS.length; i++)
+  gpioMoteurs[i] = new GPIO(hard.MOTEURS[i].PIN, {mode: GPIO.OUTPUT});
+
+ for(let i = 0; i < 8; i++) {
+  gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURSPIN[i], {mode: GPIO.OUTPUT});
+  gpioInterrupteurs[i].digitalWrite(hard.INVERSEURS[i]);
+ }
 }
 
 function confVideo(callback) {
@@ -468,9 +467,10 @@ CONF.SERVEURS.forEach(function(serveur) {
    outils[i] = constrain(tx.outils[i] + rattrapage[i] + hard.OUTILS[i].ANGLEOFFSET * 0x10000 / 360, (hard.OUTILS[i].ANGLEMIN + 180) * 0x10000 / 360,
                                                                                                     (hard.OUTILS[i].ANGLEMAX + 180) * 0x10000 / 360);
 
-   PWMDMA.add_channel_pulse(CANALDMA, hard.OUTILS[i].PIN, 0,
-                            map(outils[i], (hard.OUTILS[i].ANGLEMIN + 180) * 0x10000 / 360,
-                                           (hard.OUTILS[i].ANGLEMAX + 180) * 0x10000 / 360, hard.OUTILS[i].PWMMIN, hard.OUTILS[i].PWMMAX));
+   let pwm = map(outils[i], (hard.OUTILS[i].ANGLEMIN + 180) * 0x10000 / 360,
+                            (hard.OUTILS[i].ANGLEMAX + 180) * 0x10000 / 360, hard.OUTILS[i].PWMMIN, hard.OUTILS[i].PWMMAX);
+
+   gpioOutils[i].servoWrite(pwm);
   }
 
   let moteurs = [];
@@ -489,11 +489,11 @@ CONF.SERVEURS.forEach(function(serveur) {
    else
     pwm = pwmNeutre;
 
-   PWMDMA.add_channel_pulse(CANALDMA, hard.MOTEURS[i].PIN, 0, pwm);
+   gpioMoteurs[i].servoWrite(pwm);
   }
 
   for(let i = 0; i < 8; i++)
-   RPIO.write(hard.INTERRUPTEURSPIN[i], tx.interrupteurs >> i & 1 ^ hard.INVERSEURS[i]);
+   gpioInterrupteurs[i].digitalWrite(tx.interrupteurs >> i & 1 ^ hard.INVERSEURS[i]);
 
   rx.sync[1] = FRAME1R;
   for(let i = 0; i < conf.TX.OUTILS.length; i++)
@@ -515,7 +515,7 @@ function failSafe() {
  trace("Arrêt des moteurs");
 
  for(let i = 0; i < hard.MOTEURS.length; i++)
-  PWMDMA.add_channel_pulse(CANALDMA, hard.MOTEURS[i].PIN, 0, map(0, -0x80, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
+  gpioMoteurs[i].servoWrite(map(0, -0x80, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
 }
 
 setInterval(function() {

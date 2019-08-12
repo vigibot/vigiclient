@@ -47,6 +47,10 @@ cd $BASEDIR
 
 if [ $updated == "yes" -o ! -d node_modules ]
 then
+ # Temporary
+ apt update
+ apt install -y pigpio
+
  rm -rf node_modules.old
 
  if [ -d node_modules ]

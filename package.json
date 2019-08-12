@@ -5,7 +5,7 @@
   "main": "clientrobotpi.js",
   "dependencies": {
     "rpio": "^1.0.13",
-    "rpio-pwm": "^0.2.1",
+    "pigpio": "^1.2.3",
     "socket.io-client": "^2.2.0",
     "stream-split": "^1.1.0"
   },
