@@ -59,7 +59,7 @@ const NET = require("net");
 const SPLIT = require("stream-split");
 const HTTP = require("http");
 const RPIO = require("rpio");
-const GPIO = require('pigpio').Gpio;
+const GPIO = require("pigpio").Gpio;
 
 const VERSION = Math.trunc(FS.statSync(__filename).mtimeMs);
 
