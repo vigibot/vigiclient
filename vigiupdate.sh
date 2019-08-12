@@ -54,6 +54,8 @@ then
   mv node_modules node_modules.old
  fi
 
+ npm cache clean --force
+
  npm install > npm.log 2>&1 && {
   rm -rf node_modules.old
   echo Success >> npm.log
