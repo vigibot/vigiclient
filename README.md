@@ -1,14 +1,14 @@
 # Make your own Vigibot.com raspberry PI robot
 
-## Installation on a clean Raspbian Stretch Lite
+## Installation on a clean Raspbian Buster Lite
 
 ### Everything is already done
 
-- You can directly download the image https://www.vigibot.com/vigimage/vigimage.zip and jump to the "Windows or Linux headless installation" part from https://github.com/vigibot/vigimage
+- You can directly jump to the "Windows or Linux headless installation" on https://github.com/vigibot/vigimage
 
 ### Prerequisites
 
-- Flash the last Raspbian Stretch Lite image: https://www.vigibot.com/raspbian/raspbian_lite-2019-04-09
+- Flash the last Raspbian Buster Lite image: https://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2019-07-12 or https://www.vigibot.com/raspbian/raspbian_lite-2019-07-12
 - Put your "wpa_supplicant.conf" and an empty "ssh" file inside the boot partition
 - Connect to your Raspberry Pi via SSH
 - sudo apt update
