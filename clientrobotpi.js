@@ -47,7 +47,6 @@ const BEACONRATE = 10000;
 const SEPARATEURNALU = new Buffer.from([0, 0, 0, 1]);
 
 const GAUGESLAVEADDRESS = 0x62;
-const GAUGEBAUDRATE = 400000;
 const GAUGEWAKEUP = new Buffer.from([0x0a, 0x00]);
 const GAUGERATE = 250;
 
@@ -58,8 +57,8 @@ const RL = require("readline");
 const NET = require("net");
 const SPLIT = require("stream-split");
 const HTTP = require("http");
-const RPIO = require("rpio");
 const GPIO = require("pigpio").Gpio;
+const I2C = require("i2c-bus");
 
 const VERSION = Math.trunc(FS.statSync(__filename).mtimeMs);
 
@@ -89,11 +88,12 @@ let alarmeLatence = false;
 let old = {};
 let rattrapage = {};
 
-let gaugeBuffer = new Buffer.alloc(256);
-
 let gpioOutils = [];
 let gpioMoteurs = [];
 let gpioInterrupteurs = [];
+
+let i2c;
+let gaugeBuffer = new Buffer.alloc(256);
 
 if(typeof CONF.CMDDIFFUSION === "undefined")
  CONF.CMDDIFFUSION = CMDDIFFUSION;
@@ -107,10 +107,8 @@ CONF.SERVEURS.forEach(function(serveur) {
 
 trace("Initialisation I2C");
 
-RPIO.i2cBegin();
-RPIO.i2cSetSlaveAddress(GAUGESLAVEADDRESS);
-RPIO.i2cSetBaudRate(GAUGEBAUDRATE);
-RPIO.i2cWrite(GAUGEWAKEUP);
+i2c = I2C.openSync(1);
+i2c.i2cWriteSync(GAUGESLAVEADDRESS, 2, GAUGEWAKEUP);
 
 trace("Démarrage du client");
 
@@ -542,7 +540,8 @@ setInterval(function() {
  if(!init)
   return;
 
- RPIO.i2cRead(gaugeBuffer);
+ i2c.i2cReadSync(GAUGESLAVEADDRESS, 256, gaugeBuffer);
+
  let microVolts = ((gaugeBuffer[247] << 8) + gaugeBuffer[248]) * 305;
  let pour25600 = (gaugeBuffer[249] << 8) + gaugeBuffer[250];
 

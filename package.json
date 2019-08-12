@@ -4,8 +4,8 @@
   "description": "Raspberry PI robot client for Vigibot.com",
   "main": "clientrobotpi.js",
   "dependencies": {
-    "rpio": "^1.0.13",
     "pigpio": "^1.2.3",
+    "i2c-bus": "^4.0.10",
     "socket.io-client": "^2.2.0",
     "stream-split": "^1.1.0"
   },
