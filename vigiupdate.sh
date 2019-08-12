@@ -47,7 +47,7 @@ cd $BASEDIR
 
 if [ $updated == "yes" -o ! -d node_modules ]
 then
- rm -rf node_modules.old
+ rm -rf node_modules.old package-lock.json
 
  if [ -d node_modules ]
  then
