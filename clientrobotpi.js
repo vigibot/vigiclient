@@ -93,6 +93,7 @@ let gpioMoteurs = [];
 let gpioInterrupteurs = [];
 
 let i2c;
+let i2cEnabled = true;
 let gaugeBuffer = new Buffer.alloc(256);
 
 if(typeof CONF.CMDDIFFUSION === "undefined")
@@ -108,7 +109,14 @@ CONF.SERVEURS.forEach(function(serveur) {
 trace("Initialisation I2C");
 
 i2c = I2C.openSync(1);
-i2c.i2cWriteSync(GAUGESLAVEADDRESS, 2, GAUGEWAKEUP);
+
+try {
+ i2c.i2cWriteSync(GAUGESLAVEADDRESS, 2, GAUGEWAKEUP);
+} catch(err) {
+ trace("I2C désactivé");
+ i2c.closeSync();
+ i2cEnabled = false;
+}
 
 trace("Démarrage du client");
 
@@ -536,18 +544,20 @@ setInterval(function() {
  }
 }, TXRATE);
 
-setInterval(function() {
- if(!init)
-  return;
+if(i2cEnabled) {
+ setInterval(function() {
+  if(!init)
+   return;
 
- i2c.i2cReadSync(GAUGESLAVEADDRESS, 256, gaugeBuffer);
+  i2c.i2cReadSync(GAUGESLAVEADDRESS, 256, gaugeBuffer);
 
- let microVolts = ((gaugeBuffer[247] << 8) + gaugeBuffer[248]) * 305;
- let pour25600 = (gaugeBuffer[249] << 8) + gaugeBuffer[250];
+  let microVolts = ((gaugeBuffer[247] << 8) + gaugeBuffer[248]) * 305;
+  let pour25600 = (gaugeBuffer[249] << 8) + gaugeBuffer[250];
 
- rx.setValeur16(0, microVolts / 1000000);
- rx.setValeur16(1, pour25600 / 256);
-}, GAUGERATE);
+  rx.setValeur16(0, microVolts / 1000000);
+  rx.setValeur16(1, pour25600 / 256);
+ }, GAUGERATE);
+}
 
 setInterval(function() {
  if(!init)
