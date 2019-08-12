@@ -47,10 +47,6 @@ cd $BASEDIR
 
 if [ $updated == "yes" -o ! -d node_modules ]
 then
- # Temporary
- sudo apt update
- sudo apt install -y pigpio
-
  rm -rf node_modules.old
 
  if [ -d node_modules ]
@@ -69,9 +65,6 @@ then
    echo "Can't rollback" >> npm.log
   }
  }
-
- # Temporary
- sudo reboot
 fi
 
 check $BASEDIR clientrobotpi.js
