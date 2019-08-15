@@ -482,9 +482,9 @@ CONF.SERVEURS.forEach(function(serveur) {
   let moteurs = [];
 
   for(let i = 0; i < hard.MIXAGESMOTEURS.length; i++)
-   moteurs[i] = constrain(tx.vitesses[0] * hard.MIXAGESMOTEURS[0][i] +
-                          tx.vitesses[1] * hard.MIXAGESMOTEURS[1][i] +
-                          tx.vitesses[2] * hard.MIXAGESMOTEURS[2][i], -0x80, 0x80);
+   moteurs[i] = constrain(tx.vitesses[0] * hard.MIXAGESMOTEURS[i][0] +
+                          tx.vitesses[1] * hard.MIXAGESMOTEURS[i][1] +
+                          tx.vitesses[2] * hard.MIXAGESMOTEURS[i][2], -0x80, 0x80);
 
   for(let i = 0; i < hard.MOTEURS.length; i++) {
    let pwm;
