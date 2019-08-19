@@ -485,23 +485,25 @@ CONF.SERVEURS.forEach(function(serveur) {
    oldCamera = camera;
   }
 
-  let outils = [];
+  if(tx.outils.length == hard.OUTILS.length) {
+   let outils = [];
 
-  for(let i = 0; i < hard.OUTILS.length; i++) {
-   if(tx.outils[i] < old[i])
-    rattrapage[i] = -hard.OUTILS[i].RATTRAPAGE * 0x10000 / 360;
-   else if(tx.outils[i] > old[i])
-    rattrapage[i] = hard.OUTILS[i].RATTRAPAGE * 0x10000 / 360;
+   for(let i = 0; i < hard.OUTILS.length; i++) {
+    if(tx.outils[i] < old[i])
+     rattrapage[i] = -hard.OUTILS[i].RATTRAPAGE * 0x10000 / 360;
+    else if(tx.outils[i] > old[i])
+     rattrapage[i] = hard.OUTILS[i].RATTRAPAGE * 0x10000 / 360;
 
-   old[i] = tx.outils[i];
+    old[i] = tx.outils[i];
 
-   outils[i] = constrain(tx.outils[i] + rattrapage[i] + hard.OUTILS[i].ANGLEOFFSET * 0x10000 / 360, (hard.OUTILS[i].ANGLEMIN + 180) * 0x10000 / 360,
-                                                                                                    (hard.OUTILS[i].ANGLEMAX + 180) * 0x10000 / 360);
+    outils[i] = constrain(tx.outils[i] + rattrapage[i] + hard.OUTILS[i].ANGLEOFFSET * 0x10000 / 360, (hard.OUTILS[i].ANGLEMIN + 180) * 0x10000 / 360,
+                                                                                                     (hard.OUTILS[i].ANGLEMAX + 180) * 0x10000 / 360);
 
-   let pwm = map(outils[i], (hard.OUTILS[i].ANGLEMIN + 180) * 0x10000 / 360,
-                            (hard.OUTILS[i].ANGLEMAX + 180) * 0x10000 / 360, hard.OUTILS[i].PWMMIN, hard.OUTILS[i].PWMMAX);
+    let pwm = map(outils[i], (hard.OUTILS[i].ANGLEMIN + 180) * 0x10000 / 360,
+                             (hard.OUTILS[i].ANGLEMAX + 180) * 0x10000 / 360, hard.OUTILS[i].PWMMIN, hard.OUTILS[i].PWMMAX);
 
-   gpioOutils[i].servoWrite(pwm);
+    gpioOutils[i].servoWrite(pwm);
+   }
   }
 
   let moteurs = [];
