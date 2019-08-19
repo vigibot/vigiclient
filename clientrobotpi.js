@@ -526,7 +526,7 @@ CONF.SERVEURS.forEach(function(serveur) {
   }
 
   for(let i = 0; i < 8; i++)
-   gpioInterrupteurs[i].digitalWrite(tx.interrupteurs >> i & 1 ^ hard.INVERSEURS[i]);
+   gpioInterrupteurs[i].digitalWrite(tx.interrupteurs[0] >> i & 1 ^ hard.INVERSEURS[i]);
 
   rx.sync[1] = FRAME1R;
   for(let i = 0; i < conf.TX.OUTILS.length; i++)
