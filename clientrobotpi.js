@@ -225,21 +225,6 @@ function dodo() {
  up = false;
 }
 
-function confUnique() {
- trace("Initialisation des I/O Raspberry PI");
-
- for(let i = 0; i < hard.OUTILS.length; i++)
-  gpioOutils[i] = new GPIO(hard.OUTILS[i].PIN, {mode: GPIO.OUTPUT});
-
- for(let i = 0; i < hard.MOTEURS.length; i++)
-  gpioMoteurs[i] = new GPIO(hard.MOTEURS[i].PIN, {mode: GPIO.OUTPUT});
-
- for(let i = 0; i < 8; i++) {
-  gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURSPIN[i], {mode: GPIO.OUTPUT});
-  gpioInterrupteurs[i].digitalWrite(hard.INVERSEURS[i]);
- }
-}
-
 function confVideo(callback) {
  cmdDiffusion = CONF.CMDDIFFUSION.join("").replace("SOURCEVIDEO", confStatique.SOURCE
                                          ).replace("PORTTCPVIDEO", PORTTCPVIDEO
@@ -333,10 +318,36 @@ CONF.SERVEURS.forEach(function(serveur) {
    initVideo = true;
   });
 
-  if(!init) {
-   init = true;
-   confUnique();
+  trace("Initialisation des I/O Raspberry PI");
+
+  gpioOutils.forEach(function(gpio) {
+   gpio.mode(GPIO.INPUT);
+  });
+
+  gpioMoteurs.forEach(function(gpio) {
+   gpio.mode(GPIO.INPUT);
+  });
+
+  gpioInterrupteurs.forEach(function(gpio) {
+   gpio.mode(GPIO.INPUT);
+  });
+
+  gpioOutils = [];
+  gpioMoteurs = [];
+  gpioInterrupteurs = [];
+
+  for(let i = 0; i < hard.OUTILS.length; i++)
+   gpioOutils[i] = new GPIO(hard.OUTILS[i].PIN, {mode: GPIO.OUTPUT});
+
+  for(let i = 0; i < hard.MOTEURS.length; i++)
+   gpioMoteurs[i] = new GPIO(hard.MOTEURS[i].PIN, {mode: GPIO.OUTPUT});
+
+  for(let i = 0; i < 8; i++) {
+   gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURSPIN[i], {mode: GPIO.OUTPUT});
+   gpioInterrupteurs[i].digitalWrite(hard.INVERSEURS[i]);
   }
+
+  init = true;
  });
 
  sockets[serveur].on("disconnect", function() {
