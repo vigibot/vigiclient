@@ -43,6 +43,11 @@ then
  exit 1
 fi
 
+/usr/bin/timedatectl status | fgrep "System clock synchronized: yes" > /dev/null || {
+ echo System clock must be synchronized from here
+ exit 1
+}
+
 check $BASEDIR package.json
 
 cd $BASEDIR
