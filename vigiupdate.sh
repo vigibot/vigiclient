@@ -37,11 +37,6 @@ then
  sudo reboot
 fi
 
-# Temporary log clean
-rm /usr/local/vigiclient/npm.log
-rm /var/log/vigiclient.log
-rm /var/log/vigiupdate.log
-
 if pidof -x $0 -o $$ > /dev/null
 then
  echo Only one instance is allowed from here
