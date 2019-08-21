@@ -10,7 +10,7 @@ updated=no
 
 function check() {
  before=$(date -r $1/$2 +%s || echo 0)
- wget $BASEURL/$2 -P $1 -N
+ wget $BASEURL/$2 -P $1 -N > /dev/null
  after=$(date -r $1/$2 +%s)
 
  if [ $before != $after ]
