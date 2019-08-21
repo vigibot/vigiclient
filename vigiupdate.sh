@@ -8,14 +8,18 @@ BASEDIR=/usr/local/vigiclient
 
 updated=no
 
-function check() {
+trace() {
+ echo "$(date "+%d/%m/%Y %H:%M:%S") $1"
+}
+
+check() {
  before=$(date -r $1/$2 +%s || echo 0)
  wget $BASEURL/$2 -P $1 -N > /dev/null 2>&1
  after=$(date -r $1/$2 +%s)
 
  if [ $before != $after ]
  then
-  echo "$1/$2 is updated"
+  trace "$1/$2 is updated"
   updated=yes
  fi
 }
@@ -24,7 +28,7 @@ check $BASEDIR vigiupdate.sh
 
 if [ $updated == "yes" ]
 then
- echo Exiting
+ trace "Exiting"
  exit 0
 fi
 
@@ -32,9 +36,9 @@ check /etc/cron.d vigicron
 
 if [ $updated == "yes" ]
 then
- echo Purging updater log
+ trace "Purging updater log"
  rm -f /var/log/vigiupdate.log
- echo Exiting
+ trace "Exiting"
  exit 0
 fi
 
@@ -42,18 +46,18 @@ check /etc/systemd/system vigiclient.service
 
 if [ $updated == "yes" ]
 then
- echo Rebooting
+ trace "Rebooting"
  sudo reboot
 fi
 
 if pidof -x $0 -o $$ > /dev/null
 then
- echo Only one instance is allowed from here
+ trace "Only one instance is allowed from here"
  exit 1
 fi
 
 timedatectl status | fgrep "System clock synchronized: yes" > /dev/null || {
- echo System clock must be synchronized from here
+ trace "System clock must be synchronized from here"
  exit 1
 }
 
@@ -74,13 +78,13 @@ then
 
  npm install && {
   rm -rf node_modules.old
-  echo Success
+  trace "Success"
  } || {
   rm -rf node_modules
   mv node_modules.old node_modules && {
-   echo Rollback
+   trace "Rollback"
   } || {
-   echo "Can't rollback"
+   trace "Can't rollback"
   }
  }
 fi
@@ -90,8 +94,8 @@ check $BASEDIR trame.js
 
 if [ $updated == "yes" ]
 then
- echo Purging client log
+ trace "Purging client log"
  rm -f /var/log/vigiclient.log
- echo Restarting vigiclient
+ trace "Restarting vigiclient"
  systemctl restart vigiclient
 fi
