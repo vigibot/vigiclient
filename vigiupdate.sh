@@ -10,7 +10,7 @@ updated=no
 
 function check() {
  before=$(date -r $1/$2 +%s || echo 0)
- nice -n 19 wget $BASEURL/$2 -P $1 -N > /dev/null 2>&1
+ wget $BASEURL/$2 -P $1 -N > /dev/null 2>&1
  after=$(date -r $1/$2 +%s)
 
  if [ $before != $after ]
@@ -43,7 +43,7 @@ then
  exit 1
 fi
 
-nice -n 19 timedatectl status | fgrep "System clock synchronized: yes" > /dev/null || {
+timedatectl status | fgrep "System clock synchronized: yes" > /dev/null || {
  echo System clock must be synchronized from here
  exit 1
 }
