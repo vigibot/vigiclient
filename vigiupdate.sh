@@ -21,10 +21,19 @@ function check() {
 }
 
 check $BASEDIR vigiupdate.sh
+
+if [ $updated == "yes" ]
+then
+ echo Exiting
+ exit 0
+fi
+
 check /etc/cron.d vigicron
 
 if [ $updated == "yes" ]
 then
+ echo Purging updater log
+ rm -f /var/log/vigiclient.log
  echo Exiting
  exit 0
 fi
@@ -81,6 +90,8 @@ check $BASEDIR trame.js
 
 if [ $updated == "yes" ]
 then
+ echo Purging client log
+ rm -f /var/log/vigiclient.log
  echo Restarting vigiclient
  systemctl restart vigiclient
 fi
