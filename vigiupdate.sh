@@ -15,6 +15,7 @@ function check() {
 
  if [ $before != $after ]
  then
+  echo "$1/$2 is updated"
   updated=yes
  fi
 }
@@ -24,7 +25,7 @@ check /etc/cron.d vigicron
 
 if [ $updated == "yes" ]
 then
- echo Self-updating script
+ echo Exiting
  exit 0
 fi
 
@@ -32,7 +33,7 @@ check /etc/systemd/system vigiclient.service
 
 if [ $updated == "yes" ]
 then
- echo Updating systemd unit file
+ echo Rebooting
  sudo reboot
 fi
 
@@ -57,15 +58,15 @@ then
 
  npm cache clean --force
 
- npm install > npm.log 2>&1 && {
+ npm install && {
   rm -rf node_modules.old
-  echo Success >> npm.log
+  echo Success
  } || {
   rm -rf node_modules
   mv node_modules.old node_modules && {
-   echo Rollback >> npm.log
+   echo Rollback
   } || {
-   echo "Can't rollback" >> npm.log
+   echo "Can't rollback"
   }
  }
 fi
@@ -75,5 +76,6 @@ check $BASEDIR trame.js
 
 if [ $updated == "yes" ]
 then
+ echo Restarting vigiclient
  systemctl restart vigiclient
 fi
