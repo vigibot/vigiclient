@@ -20,6 +20,7 @@ function check() {
 }
 
 check $BASEDIR vigiupdate.sh
+check /etc/cron.d vigicron
 
 if [ $updated == "yes" ]
 then
@@ -27,7 +28,7 @@ then
  exit 0
 fi
 
-check /etc/systemd/system/ vigiclient.service
+check /etc/systemd/system vigiclient.service
 
 if [ $updated == "yes" ]
 then
