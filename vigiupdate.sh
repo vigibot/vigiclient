@@ -33,7 +33,7 @@ check /etc/cron.d vigicron
 if [ $updated == "yes" ]
 then
  echo Purging updater log
- rm -f /var/log/vigiclient.log
+ rm -f /var/log/vigiupdate.log
  echo Exiting
  exit 0
 fi
