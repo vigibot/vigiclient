@@ -496,11 +496,11 @@ CONF.SERVEURS.forEach(function(serveur) {
 
     old[i] = tx.outils[i];
 
-    outils[i] = constrain(tx.outils[i] + rattrapage[i] + hard.OUTILS[i].ANGLEOFFSET * 0x10000 / 360, (hard.OUTILS[i].ANGLEMIN + 180) * 0x10000 / 360,
-                                                                                                     (hard.OUTILS[i].ANGLEMAX + 180) * 0x10000 / 360);
+    outils[i] = constrain(tx.outils[i] + rattrapage[i], (-hard.OUTILS[i].COURSE / 2 + 180) * 0x10000 / 360,
+                                                        (hard.OUTILS[i].COURSE / 2 + 180) * 0x10000 / 360);
 
-    let pwm = map(outils[i], (hard.OUTILS[i].ANGLEMIN + 180) * 0x10000 / 360,
-                             (hard.OUTILS[i].ANGLEMAX + 180) * 0x10000 / 360, hard.OUTILS[i].PWMMIN, hard.OUTILS[i].PWMMAX);
+    let pwm = map(outils[i], (-hard.OUTILS[i].COURSE / 2 + 180) * 0x10000 / 360,
+                             (hard.OUTILS[i].COURSE / 2 + 180) * 0x10000 / 360, hard.OUTILS[i].PWMMIN, hard.OUTILS[i].PWMMAX);
 
     gpioOutils[i].servoWrite(pwm);
    }
