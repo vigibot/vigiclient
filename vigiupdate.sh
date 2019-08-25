@@ -56,7 +56,7 @@ then
  exit 1
 fi
 
-timedatectl status | fgrep "System clock synchronized: yes" > /dev/null || {
+timedatectl status | fgrep "synchronized: yes" > /dev/null || {
  trace "System clock must be synchronized from here"
  exit 1
 }
