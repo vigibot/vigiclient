@@ -50,6 +50,7 @@ const GAUGESLAVEADDRESS = 0x62;
 const GAUGEWAKEUP = new Buffer.from([0x0a, 0x00]);
 const GAUGERATE = 250;
 
+const OS = require("os");
 const FS = require("fs");
 const IO = require("socket.io-client");
 const EXEC = require("child_process").exec;
@@ -61,6 +62,8 @@ const GPIO = require("pigpio").Gpio;
 const I2C = require("i2c-bus");
 
 const VERSION = Math.trunc(FS.statSync(__filename).mtimeMs);
+const PROCESSTIME = Date.now();
+const OSTIME = PROCESSTIME - OS.uptime() * 1000;
 
 let sockets = {};
 let serveurCourant = "";
@@ -296,7 +299,9 @@ CONF.SERVEURS.forEach(function(serveur) {
   trace("Connecté sur " + serveur + "/" + PORTROBOTS);
   sockets[serveur].emit("serveurrobotlogin", {
    conf: CONF,
-   version: VERSION
+   version: VERSION,
+   processTime: PROCESSTIME,
+   osTime: OSTIME
   });
  });
 
