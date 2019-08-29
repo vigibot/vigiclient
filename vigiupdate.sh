@@ -17,7 +17,7 @@ check() {
  wget $BASEURL/$2 -P $1 -N > /dev/null 2>&1
  after=$(date -r $1/$2 +%s)
 
- if [ $before != $after ]
+ if [ $after -gt $before ]
  then
   trace "$1/$2 is updated"
   updated=yes
