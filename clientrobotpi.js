@@ -420,7 +420,7 @@ CONF.SERVEURS.forEach(function(serveur) {
    if(err)
     trace(err);
    exec(0, "eSpeak", "/usr/bin/espeak -v fr -f /tmp/tts.txt --stdout > /tmp/tts.wav", function(code) {
-    exec(0, "Aplay", "/usr/bin/aplay -D plughw:1 /tmp/tts.wav", function(code) {
+    exec(0, "Aplay", "/usr/bin/aplay -D plughw:0 /tmp/tts.wav", function(code) {
     });
    });
   });
