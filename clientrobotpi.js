@@ -607,10 +607,10 @@ if(max17043) {
  setInterval(function() {
   if(!init)
    return;
-  i2c.i2cReadSync(MAX17043ADDRESS, 6, gaugeBuffer);
+  i2c.i2cReadSync(MAX17043ADDRESS, 7, gaugeBuffer);
 
-  let milliVolts = ((gaugeBuffer[3] << 8) + gaugeBuffer[2]) * 5000 / 4096;
-  let pour25600 = (gaugeBuffer[5] << 8) + gaugeBuffer[4];
+  let milliVolts = ((gaugeBuffer[3] << 8) + gaugeBuffer[4]) * 5000 / 4096;
+  let pour25600 = (gaugeBuffer[5] << 8) + gaugeBuffer[6];
 
   rx.setValeur16(0, milliVolts / 1000);
   rx.setValeur16(1, pour25600 / 256);
