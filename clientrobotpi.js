@@ -46,8 +46,9 @@ const BEACONRATE = 10000;
 
 const SEPARATEURNALU = new Buffer.from([0, 0, 0, 1]);
 
-const GAUGESLAVEADDRESS = 0x62;
-const GAUGEWAKEUP = new Buffer.from([0x0a, 0x00]);
+const CW2015ADDRESS = 0x62;
+const CW2015WAKEUP = new Buffer.from([0x0a, 0x00]);
+const MAX17043ADDRESS = 0x10;
 const GAUGERATE = 250;
 
 const OS = require("os");
@@ -96,7 +97,8 @@ let gpioMoteurs = [];
 let gpioInterrupteurs = [];
 
 let i2c;
-let i2cEnabled = true;
+let cw2015;
+let max17043;
 let gaugeBuffer = new Buffer.alloc(256);
 
 if(typeof CONF.CMDDIFFUSION === "undefined")
@@ -114,11 +116,20 @@ trace("Initialisation I2C");
 i2c = I2C.openSync(1);
 
 try {
- i2c.i2cWriteSync(GAUGESLAVEADDRESS, 2, GAUGEWAKEUP);
+ i2c.i2cWriteSync(CW2015ADDRESS, 2, CW2015WAKEUP);
+ cw2015 = true;
+ max17043 = false;
 } catch(err) {
- trace("I2C désactivé");
- i2c.closeSync();
- i2cEnabled = false;
+ try {
+  i2c.i2cReadSync(MAX17043ADDRESS, 6, gaugeBuffer);
+  cw2015 = false;
+  max17043 = true;
+ } catch(err) {
+  trace("I2C désactivé");
+  i2c.closeSync();
+  cw2015 = false;
+  max17043 = false;
+ }
 }
 
 trace("Démarrage du client");
@@ -578,17 +589,30 @@ setInterval(function() {
  }
 }, TXRATE);
 
-if(i2cEnabled) {
+if(cw2015) {
  setInterval(function() {
   if(!init)
    return;
-
-  i2c.i2cReadSync(GAUGESLAVEADDRESS, 256, gaugeBuffer);
+  i2c.i2cReadSync(CW2015ADDRESS, 256, gaugeBuffer);
 
   let microVolts = ((gaugeBuffer[247] << 8) + gaugeBuffer[248]) * 305;
   let pour25600 = (gaugeBuffer[249] << 8) + gaugeBuffer[250];
 
   rx.setValeur16(0, microVolts / 1000000);
+  rx.setValeur16(1, pour25600 / 256);
+ }, GAUGERATE);
+}
+
+if(max17043) {
+ setInterval(function() {
+  if(!init)
+   return;
+  i2c.i2cReadSync(MAX17043ADDRESS, 6, gaugeBuffer);
+
+  let milliVolts = ((gaugeBuffer[3] << 8) + gaugeBuffer[2]) * 5000 / 4096;
+  let pour25600 = (gaugeBuffer[5] << 8) + gaugeBuffer[4];
+
+  rx.setValeur16(0, milliVolts / 1000);
   rx.setValeur16(1, pour25600 / 256);
  }, GAUGERATE);
 }
