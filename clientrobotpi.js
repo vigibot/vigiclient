@@ -261,9 +261,6 @@ function confVideo(callback) {
                              " -p " + confStatique.FPS +
                              " -c h264_profile=0" +
                                 ",repeat_sequence_header=1" +
-                                ",white_balance_auto_preset=0" +
-                                ",red_balance=1300" +
-                                ",blue_balance=1300" +
                                 ",rotate=" + confDynamique.ROTATION +
                                 ",video_bitrate=" + confDynamique.BITRATE +
                                 ",brightness=" + confDynamique.LUMINOSITE +
@@ -280,9 +277,6 @@ function confDynamiqueVideo() {
 
  exec(0, "v4l2-ctl", V4L2 + " -c h264_profile=0" +
                                ",repeat_sequence_header=1" +
-                               ",white_balance_auto_preset=0" +
-                               ",red_balance=1300" +
-                               ",blue_balance=1300" +
                                ",rotate=" + confDynamique.ROTATION +
                                ",video_bitrate=" + confDynamique.BITRATE +
                                ",brightness=" + confDynamique.LUMINOSITE +
