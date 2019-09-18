@@ -14,15 +14,18 @@ const INTERFACEWIFI = "wlan0";
 const FICHIERSTATS = "/proc/net/wireless";
 const STATSRATE = 250;
 
+const PROCESSDIFFUSION = "/usr/local/vigiclient/processdiffusion";
+const PROCESSDIFFAUDIO = "/usr/local/vigiclient/processdiffaudio";
+
 const CMDDIFFUSION = [
- "/usr/local/vigiclient/processdiffusion",
+ PROCESSDIFFUSION,
  " SOURCEVIDEO",
  " | /bin/nc 127.0.0.1 PORTTCPVIDEO",
  " -w 2"
 ];
 
 const CMDDIFFAUDIO = [
- "/usr/local/vigiclient/processdiffaudio",
+ PROCESSDIFFAUDIO,
  " -loglevel fatal",
  " -f alsa",
  " -ac 1",
@@ -236,10 +239,10 @@ function dodo() {
  for(let i = 0; i < 8; i++)
   gpioInterrupteurs[i].digitalWrite(hard.INVERSEURS[i]);
 
- sighup(0, "Diffusion", "processdiffusion", function(code) {
+ sighup(0, "Diffusion", PROCESSDIFFUSION, function(code) {
  });
 
- sighup(0, "DiffAudio", "processdiffaudio", function(code) {
+ sighup(0, "DiffAudio", PROCESSDIFFAUDIO, function(code) {
  });
 
  up = false;
@@ -254,7 +257,7 @@ function confVideo(callback) {
 
  trace("Initialisation de la configuration Video4Linux");
 
- sighup(0, "Diffusion", "processdiffusion", function(code) {
+ sighup(0, "Diffusion", PROCESSDIFFUSION, function(code) {
   exec(0, "v4l2-ctl", V4L2 + " -v width=" + confStatique.WIDTH +
                                 ",height=" + confStatique.HEIGHT +
                                 ",pixelformat=4" +
