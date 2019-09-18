@@ -23,7 +23,7 @@ const CMDDIFFUSION = [
 
 const CMDDIFFAUDIO = [
  "/usr/local/vigiclient/processdiffaudio",
- " -loglevel warning",
+ " -loglevel fatal",
  " -f alsa",
  " -ac 1",
  " -i hw:1,0",
