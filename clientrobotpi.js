@@ -185,10 +185,10 @@ function constrain(n, nMin, nMax) {
  return n;
 }
 
-function sighup(timeout, nom, process, callback) {
+function sigterm(timeout, nom, process, callback) {
  setTimeout(function() {
-  trace("Envoi du signal SIGHUP au processus " + nom);
-  let processkill = EXEC("/usr/bin/killall -1 " + process);
+  trace("Envoi du signal SIGTERM au processus " + nom);
+  let processkill = EXEC("/usr/bin/killall -15 " + process);
   processkill.on("close", function(code) {
    callback(code);
   });
@@ -239,10 +239,10 @@ function dodo() {
  for(let i = 0; i < 8; i++)
   gpioInterrupteurs[i].digitalWrite(hard.INVERSEURS[i]);
 
- sighup(0, "Diffusion", PROCESSDIFFUSION, function(code) {
+ sigterm(0, "Diffusion", PROCESSDIFFUSION, function(code) {
  });
 
- sighup(0, "DiffAudio", PROCESSDIFFAUDIO, function(code) {
+ sigterm(0, "DiffAudio", PROCESSDIFFAUDIO, function(code) {
  });
 
  up = false;
@@ -257,7 +257,7 @@ function confVideo(callback) {
 
  trace("Initialisation de la configuration Video4Linux");
 
- sighup(0, "Diffusion", PROCESSDIFFUSION, function(code) {
+ sigterm(0, "Diffusion", PROCESSDIFFUSION, function(code) {
   exec(0, "v4l2-ctl", V4L2 + " -v width=" + confStatique.WIDTH +
                                 ",height=" + confStatique.HEIGHT +
                                 ",pixelformat=4" +
