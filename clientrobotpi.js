@@ -232,9 +232,9 @@ function dodo() {
   gpio.mode(GPIO.INPUT);
  });
 
- gpioMoteurs.forEach(function(gpio) {
+ /*gpioMoteurs.forEach(function(gpio) {
   gpio.mode(GPIO.INPUT);
- });
+ });*/
 
  for(let i = 0; i < 8; i++)
   gpioInterrupteurs[i].digitalWrite(hard.INVERSEURS[i]);
@@ -402,9 +402,9 @@ CONF.SERVEURS.forEach(function(serveur) {
    gpio.mode(GPIO.OUTPUT);
   });
 
-  gpioMoteurs.forEach(function(gpio) {
+  /*gpioMoteurs.forEach(function(gpio) {
    gpio.mode(GPIO.OUTPUT);
-  });
+  });*/
 
   diffusion();
   diffAudio();
