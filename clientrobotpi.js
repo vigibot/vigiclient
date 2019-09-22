@@ -409,6 +409,9 @@ CONF.SERVEURS.forEach(function(serveur) {
    gpio.mode(GPIO.OUTPUT);
   });*/
 
+  for(let i = 0; i < 8; i++)
+   setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
+
   diffusion();
   diffAudio();
 
