@@ -92,8 +92,9 @@ let latence = 0;
 let lastTrame = Date.now();
 let alarmeLatence = false;
 
-let old = {};
-let rattrapage = {};
+let old = [];
+let rattrapage = [];
+let oldTxInterrupteurs;
 
 let gpioOutils = [];
 let gpioMoteurs = [];
@@ -237,7 +238,7 @@ function dodo() {
  });*/
 
  for(let i = 0; i < 8; i++)
-  gpioInterrupteurs[i].digitalWrite(hard.INVERSEURS[i]);
+  setGpio(i, hard.INTERRUPTEURS[i].INV);
 
  sigterm(0, "Diffusion", PROCESSDIFFUSION, function(code) {
  });
@@ -327,6 +328,8 @@ CONF.SERVEURS.forEach(function(serveur) {
    rattrapage[i] = 0;
   }
 
+  oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
+
   oldCamera = conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA;
   oldIdConfStatique = conf.CAMERAS[oldCamera].CONFSTATIQUE;
   oldIdConfDynamique = conf.CAMERAS[oldCamera].CONFDYNAMIQUE;
@@ -362,8 +365,8 @@ CONF.SERVEURS.forEach(function(serveur) {
    gpioMoteurs[i] = new GPIO(hard.MOTEURS[i].PIN, {mode: GPIO.OUTPUT});
 
   for(let i = 0; i < 8; i++) {
-   gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURSPIN[i], {mode: GPIO.OUTPUT});
-   gpioInterrupteurs[i].digitalWrite(hard.INVERSEURS[i]);
+   gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
+   setGpio(i, hard.INTERRUPTEURS[i].INV);
   }
 
   init = true;
@@ -540,8 +543,11 @@ CONF.SERVEURS.forEach(function(serveur) {
    gpioMoteurs[i].servoWrite(pwm);
   }
 
-  for(let i = 0; i < 8; i++)
-   gpioInterrupteurs[i].digitalWrite(tx.interrupteurs[0] >> i & 1 ^ hard.INVERSEURS[i]);
+  if(tx.interrupteurs[0] != oldTxInterrupteurs) {
+   for(let i = 0; i < 8; i++)
+    setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
+   oldTxInterrupteurs = tx.interrupteurs[0]
+  }
 
   rx.sync[1] = FRAME1R;
   for(let i = 0; i < conf.TX.OUTILS.length; i++)
@@ -558,6 +564,14 @@ CONF.SERVEURS.forEach(function(serveur) {
  });
 
 });
+
+function setGpio(n, etat) {
+ if(hard.INTERRUPTEURS[n].MODE == 1 && !etat || // Drain ouvert
+    hard.INTERRUPTEURS[n].MODE == 2 && etat)    // Collecteur ouvert
+  gpioInterrupteurs[n].mode(GPIO.INPUT);
+ else
+  gpioInterrupteurs[n].digitalWrite(etat);
+}
 
 function failSafe() {
  trace("Arrêt des moteurs");
