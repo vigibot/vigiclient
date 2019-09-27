@@ -233,9 +233,8 @@ function dodo() {
   gpio.mode(GPIO.INPUT);
  });
 
- /*gpioMoteurs.forEach(function(gpio) {
-  gpio.mode(GPIO.INPUT);
- });*/
+ for(let i = 0; i < hard.MOTEURS.length; i++)
+  gpioMoteurs[i].servoWrite(map(0, -0x80, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
 
  for(let i = 0; i < 8; i++)
   setGpio(i, hard.INTERRUPTEURS[i].INV);
