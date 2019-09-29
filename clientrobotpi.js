@@ -468,9 +468,11 @@ CONF.SERVEURS.forEach(function(serveur) {
   latence = now - data.boucleVideoCommande;
 
   if(data.data[0] != FRAME0 ||
-     data.data[1] != FRAME1S &&
-     data.data[1] != FRAME1T) {
-   trace("Réception d'une trame corrompue");
+     data.data[1] != FRAME1S) {
+   if(data.data[1] == FRAME1T)
+    trace("Réception d'une trame texte");
+   else
+    trace("Réception d'une trame corrompue");
    return;
   }
 
