@@ -38,6 +38,7 @@ const CMDDIFFAUDIO = [
 
 const FRAME0 = "$".charCodeAt();
 const FRAME1S = "S".charCodeAt();
+const FRAME1T = "T".charCodeAt();
 const FRAME1R = "R".charCodeAt();
 
 const V4L2 = "/usr/bin/v4l2-ctl";
@@ -464,7 +465,8 @@ CONF.SERVEURS.forEach(function(serveur) {
   latence = now - data.boucleVideoCommande;
 
   if(data.data[0] != FRAME0 ||
-     data.data[1] != FRAME1S) {
+     data.data[1] != FRAME1S &&
+     data.data[1] != FRAME1T) {
    trace("Réception d'une trame corrompue");
    return;
   }
