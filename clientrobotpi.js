@@ -55,6 +55,8 @@ const CW2015WAKEUP = new Buffer.from([0x0a, 0x00]);
 const MAX17043ADDRESS = 0x10;
 const GAUGERATE = 250;
 
+const CAPTURESENVEILLERATE = 60000;
+
 const OS = require("os");
 const FS = require("fs");
 const IO = require("socket.io-client");
@@ -659,6 +661,21 @@ setInterval(function() {
   });
  });
 }, BEACONRATE);
+
+setInterval(function() {
+ if(up || !init || !conf.CAPTURESENVEILLE)
+  return;
+
+ let process = EXEC("raspistill -o -", {
+  encoding: "binary",
+  maxBuffer: 10 * 1024 * 1024
+ }, function(error, stdout) {
+  CONF.SERVEURS.forEach(function(serveur) {
+   trace("Envoi d'une photo sur le serveur " + serveur);
+   sockets[serveur].emit("serveurrobotcapturesenveille", new Buffer(stdout, "binary"));
+  });
+ });
+}, CAPTURESENVEILLERATE);
 
 NET.createServer(function(socket) {
  const SPLITTER = new SPLIT(SEPARATEURNALU);
