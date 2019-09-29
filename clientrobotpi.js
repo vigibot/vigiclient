@@ -407,14 +407,15 @@ CONF.SERVEURS.forEach(function(serveur) {
    gpio.mode(GPIO.OUTPUT);
   });
 
-  /*gpioMoteurs.forEach(function(gpio) {
-   gpio.mode(GPIO.OUTPUT);
-  });*/
-
   for(let i = 0; i < 8; i++)
    setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
 
-  diffusion();
+  if(conf.CAPTURESENVEILLE) {
+   sigterm(0, "Raspistill", "raspistill", function(code) {
+    diffusion();
+   });
+  } else
+   diffusion();
   diffAudio();
 
   sockets[serveur].emit("serveurrobotdebout", true);
@@ -663,17 +664,21 @@ setInterval(function() {
 }, BEACONRATE);
 
 setInterval(function() {
- if(up || !init || !conf.CAPTURESENVEILLE)
+ if(!conf.CAPTURESENVEILLE || up || !init || !initVideo)
   return;
 
- let process = EXEC("raspistill -o -", {
+ let process = EXEC("raspistill -rot " + confDynamique.ROTATION + " -o -", {
   encoding: "binary",
   maxBuffer: 10 * 1024 * 1024
  }, function(error, stdout) {
-  CONF.SERVEURS.forEach(function(serveur) {
-   trace("Envoi d'une photo sur le serveur " + serveur);
-   sockets[serveur].emit("serveurrobotcapturesenveille", new Buffer(stdout, "binary"));
-  });
+  if(error)
+   trace("Erreur lors de la capture d'une photo");
+  else {
+   CONF.SERVEURS.forEach(function(serveur) {
+    trace("Envoi d'une photo sur le serveur " + serveur);
+    sockets[serveur].emit("serveurrobotcapturesenveille", new Buffer(stdout, "binary"));
+   });
+  }
  });
 }, CAPTURESENVEILLERATE);
 
