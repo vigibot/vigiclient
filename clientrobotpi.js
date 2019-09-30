@@ -669,7 +669,9 @@ setInterval(function() {
  if(!conf.CAPTURESENVEILLE || up || !init || !initVideo)
   return;
 
- let process = EXEC("raspistill -q 20 -rot " + confDynamique.ROTATION + " -o -", {
+ let overlay = new Date().toISOString();
+
+ let process = EXEC("raspistill -q 20 -a 1024 -a '" + overlay + "' -rot " + confDynamique.ROTATION + " -o -", {
   encoding: "binary",
   maxBuffer: 10 * 1024 * 1024
  }, function(error, stdout) {
