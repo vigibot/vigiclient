@@ -128,11 +128,13 @@ try {
  i2c.i2cWriteSync(CW2015ADDRESS, 2, CW2015WAKEUP);
  cw2015 = true;
  max17043 = false;
+ bq27441 = false;
 } catch(err) {
  try {
   i2c.i2cReadSync(MAX17043ADDRESS, 6, gaugeBuffer);
   cw2015 = false;
   max17043 = true;
+  bq27441 = false;
  } catch(err) {
   try {
    i2c.i2cReadSync(BQ27441ADDRESS, 29, gaugeBuffer);
