@@ -623,13 +623,14 @@ if(cw2015) {
  setInterval(function() {
   if(!init)
    return;
-  i2c.i2cReadSync(CW2015ADDRESS, 256, gaugeBuffer);
 
-  let microVolts = ((gaugeBuffer[247] << 8) + gaugeBuffer[248]) * 305;
-  let pour25600 = (gaugeBuffer[249] << 8) + gaugeBuffer[250];
+  i2c.i2cRead(CW2015ADDRESS, 256, gaugeBuffer, function() {
+   let microVolts = ((gaugeBuffer[247] << 8) + gaugeBuffer[248]) * 305;
+   let pour25600 = (gaugeBuffer[249] << 8) + gaugeBuffer[250];
 
-  rx.setValeur16(0, microVolts / 1000000);
-  rx.setValeur16(1, pour25600 / 256);
+   rx.setValeur16(0, microVolts / 1000000);
+   rx.setValeur16(1, pour25600 / 256);
+  });
  }, GAUGERATE);
 }
 
@@ -637,13 +638,14 @@ if(max17043) {
  setInterval(function() {
   if(!init)
    return;
-  i2c.i2cReadSync(MAX17043ADDRESS, 7, gaugeBuffer);
 
-  let milliVolts = ((gaugeBuffer[3] << 8) + gaugeBuffer[4]) * 5000 / 4096;
-  let pour25600 = (gaugeBuffer[5] << 8) + gaugeBuffer[6];
+  i2c.i2cRead(MAX17043ADDRESS, 7, gaugeBuffer, function() {
+   let milliVolts = ((gaugeBuffer[3] << 8) + gaugeBuffer[4]) * 5000 / 4096;
+   let pour25600 = (gaugeBuffer[5] << 8) + gaugeBuffer[6];
 
-  rx.setValeur16(0, milliVolts / 1000);
-  rx.setValeur16(1, pour25600 / 256);
+   rx.setValeur16(0, milliVolts / 1000);
+   rx.setValeur16(1, pour25600 / 256);
+  });
  }, GAUGERATE);
 }
 
@@ -651,13 +653,14 @@ if(bq27441) {
  setInterval(function() {
   if(!init)
    return;
-  i2c.i2cReadSync(BQ27441ADDRESS, 29, gaugeBuffer);
 
-  let milliVolts = (gaugeBuffer[5] << 8) + gaugeBuffer[4];
-  let pourcents = gaugeBuffer[28];
+  i2c.i2cRead(BQ27441ADDRESS, 29, gaugeBuffer, function() {
+   let milliVolts = (gaugeBuffer[5] << 8) + gaugeBuffer[4];
+   let pourcents = gaugeBuffer[28];
 
-  rx.setValeur16(0, milliVolts / 1000);
-  rx.setValeur16(1, pourcents);
+   rx.setValeur16(0, milliVolts / 1000);
+   rx.setValeur16(1, pourcents);
+  });
  }, GAUGERATE);
 }
 
