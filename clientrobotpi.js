@@ -53,6 +53,7 @@ const SEPARATEURNALU = new Buffer.from([0, 0, 0, 1]);
 const CW2015ADDRESS = 0x62;
 const CW2015WAKEUP = new Buffer.from([0x0a, 0x00]);
 const MAX17043ADDRESS = 0x10;
+const BQ27441ADDRESS = 0x55;
 const GAUGERATE = 250;
 
 const CAPTURESENVEILLERATE = 60000;
@@ -106,6 +107,7 @@ let gpioInterrupteurs = [];
 let i2c;
 let cw2015;
 let max17043;
+let bq27441;
 let gaugeBuffer = new Buffer.alloc(256);
 
 if(typeof CONF.CMDDIFFUSION === "undefined")
@@ -132,10 +134,18 @@ try {
   cw2015 = false;
   max17043 = true;
  } catch(err) {
-  trace("I2C désactivé");
-  i2c.closeSync();
-  cw2015 = false;
-  max17043 = false;
+  try {
+   i2c.i2cReadSync(BQ27441ADDRESS, 29, gaugeBuffer);
+   cw2015 = false;
+   max17043 = false;
+   bq27441 = true;
+  } catch(err) {
+   trace("I2C désactivé");
+   i2c.closeSync();
+   cw2015 = false;
+   max17043 = false;
+   bq27441 = false;
+  }
  }
 }
 
@@ -634,6 +644,20 @@ if(max17043) {
 
   rx.setValeur16(0, milliVolts / 1000);
   rx.setValeur16(1, pour25600 / 256);
+ }, GAUGERATE);
+}
+
+if(bq27441) {
+ setInterval(function() {
+  if(!init)
+   return;
+  i2c.i2cReadSync(BQ27441ADDRESS, 29, gaugeBuffer);
+
+  let milliVolts = (gaugeBuffer[5] << 8) + gaugeBuffer[4];
+  let pourcents = gaugeBuffer[28];
+
+  rx.setValeur16(0, milliVolts / 1000);
+  rx.setValeur16(1, pourcents);
  }, GAUGERATE);
 }
 
