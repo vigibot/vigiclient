@@ -656,11 +656,11 @@ if(bq27441) {
   if(!init)
    return;
 
-  i2c.i2cRead(BQ27441ADDRESS, 29, gaugeBuffer, function() {
-   let milliVolts = (gaugeBuffer[5] << 8) + gaugeBuffer[4];
-   let pourcents = gaugeBuffer[28];
-
+  i2c.readWord(BQ27441ADDRESS, 0x04, function(err, milliVolts) {
    rx.setValeur16(0, milliVolts / 1000);
+  });
+
+  i2c.readByte(BQ27441ADDRESS, 0x1c, function(err, pourcents) {
    rx.setValeur16(1, pourcents);
   });
  }, GAUGERATE);
