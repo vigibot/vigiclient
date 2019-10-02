@@ -698,7 +698,8 @@ setInterval(function() {
  if(!conf.CAPTURESENVEILLE || up || !init || !initVideo)
   return;
 
- let overlay = new Date().toISOString();
+ let date = new Date();
+ let overlay = date.toLocaleDateString() + " " + date.toLocaleTimeString();
 
  let process = EXEC("raspistill -q 20 -a 1024 -a '" + overlay + "' -rot " + confDynamique.ROTATION + " -o -", {
   encoding: "binary",
