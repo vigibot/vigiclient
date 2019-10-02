@@ -204,7 +204,7 @@ function constrain(n, nMin, nMax) {
 function sigterm(timeout, nom, process, callback) {
  setTimeout(function() {
   trace("Envoi du signal SIGTERM au processus " + nom);
-  let processkill = EXEC("/usr/bin/killall -15 " + process);
+  let processkill = EXEC("/usr/bin/pkill -15 -f ^" + process);
   processkill.on("close", function(code) {
    callback(code);
   });
