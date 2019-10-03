@@ -700,7 +700,7 @@ setInterval(function() {
 
  let date = new Date();
  let overlay = date.toLocaleDateString() + " " + date.toLocaleTimeString();
- let options = "-q 100 -a 1024 -a '" + overlay + "' -rot " + confDynamique.ROTATION;
+ let options = "-a 1024 -a '" + overlay + "' -rot " + confDynamique.ROTATION;
 
  if(conf.CAPTURESHDR) {
   EXEC("raspistill -ev " + -conf.CAPTURESHDR + " " + options + " -o /tmp/1.jpg", function(err) {
@@ -734,7 +734,7 @@ setInterval(function() {
    });
   });
  } else {
-  EXEC("raspistill " + options + " -o /tmp/out.jpg", function(err) {
+  EXEC("raspistill -q 20 " + options + " -o /tmp/out.jpg", function(err) {
    if(err)
     trace("Erreur lors de la capture de la photo");
    else {
