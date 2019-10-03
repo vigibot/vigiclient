@@ -702,7 +702,7 @@ setInterval(function() {
  let overlay = date.toLocaleDateString() + " " + date.toLocaleTimeString();
  let options = "-q 100 -a 1024 -a '" + overlay + "' -rot " + confDynamique.ROTATION;
 
- EXEC("raspistill -ev -24 " + options + " -o /tmp/1.jpg", function(err) {
+ EXEC("raspistill -ev -10 " + options + " -o /tmp/1.jpg", function(err) {
   if(err) {
    trace("Erreur lors de la capture de la première photo");
    return;
@@ -712,7 +712,7 @@ setInterval(function() {
     trace("Erreur lors de la capture de la deuxième photo");
     return;
    }
-   EXEC("raspistill -ev 24 " + options + " -o /tmp/3.jpg", function(err) {
+   EXEC("raspistill -ev 10 " + options + " -o /tmp/3.jpg", function(err) {
     if(err) {
      trace("Erreur lors de la capture de la troisième photo");
      return;
