@@ -702,36 +702,51 @@ setInterval(function() {
  let overlay = date.toLocaleDateString() + " " + date.toLocaleTimeString();
  let options = "-q 100 -a 1024 -a '" + overlay + "' -rot " + confDynamique.ROTATION;
 
- EXEC("raspistill -ev -10 " + options + " -o /tmp/1.jpg", function(err) {
-  if(err) {
-   trace("Erreur lors de la capture de la première photo");
-   return;
-  }
-  EXEC("raspistill " + options + " -o /tmp/2.jpg", function(err) {
+ if(conf.CAPTURESHDR) {
+  EXEC("raspistill -ev " + -conf.CAPTURESHDR + " " + options + " -o /tmp/1.jpg", function(err) {
    if(err) {
-    trace("Erreur lors de la capture de la deuxième photo");
+    trace("Erreur lors de la capture de la première photo");
     return;
    }
-   EXEC("raspistill -ev 10 " + options + " -o /tmp/3.jpg", function(err) {
+   EXEC("raspistill " + options + " -o /tmp/2.jpg", function(err) {
     if(err) {
-     trace("Erreur lors de la capture de la troisième photo");
+     trace("Erreur lors de la capture de la deuxième photo");
      return;
     }
-    EXEC("enfuse -o /tmp/out.jpg /tmp/1.jpg /tmp/2.jpg /tmp/3.jpg", function(err) {
-     if(err)
-      trace("Erreur lors de la fusion des photos");
-     else {
-      FS.readFile("/tmp/out.jpg", function(err, data) {
-       CONF.SERVEURS.forEach(function(serveur) {
-        trace("Envoi d'une photo sur le serveur " + serveur);
-        sockets[serveur].emit("serveurrobotcapturesenveille", data);
-       });
-      });
+    EXEC("raspistill -ev " + conf.CAPTURESHDR + " " + options + " -o /tmp/3.jpg", function(err) {
+     if(err) {
+      trace("Erreur lors de la capture de la troisième photo");
+      return;
      }
+     EXEC("enfuse -o /tmp/out.jpg /tmp/1.jpg /tmp/2.jpg /tmp/3.jpg", function(err) {
+      if(err)
+       trace("Erreur lors de la fusion des photos");
+      else {
+       FS.readFile("/tmp/out.jpg", function(err, data) {
+        CONF.SERVEURS.forEach(function(serveur) {
+         trace("Envoi d'une photo sur le serveur " + serveur);
+         sockets[serveur].emit("serveurrobotcapturesenveille", data);
+        });
+       });
+      }
+     });
     });
    });
   });
- });
+ } else {
+  EXEC("raspistill " + options + " -o /tmp/out.jpg", function(err) {
+   if(err)
+    trace("Erreur lors de la capture de la photo");
+   else {
+    FS.readFile("/tmp/out.jpg", function(err, data) {
+     CONF.SERVEURS.forEach(function(serveur) {
+      trace("Envoi d'une photo sur le serveur " + serveur);
+      sockets[serveur].emit("serveurrobotcapturesenveille", data);
+     });
+    });
+   }
+  });
+ }
 }, CAPTURESENVEILLERATE);
 
 NET.createServer(function(socket) {
