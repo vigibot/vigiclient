@@ -734,7 +734,7 @@ setInterval(function() {
    });
   });
  } else {
-  EXEC("raspistill -q 20 " + options + " -o /tmp/out.jpg", function(err) {
+  EXEC("raspistill -q 10 " + options + " -o /tmp/out.jpg", function(err) {
    if(err)
     trace("Erreur lors de la capture de la photo");
    else {
