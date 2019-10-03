@@ -700,19 +700,37 @@ setInterval(function() {
 
  let date = new Date();
  let overlay = date.toLocaleDateString() + " " + date.toLocaleTimeString();
+ let options = "-q 100 -a 1024 -a '" + overlay + "' -rot " + confDynamique.ROTATION;
 
- let process = EXEC("raspistill -q 20 -a 1024 -a '" + overlay + "' -rot " + confDynamique.ROTATION + " -o -", {
-  encoding: "binary",
-  maxBuffer: 10 * 1024 * 1024
- }, function(error, stdout) {
-  if(error)
-   trace("Erreur lors de la capture d'une photo");
-  else {
-   CONF.SERVEURS.forEach(function(serveur) {
-    trace("Envoi d'une photo sur le serveur " + serveur);
-    sockets[serveur].emit("serveurrobotcapturesenveille", new Buffer(stdout, "binary"));
-   });
+ EXEC("raspistill -ev -24 " + options + " -o /tmp/1.jpg", function(err) {
+  if(err) {
+   trace("Erreur lors de la capture de la première photo");
+   return;
   }
+  EXEC("raspistill " + options + " -o /tmp/2.jpg", function(err) {
+   if(err) {
+    trace("Erreur lors de la capture de la deuxième photo");
+    return;
+   }
+   EXEC("raspistill -ev 24 " + options + " -o /tmp/3.jpg", function(err) {
+    if(err) {
+     trace("Erreur lors de la capture de la troisième photo");
+     return;
+    }
+    EXEC("enfuse -o /tmp/out.jpg /tmp/1.jpg /tmp/2.jpg /tmp/3.jpg", function(err) {
+     if(err)
+      trace("Erreur lors de la fusion des photos");
+     else {
+      FS.readFile("/tmp/out.jpg", function(err, data) {
+       CONF.SERVEURS.forEach(function(serveur) {
+        trace("Envoi d'une photo sur le serveur " + serveur);
+        sockets[serveur].emit("serveurrobotcapturesenveille", data);
+       });
+      });
+     }
+    });
+   });
+  });
  });
 }, CAPTURESENVEILLERATE);
 
