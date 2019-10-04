@@ -703,6 +703,7 @@ setInterval(function() {
  let options = "-a 1024 -a '" + overlay + "' -rot " + confDynamique.ROTATION;
 
  if(conf.CAPTURESHDR) {
+  overlay += " HDR " + conf.CAPTURESHDR;
   EXEC("raspistill -ev " + -conf.CAPTURESHDR + " " + options + " -o /tmp/1.jpg", function(err) {
    if(err) {
     trace("Erreur lors de la capture de la première photo");
