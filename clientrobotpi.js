@@ -241,6 +241,27 @@ function exec(timeout, nom, commande, callback) {
  }, timeout);
 }
 
+function debout() {
+ gpioOutils.forEach(function(gpio) {
+  gpio.mode(GPIO.OUTPUT);
+ });
+
+ for(let i = 0; i < 8; i++)
+  setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
+
+ if(conf.CAPTURESENVEILLE) {
+  sigterm(0, "Raspistill", "raspistill", function(code) {
+   diffusion();
+  });
+ } else
+  diffusion();
+ diffAudio();
+
+ up = true;
+ lastTimestamp = Date.now();
+ latence = 0;
+}
+
 function dodo() {
  serveurCourant = "";
 
@@ -422,26 +443,9 @@ CONF.SERVEURS.forEach(function(serveur) {
   }
   serveurCourant = serveur;
 
-  gpioOutils.forEach(function(gpio) {
-   gpio.mode(GPIO.OUTPUT);
-  });
-
-  for(let i = 0; i < 8; i++)
-   setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
-
-  if(conf.CAPTURESENVEILLE) {
-   sigterm(0, "Raspistill", "raspistill", function(code) {
-    diffusion();
-   });
-  } else
-   diffusion();
-  diffAudio();
+  debout();
 
   sockets[serveur].emit("serveurrobotdebout", true);
-
-  up = true;
-  lastTimestamp = Date.now();
-  latence = 0;
  });
 
  sockets[serveur].on("clientsrobotdodo", function() {
