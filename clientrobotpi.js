@@ -400,9 +400,16 @@ CONF.SERVEURS.forEach(function(serveur) {
  });
 
  sockets[serveur].on("clientsrobotdebout", function() {
-  if(!init || !initVideo) {
+  if(!init) {
    trace("Ce robot n'est pas initialisé");
    notification(serveur, "Ce robot n'est pas initialisé", "error");
+   sockets[serveur].emit("serveurrobotdebout", false);
+   return;
+  }
+
+  if(!initVideo) {
+   trace("La vidéo n'est pas initialisée");
+   notification(serveur, "La vidée n'est pas initialisée", "error");
    sockets[serveur].emit("serveurrobotdebout", false);
    return;
   }
