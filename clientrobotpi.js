@@ -201,44 +201,39 @@ function constrain(n, nMin, nMax) {
  return n;
 }
 
-function sigterm(timeout, nom, process, callback) {
- setTimeout(function() {
-  trace("Envoi du signal SIGTERM au processus " + nom);
-  let processkill = EXEC("/usr/bin/pkill -15 -f ^" + process);
-  processkill.on("close", function(code) {
-   callback(code);
-  });
- }, timeout);
+function sigterm(nom, processus, callback) {
+ trace("Envoi du signal SIGTERM au processus " + nom);
+ let processkill = EXEC("/usr/bin/pkill -15 -f ^" + processus);
+ processkill.on("close", function(code) {
+  callback(code);
+ });
 }
 
-function exec(timeout, nom, commande, callback) {
- setTimeout(function() {
-  trace("Démarrage du processus " + nom);
-  trace(commande);
-  let process = EXEC(commande);
-  let stdout = RL.createInterface(process.stdout);
-  let stderr = RL.createInterface(process.stderr);
-  let pid = process.pid;
-  let execTime = Date.now();
+function exec(nom, commande, callback) {
+ trace("Démarrage du processus " + nom);
+ trace(commande);
+ let processus = EXEC(commande);
+ let stdout = RL.createInterface(processus.stdout);
+ let stderr = RL.createInterface(processus.stderr);
+ let pid = processus.pid;
+ let execTime = Date.now();
 
-  //process.stdout.on("data", function(data) {
-  stdout.on("line", function(data) {
-   traces(nom + " | " + pid + " | stdout", data);
-  });
+ //processus.stdout.on("data", function(data) {
+ stdout.on("line", function(data) {
+  traces(nom + " | " + pid + " | stdout", data);
+ });
 
-  //process.stderr.on("data", function(data) {
-  stderr.on("line", function(data) {
-   traces(nom + " | " + pid + " | stderr", data);
-  });
+ //processus.stderr.on("data", function(data) {
+ stderr.on("line", function(data) {
+  traces(nom + " | " + pid + " | stderr", data);
+ });
 
-  process.on("close", function(code) {
-   let elapsed = Date.now() - execTime;
+ processus.on("close", function(code) {
+  let elapsed = Date.now() - execTime;
 
-   trace("Le processus " + nom + " c'est arrêté après " + elapsed + " millisecondes avec le code de sortie " + code);
-   callback(code);
-  });
-
- }, timeout);
+  trace("Le processus " + nom + " c'est arrêté après " + elapsed + " millisecondes avec le code de sortie " + code);
+  callback(code);
+ });
 }
 
 function debout() {
@@ -250,7 +245,7 @@ function debout() {
   setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
 
  if(conf.CAPTURESENVEILLE) {
-  sigterm(0, "Raspistill", "raspistill", function(code) {
+  sigterm("Raspistill", "raspistill", function(code) {
    diffusion();
   });
  } else
@@ -275,10 +270,10 @@ function dodo() {
  for(let i = 0; i < 8; i++)
   setGpio(i, hard.INTERRUPTEURS[i].INV);
 
- sigterm(0, "Diffusion", PROCESSDIFFUSION, function(code) {
+ sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
  });
 
- sigterm(0, "DiffAudio", PROCESSDIFFAUDIO, function(code) {
+ sigterm("DiffAudio", PROCESSDIFFAUDIO, function(code) {
  });
 
  up = false;
@@ -293,46 +288,42 @@ function confVideo(callback) {
 
  trace("Initialisation de la configuration Video4Linux");
 
- sigterm(0, "Diffusion", PROCESSDIFFUSION, function(code) {
-  exec(0, "v4l2-ctl", V4L2 + " -v width=" + confStatique.WIDTH +
-                                ",height=" + confStatique.HEIGHT +
-                                ",pixelformat=4" +
-                             " -p " + confStatique.FPS +
-                             " -c h264_profile=0" +
-                                ",repeat_sequence_header=1" +
-                                ",rotate=" + confDynamique.ROTATION +
-                                ",video_bitrate=" + confDynamique.BITRATE +
-                                ",brightness=" + confDynamique.LUMINOSITE +
-                                ",contrast=" + confDynamique.CONTRASTE, function(code) {
-   if(up)
-    diffusion();
-   callback(code);
-  });
+ exec("v4l2-ctl", V4L2 + " -v width=" + confStatique.WIDTH +
+                            ",height=" + confStatique.HEIGHT +
+                            ",pixelformat=4" +
+                         " -p " + confStatique.FPS +
+                         " -c h264_profile=0" +
+                            ",repeat_sequence_header=1" +
+                            ",rotate=" + confDynamique.ROTATION +
+                            ",video_bitrate=" + confDynamique.BITRATE +
+                            ",brightness=" + confDynamique.LUMINOSITE +
+                            ",contrast=" + confDynamique.CONTRASTE, function(code) {
+  callback(code);
  });
 }
 
 function confDynamiqueVideo() {
  trace("Modification de la configuration Video4Linux");
 
- exec(0, "v4l2-ctl", V4L2 + " -c h264_profile=0" +
-                               ",repeat_sequence_header=1" +
-                               ",rotate=" + confDynamique.ROTATION +
-                               ",video_bitrate=" + confDynamique.BITRATE +
-                               ",brightness=" + confDynamique.LUMINOSITE +
-                               ",contrast=" + confDynamique.CONTRASTE, function(code) {
+ exec("v4l2-ctl", V4L2 + " -c h264_profile=0" +
+                            ",repeat_sequence_header=1" +
+                            ",rotate=" + confDynamique.ROTATION +
+                            ",video_bitrate=" + confDynamique.BITRATE +
+                            ",brightness=" + confDynamique.LUMINOSITE +
+                            ",contrast=" + confDynamique.CONTRASTE, function(code) {
  });
 }
 
 function diffusion() {
  trace("Démarrage du flux de diffusion vidéo H.264");
- exec(0, "Diffusion", cmdDiffusion, function(code) {
+ exec("Diffusion", cmdDiffusion, function(code) {
   trace("Arrêt du flux de diffusion vidéo H.264");
  });
 }
 
 function diffAudio() {
  trace("Démarrage du flux de diffusion audio");
- exec(0, "DiffAudio", cmdDiffAudio, function(code) {
+ exec("DiffAudio", cmdDiffAudio, function(code) {
   trace("Arrêt du flux de diffusion audio");
  });
 }
@@ -459,8 +450,8 @@ CONF.SERVEURS.forEach(function(serveur) {
   FS.writeFile("/tmp/tts.txt", data, function(err) {
    if(err)
     trace(err);
-   exec(0, "eSpeak", "/usr/bin/espeak -v fr -f /tmp/tts.txt --stdout > /tmp/tts.wav", function(code) {
-    exec(0, "Aplay", "/usr/bin/aplay -D plughw:0 /tmp/tts.wav", function(code) {
+   exec("eSpeak", "/usr/bin/espeak -v fr -f /tmp/tts.txt --stdout > /tmp/tts.wav", function(code) {
+    exec("Aplay", "/usr/bin/aplay -D plughw:0 /tmp/tts.wav", function(code) {
     });
    });
   });
@@ -521,8 +512,16 @@ CONF.SERVEURS.forEach(function(serveur) {
    if(idConfStatique != oldIdConfStatique) {
     confStatique = conf.CONFSSTATIQUE[idConfStatique];
     confDynamique = conf.CONFSDYNAMIQUE[idConfDynamique];
-    confVideo(function(code) {
-    });
+    if(up) {
+     sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
+      confVideo(function(code) {
+       diffusion();
+      });
+     });
+    } else {
+     confVideo(function(code) {
+     });
+    }
    } else if(idConfDynamique != oldIdConfDynamique) {
     confDynamique = conf.CONFSDYNAMIQUE[idConfDynamique];
     confDynamiqueVideo();
@@ -620,13 +619,13 @@ setInterval(function() {
 
  if(latencePredictive < LATENCEFINALARME && alarmeLatence) {
   trace("Latence de " + latencePredictive + " ms, retour au débit vidéo configuré");
-  exec(0, "v4l2-ctl", V4L2 + " -c video_bitrate=" + confDynamique.BITRATE, function(code) {
+  exec("v4l2-ctl", V4L2 + " -c video_bitrate=" + confDynamique.BITRATE, function(code) {
   });
   alarmeLatence = false;
  } else if(latencePredictive > LATENCEDEBUTALARME && !alarmeLatence) {
   failSafe();
   trace("Latence de " + latencePredictive + " ms, passage en débit vidéo réduit");
-  exec(0, "v4l2-ctl", V4L2 + " -c video_bitrate=" + BITRATEVIDEOFAIBLE, function(code) {
+  exec("v4l2-ctl", V4L2 + " -c video_bitrate=" + BITRATEVIDEOFAIBLE, function(code) {
   });
   alarmeLatence = true;
  }
