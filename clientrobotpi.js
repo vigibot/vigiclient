@@ -362,10 +362,6 @@ CONF.SERVEURS.forEach(function(serveur) {
   confStatique = conf.CONFSSTATIQUE[oldIdConfStatique];
   confDynamique = conf.CONFSDYNAMIQUE[oldIdConfDynamique];
 
-  confVideo(function(code) {
-   initVideo = true;
-  });
-
   trace("Initialisation des I/O Raspberry PI");
 
   gpioOutils.forEach(function(gpio) {
@@ -394,6 +390,10 @@ CONF.SERVEURS.forEach(function(serveur) {
    gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
    setGpio(i, hard.INTERRUPTEURS[i].INV);
   }
+
+  confVideo(function(code) {
+   initVideo = true;
+  });
 
   init = true;
  });
