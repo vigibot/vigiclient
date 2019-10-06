@@ -391,9 +391,11 @@ CONF.SERVEURS.forEach(function(serveur) {
    setGpio(i, hard.INTERRUPTEURS[i].INV);
   }
 
-  confVideo(function(code) {
-   initVideo = true;
-  });
+  setTimeout(function() {
+   confVideo(function(code) {
+    initVideo = true;
+   });
+  }, 100);
 
   init = true;
  });
