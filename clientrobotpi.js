@@ -421,7 +421,7 @@ CONF.SERVEURS.forEach(function(serveur) {
 
   if(!initVideo) {
    trace("La vidéo n'est pas initialisée");
-   notification(serveur, "La vidée n'est pas initialisée", "error");
+   notification(serveur, "La vidéo n'est pas initialisée", "error");
    sockets[serveur].emit("serveurrobotdebout", false);
    return;
   }
