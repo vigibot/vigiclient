@@ -453,7 +453,7 @@ CONF.SERVEURS.forEach(function(serveur) {
    if(err)
     trace(err);
    exec("eSpeak", "/usr/bin/espeak -v fr -f /tmp/tts.txt --stdout > /tmp/tts.wav", function(code) {
-    exec("Aplay", "/usr/bin/aplay -D plughw:0 /tmp/tts.wav", function(code) {
+    exec("Aplay", "/usr/bin/aplay -D plughw:" + hard.PLAYBACKDEVICE + " /tmp/tts.wav", function(code) {
     });
    });
   });
