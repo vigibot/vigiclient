@@ -1,1 +1,1 @@
-* * * * * root nice -n 19 /usr/local/vigiclient/vigiupdate.sh >> /var/log/vigiupdate.log 2>&1
+*/5 * * * * root nice -n 19 /usr/local/vigiclient/vigiupdate.sh >> /var/log/vigiupdate.log 2>&1
