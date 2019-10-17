@@ -244,7 +244,7 @@ function debout() {
  for(let i = 0; i < 8; i++)
   setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
 
- if(conf.CAPTURESENVEILLE) {
+ if(hard.CAPTURESENVEILLE) {
   sigterm("Raspistill", "raspistill", function(code) {
    diffusion();
   });
@@ -707,17 +707,17 @@ setInterval(function() {
 }, BEACONRATE);
 
 setInterval(function() {
- if(!conf.CAPTURESENVEILLE || up || !init || !initVideo)
+ if(!hard.CAPTURESENVEILLE || up || !init || !initVideo)
   return;
 
  let date = new Date();
  let overlay = date.toLocaleDateString() + " " + date.toLocaleTimeString();
- if(conf.CAPTURESHDR)
-  overlay += " HDR " + conf.CAPTURESHDR;
+ if(hard.CAPTURESHDR)
+  overlay += " HDR " + hard.CAPTURESHDR;
  let options = "-a 1024 -a '" + overlay + "' -rot " + confDynamique.ROTATION;
 
- if(conf.CAPTURESHDR) {
-  EXEC("raspistill -ev " + -conf.CAPTURESHDR + " " + options + " -o /tmp/1.jpg", function(err) {
+ if(hard.CAPTURESHDR) {
+  EXEC("raspistill -ev " + -hard.CAPTURESHDR + " " + options + " -o /tmp/1.jpg", function(err) {
    if(err) {
     trace("Erreur lors de la capture de la première photo");
     return;
@@ -727,7 +727,7 @@ setInterval(function() {
      trace("Erreur lors de la capture de la deuxième photo");
      return;
     }
-    EXEC("raspistill -ev " + conf.CAPTURESHDR + " " + options + " -o /tmp/3.jpg", function(err) {
+    EXEC("raspistill -ev " + hard.CAPTURESHDR + " " + options + " -o /tmp/3.jpg", function(err) {
      if(err) {
       trace("Erreur lors de la capture de la troisième photo");
       return;
