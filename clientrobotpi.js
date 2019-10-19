@@ -460,10 +460,10 @@ CONF.SERVEURS.forEach(function(serveur) {
  });
 
  sockets[serveur].on("clientsrobotexit", function() {
-  trace("Ordre de terminer le processus Node.js");
+  trace("Redémarrage du robot");
   dodo();
   setTimeout(function() {
-   process.exit();
+   EXEC("reboot");
   }, 1000);
  });
 
