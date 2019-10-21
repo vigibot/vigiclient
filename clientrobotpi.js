@@ -97,7 +97,7 @@ let lastTrame = Date.now();
 let alarmeLatence = false;
 
 let oldOutils = [];
-let oldVitesses = [];
+let oldMoteurs = [];
 let rattrapage = [];
 let oldTxInterrupteurs;
 
@@ -365,7 +365,7 @@ CONF.SERVEURS.forEach(function(serveur) {
   }
 
   for(let i = 0; i < hard.MOTEURS.length; i++)
-   oldVitesses[i] = tx.vitesses[i];
+   oldMoteurs[i] = 0;
 
   oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
 
@@ -582,12 +582,12 @@ CONF.SERVEURS.forEach(function(serveur) {
                           tx.vitesses[1] * hard.MIXAGESMOTEURS[i][1] +
                           tx.vitesses[2] * hard.MIXAGESMOTEURS[i][2], -0x80, 0x80);
 
-  if(hard.PIGPIO) {
-   for(let i = 0; i < hard.MOTEURS.length; i++) {
-    if(tx.vitesses[i] == oldVitesses[i])
-     continue;
-    oldVitesses[i] = tx.vitesses[i];
+  for(let i = 0; i < hard.MOTEURS.length; i++) {
+   if(moteurs[i] == oldMoteurs[i])
+    continue;
+   oldMoteurs[i] = moteurs[i];
 
+   if(hard.PIGPIO) {
     let pwm;
     let pwmNeutre = (hard.MOTEURS[i].PWMMAX + hard.MOTEURS[i].PWMMIN) / 2;
 
@@ -599,9 +599,7 @@ CONF.SERVEURS.forEach(function(serveur) {
      pwm = pwmNeutre;
 
     gpioMoteurs[i].servoWrite(pwm);
-   }
-  } else {
-   for(let i = 0; i < hard.MOTEURS.length; i++) {
+   } else {
     // TODO write moteurs[i] velocity to motor controller
    }
   }
