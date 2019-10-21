@@ -56,6 +56,9 @@ const MAX17043ADDRESS = 0x10;
 const BQ27441ADDRESS = 0x55;
 const GAUGERATE = 250;
 
+const PCA9685ADDRESS = 0x40; // 0x40 Generic / 0x60 for Adafruit Motor Driver
+const PCA9685FREQUENCY = 50;
+
 const CAPTURESENVEILLERATE = 60000;
 
 const OS = require("os");
@@ -68,6 +71,7 @@ const SPLIT = require("stream-split");
 const HTTP = require("http");
 //const GPIO = require("pigpio").Gpio;
 const I2C = require("i2c-bus");
+var pca9685 = require("pca9685");
 
 const VERSION = Math.trunc(FS.statSync(__filename).mtimeMs);
 const PROCESSTIME = Date.now();
@@ -124,32 +128,49 @@ trace("Initialisation I2C");
 
 i2c = I2C.openSync(1);
 
-try {
- i2c.i2cWriteSync(CW2015ADDRESS, 2, CW2015WAKEUP);
- cw2015 = true;
- max17043 = false;
- bq27441 = false;
-} catch(err) {
- try {
-  i2c.i2cReadSync(MAX17043ADDRESS, 6, gaugeBuffer);
-  cw2015 = false;
-  max17043 = true;
-  bq27441 = false;
- } catch(err) {
-  try {
-   i2c.i2cReadSync(BQ27441ADDRESS, 29, gaugeBuffer);
-   cw2015 = false;
-   max17043 = false;
-   bq27441 = true;
-  } catch(err) {
-   trace("I2C désactivé");
-   i2c.closeSync();
-   cw2015 = false;
-   max17043 = false;
-   bq27441 = false;
-  }
- }
-}
+// try {
+//  i2c.i2cWriteSync(CW2015ADDRESS, 2, CW2015WAKEUP);
+//  cw2015 = true;
+//  max17043 = false;
+//  bq27441 = false;
+// } catch(err) {
+//  try {
+//   i2c.i2cReadSync(MAX17043ADDRESS, 6, gaugeBuffer);
+//   cw2015 = false;
+//   max17043 = true;
+//   bq27441 = false;
+//  } catch(err) {
+//   try {
+//    i2c.i2cReadSync(BQ27441ADDRESS, 29, gaugeBuffer);
+//    cw2015 = false;
+//    max17043 = false;
+//    bq27441 = true;
+//   } catch(err) {
+//    trace("I2C désactivé");
+//    i2c.closeSync();
+//    cw2015 = false;
+//    max17043 = false;
+//    bq27441 = false;
+//   }
+//  }
+// }
+
+var pca9685driver = new pca9685.Pca9685Driver({
+	i2c: i2c,
+	address: PCA9685ADDRESS,
+	frequency: PCA9685FREQUENCY,
+	debug: true
+}, function startLoop(err) {
+	if (err) {
+		console.error("Error initializing PCA9685");
+		process.exit(-1);
+		return;
+	}
+
+	console.log("PCA9685 Initialized");
+	//pca9685driver.setPulseLength(, 1500);
+	//pca9685driver.setPulseLength(, 1500);
+});
 
 trace("Démarrage du client");
 
@@ -573,7 +594,8 @@ CONF.SERVEURS.forEach(function(serveur) {
    else
     pwm = pwmNeutre;
 
-  // gpioMoteurs[i].servoWrite(pwm);
+  	// gpioMoteurs[i].servoWrite(pwm);
+  	console.log('motor '+i+' pwm = '+pwm);
   }
 
   if(tx.interrupteurs[0] != oldTxInterrupteurs) {
