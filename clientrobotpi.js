@@ -1,6 +1,6 @@
 "use strict";
 
-const CONF = require("/boot/robot.json");
+const CONF = require("./robot.json");
 
 const TRAME = require("./trame.js");
 
@@ -8,14 +8,14 @@ const PORTROBOTS = 86;
 const PORTTCPVIDEO = 8003;
 const PORTTCPAUDIO = 8004;
 
-const FICHIERLOG = "/var/log/vigiclient.log";
+const FICHIERLOG = "./vigiclient.log";
 
 const INTERFACEWIFI = "wlan0";
 const FICHIERSTATS = "/proc/net/wireless";
 const STATSRATE = 250;
 
-const PROCESSDIFFUSION = "/usr/local/vigiclient/processdiffusion";
-const PROCESSDIFFAUDIO = "/usr/local/vigiclient/processdiffaudio";
+const PROCESSDIFFUSION = "./processdiffusion";
+const PROCESSDIFFAUDIO = "./processdiffaudio";
 
 const CMDDIFFUSION = [
  PROCESSDIFFUSION,
@@ -66,7 +66,7 @@ const RL = require("readline");
 const NET = require("net");
 const SPLIT = require("stream-split");
 const HTTP = require("http");
-const GPIO = require("pigpio").Gpio;
+//const GPIO = require("pigpio").Gpio;
 const I2C = require("i2c-bus");
 
 const VERSION = Math.trunc(FS.statSync(__filename).mtimeMs);
@@ -237,9 +237,9 @@ function exec(nom, commande, callback) {
 }
 
 function debout() {
- gpioOutils.forEach(function(gpio) {
-  gpio.mode(GPIO.OUTPUT);
- });
+ //gpioOutils.forEach(function(gpio) {
+ // gpio.mode(GPIO.OUTPUT);
+ //});
 
  for(let i = 0; i < 8; i++)
   setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
@@ -260,9 +260,9 @@ function debout() {
 function dodo() {
  serveurCourant = "";
 
- gpioOutils.forEach(function(gpio) {
-  gpio.mode(GPIO.INPUT);
- });
+ // gpioOutils.forEach(function(gpio) {
+  // gpio.mode(GPIO.INPUT);
+ // });
 
  for(let i = 0; i < hard.MOTEURS.length; i++)
   gpioMoteurs[i].servoWrite(map(0, -0x80, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
@@ -364,32 +364,32 @@ CONF.SERVEURS.forEach(function(serveur) {
 
   trace("Initialisation des I/O Raspberry PI");
 
-  gpioOutils.forEach(function(gpio) {
-   gpio.mode(GPIO.INPUT);
-  });
+  // gpioOutils.forEach(function(gpio) {
+   // gpio.mode(GPIO.INPUT);
+  // });
 
-  gpioMoteurs.forEach(function(gpio) {
-   gpio.mode(GPIO.INPUT);
-  });
+  // gpioMoteurs.forEach(function(gpio) {
+   // gpio.mode(GPIO.INPUT);
+  // });
 
-  gpioInterrupteurs.forEach(function(gpio) {
-   gpio.mode(GPIO.INPUT);
-  });
+  // gpioInterrupteurs.forEach(function(gpio) {
+   // gpio.mode(GPIO.INPUT);
+  // });
 
   gpioOutils = [];
   gpioMoteurs = [];
   gpioInterrupteurs = [];
 
-  for(let i = 0; i < hard.OUTILS.length; i++)
-   gpioOutils[i] = new GPIO(hard.OUTILS[i].PIN, {mode: GPIO.OUTPUT});
+  //for(let i = 0; i < hard.OUTILS.length; i++)
+  // gpioOutils[i] = new GPIO(hard.OUTILS[i].PIN, {mode: GPIO.OUTPUT});
 
-  for(let i = 0; i < hard.MOTEURS.length; i++)
-   gpioMoteurs[i] = new GPIO(hard.MOTEURS[i].PIN, {mode: GPIO.OUTPUT});
+  // for(let i = 0; i < hard.MOTEURS.length; i++)
+   // gpioMoteurs[i] = new GPIO(hard.MOTEURS[i].PIN, {mode: GPIO.OUTPUT});
 
-  for(let i = 0; i < 8; i++) {
-   gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
-   setGpio(i, hard.INTERRUPTEURS[i].INV);
-  }
+  // for(let i = 0; i < 8; i++) {
+   // gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
+   // setGpio(i, hard.INTERRUPTEURS[i].INV);
+  // }
 
   setTimeout(function() {
    confVideo(function(code) {
@@ -551,7 +551,7 @@ CONF.SERVEURS.forEach(function(serveur) {
     let pwm = map(outils[i], (-hard.OUTILS[i].COURSE / 2 + 180) * 0x10000 / 360,
                              (hard.OUTILS[i].COURSE / 2 + 180) * 0x10000 / 360, hard.OUTILS[i].PWMMIN, hard.OUTILS[i].PWMMAX);
 
-    gpioOutils[i].servoWrite(pwm);
+    //gpioOutils[i].servoWrite(pwm);
    }
   }
 
@@ -573,12 +573,12 @@ CONF.SERVEURS.forEach(function(serveur) {
    else
     pwm = pwmNeutre;
 
-   gpioMoteurs[i].servoWrite(pwm);
+  // gpioMoteurs[i].servoWrite(pwm);
   }
 
   if(tx.interrupteurs[0] != oldTxInterrupteurs) {
    for(let i = 0; i < 8; i++)
-    setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
+    //setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
    oldTxInterrupteurs = tx.interrupteurs[0]
   }
 
@@ -599,18 +599,18 @@ CONF.SERVEURS.forEach(function(serveur) {
 });
 
 function setGpio(n, etat) {
- if(hard.INTERRUPTEURS[n].MODE == 1 && !etat || // Drain ouvert
-    hard.INTERRUPTEURS[n].MODE == 2 && etat)    // Collecteur ouvert
-  gpioInterrupteurs[n].mode(GPIO.INPUT);
- else
-  gpioInterrupteurs[n].digitalWrite(etat);
+ //if(hard.INTERRUPTEURS[n].MODE == 1 && !etat || // Drain ouvert
+ //   hard.INTERRUPTEURS[n].MODE == 2 && etat)    // Collecteur ouvert
+ // gpioInterrupteurs[n].mode(GPIO.INPUT);
+ //else
+  //gpioInterrupteurs[n].digitalWrite(etat);
 }
 
 function failSafe() {
  trace("Arrêt des moteurs");
 
- for(let i = 0; i < hard.MOTEURS.length; i++)
-  gpioMoteurs[i].servoWrite(map(0, -0x80, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
+ for(let i = 0; i < hard.MOTEURS.length; i++){}
+  //gpioMoteurs[i].servoWrite(map(0, -0x80, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
 }
 
 setInterval(function() {
