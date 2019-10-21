@@ -268,8 +268,8 @@ function debout() {
  // gpio.mode(GPIO.OUTPUT);
  //});
 
- for(let i = 0; i < 8; i++)
-  setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
+ //for(let i = 0; i < 8; i++)
+  //setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
 
  if(hard.CAPTURESENVEILLE) {
   sigterm("Raspistill", "raspistill", function(code) {
@@ -296,6 +296,14 @@ function dodo() {
 
  //for(let i = 0; i < 8; i++)
   //setGpio(i, hard.INTERRUPTEURS[i].INV);
+
+pca9685driver.channelOff(PCADRIVER_AIN1);
+pca9685driver.channelOff(PCADRIVER_AIN2);
+pca9685driver.channelOff(PCADRIVER_PWMA);
+
+pca9685driver.channelOff(PCADRIVER_BIN1);
+pca9685driver.channelOff(PCADRIVER_BIN2);
+pca9685driver.channelOff(PCADRIVER_PWMB);
 
  sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
  });
