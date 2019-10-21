@@ -58,6 +58,14 @@ const GAUGERATE = 250;
 
 const PCA9685ADDRESS = 0x40; // 0x40 Generic / 0x60 for Adafruit Motor Driver
 const PCA9685FREQUENCY = 50;
+const PCADRIVER_PWMA = 0;
+const PCADRIVER_AIN1 = 1;
+const PCADRIVER_AIN2 = 2;
+const PCADRIVER_PWMB = 5;
+const PCADRIVER_BIN1 = 3;
+const PCADRIVER_BIN2 = 4;
+
+var motorLastPwm = [0,0];
 
 const CAPTURESENVEILLERATE = 60000;
 
@@ -156,20 +164,18 @@ i2c = I2C.openSync(1);
 // }
 
 var pca9685driver = new pca9685.Pca9685Driver({
-	i2c: i2c,
-	address: PCA9685ADDRESS,
-	frequency: PCA9685FREQUENCY,
-	debug: true
+   i2c: i2c,
+   address: PCA9685ADDRESS,
+   frequency: PCA9685FREQUENCY
+   //debug: true
 }, function startLoop(err) {
-	if (err) {
-		console.error("Error initializing PCA9685");
-		process.exit(-1);
-		return;
-	}
+   if (err) {
+      console.error("Error initializing PCA9685");
+      process.exit(-1);
+      return;
+   }
 
-	console.log("PCA9685 Initialized");
-	//pca9685driver.setPulseLength(, 1500);
-	//pca9685driver.setPulseLength(, 1500);
+   console.log("PCA9685 Initialized");
 });
 
 trace("Démarrage du client");
@@ -585,17 +591,50 @@ CONF.SERVEURS.forEach(function(serveur) {
 
   for(let i = 0; i < hard.MOTEURS.length; i++) {
    let pwm;
+   let chin1, chin2, chpwm;
    let pwmNeutre = (hard.MOTEURS[i].PWMMAX + hard.MOTEURS[i].PWMMIN) / 2;
 
-   if(moteurs[i] < 0)
-    pwm = map(moteurs[i] + hard.MOTEURS[i].NEUTREAR, -0x80 + hard.MOTEURS[i].NEUTREAR, 0, hard.MOTEURS[i].PWMMIN, pwmNeutre);
-   else if(moteurs[i] > 0)
-    pwm = map(moteurs[i] + hard.MOTEURS[i].NEUTREAV, 0, 0x80 + hard.MOTEURS[i].NEUTREAV, pwmNeutre, hard.MOTEURS[i].PWMMAX);
-   else
-    pwm = pwmNeutre;
+   if(motorLastPwm[i] === moteurs[i]){
+      continue;
+   }
+   motorLastPwm[i] = moteurs[i];
 
-  	// gpioMoteurs[i].servoWrite(pwm);
-  	console.log('motor '+i+' pwm = '+pwm);
+   switch(i){
+      case 0:
+         chin1 = PCADRIVER_AIN1;
+         chin2 = PCADRIVER_AIN2;
+         chpwm = PCADRIVER_PWMA;
+         break;
+      case 1:
+         chin1 = PCADRIVER_BIN1;
+         chin2 = PCADRIVER_BIN2;
+         chpwm = PCADRIVER_PWMB;
+         break;
+      default:
+         continue;
+   }
+   if(moteurs[i] < 0){
+      //pwm = map(moteurs[i] + hard.MOTEURS[i].NEUTREAR, -0x80 + hard.MOTEURS[i].NEUTREAR, 0, hard.MOTEURS[i].PWMMIN, pwmNeutre);
+      pca9685driver.channelOff(chin1);
+      pca9685driver.channelOn(chin2);
+      pwm = (moteurs[i] * -1) / 128;
+    } else if(moteurs[i] > 0){
+      //pwm = map(moteurs[i] + hard.MOTEURS[i].NEUTREAV, 0, 0x80 + hard.MOTEURS[i].NEUTREAV, pwmNeutre, hard.MOTEURS[i].PWMMAX);
+      pca9685driver.channelOn(chin1);
+      pca9685driver.channelOff(chin2);
+      pwm = moteurs[i] / 128;
+    }else{
+      pca9685driver.channelOff(chin1);
+      pca9685driver.channelOff(chin2);
+      pwm = 0;
+    }
+    pca9685driver.setDutyCycle(chpwm, pwm);
+   //else
+   // pwm = pwmNeutre;
+
+   // gpioMoteurs[i].servoWrite(pwm);
+   //console.log('motor '+i+' pwm = '+pwm);
+   //console.log(moteurs);
   }
 
   if(tx.interrupteurs[0] != oldTxInterrupteurs) {
@@ -631,7 +670,15 @@ function setGpio(n, etat) {
 function failSafe() {
  trace("Arrêt des moteurs");
 
- for(let i = 0; i < hard.MOTEURS.length; i++){}
+pca9685driver.channelOff(PCADRIVER_AIN1);
+pca9685driver.channelOff(PCADRIVER_AIN2);
+pca9685driver.channelOff(PCADRIVER_PWMA);
+
+pca9685driver.channelOff(PCADRIVER_BIN1);
+pca9685driver.channelOff(PCADRIVER_BIN2);
+pca9685driver.channelOff(PCADRIVER_PWMB);
+
+ //for(let i = 0; i < hard.MOTEURS.length; i++){}
   //gpioMoteurs[i].servoWrite(map(0, -0x80, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
 }
 
