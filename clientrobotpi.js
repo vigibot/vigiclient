@@ -587,6 +587,14 @@ CONF.SERVEURS.forEach(function(serveur) {
                              (hard.OUTILS[i].COURSE / 2 + 180) * 0x10000 / 360, hard.OUTILS[i].PWMMIN, hard.OUTILS[i].PWMMAX);
 
     //gpioOutils[i].servoWrite(pwm);
+	switch(i){
+	case 0:
+		pca9685driver.setPulseLength(8, pwm);
+		break;
+	case 1:
+		pca9685driver.setPulseLength(10, pwm);
+		break;
+	}
    }
   }
 
