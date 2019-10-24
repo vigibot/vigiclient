@@ -269,6 +269,9 @@ function debout() {
   });
  }
 
+ for(let i = 0; i < conf.TX.OUTILS.length; i++)
+  oldOutils[i]++;
+
  for(let i = 0; i < 8; i++)
   setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
 
