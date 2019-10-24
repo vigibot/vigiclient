@@ -1,6 +1,6 @@
 "use strict";
 
-const CONF = require("./robot.json");
+const CONF = require("/boot/robot.json");
 
 const TRAME = require("./trame.js");
 
@@ -8,14 +8,14 @@ const PORTROBOTS = 86;
 const PORTTCPVIDEO = 8003;
 const PORTTCPAUDIO = 8004;
 
-const FICHIERLOG = "./vigiclient.log";
+const FICHIERLOG = "/var/log/vigiclient.log";
 
 const INTERFACEWIFI = "wlan0";
 const FICHIERSTATS = "/proc/net/wireless";
 const STATSRATE = 250;
 
-const PROCESSDIFFUSION = "./processdiffusion";
-const PROCESSDIFFAUDIO = "./processdiffaudio";
+const PROCESSDIFFUSION = "/usr/local/vigiclient/processdiffusion";
+const PROCESSDIFFAUDIO = "/usr/local/vigiclient/processdiffaudio";
 
 const CMDDIFFUSION = [
  PROCESSDIFFUSION,
@@ -56,17 +56,6 @@ const MAX17043ADDRESS = 0x10;
 const BQ27441ADDRESS = 0x55;
 const GAUGERATE = 250;
 
-const PCA9685ADDRESS = 0x40; // 0x40 Generic / 0x60 for Adafruit Motor Driver
-const PCA9685FREQUENCY = 50;
-const PCADRIVER_PWMA = 0;
-const PCADRIVER_AIN1 = 1;
-const PCADRIVER_AIN2 = 2;
-const PCADRIVER_PWMB = 5;
-const PCADRIVER_BIN1 = 3;
-const PCADRIVER_BIN2 = 4;
-
-var motorLastPwm = [0,0];
-
 const CAPTURESENVEILLERATE = 60000;
 
 const OS = require("os");
@@ -77,9 +66,8 @@ const RL = require("readline");
 const NET = require("net");
 const SPLIT = require("stream-split");
 const HTTP = require("http");
-//const GPIO = require("pigpio").Gpio;
+const GPIO = require("pigpio").Gpio;
 const I2C = require("i2c-bus");
-var pca9685 = require("pca9685");
 
 const VERSION = Math.trunc(FS.statSync(__filename).mtimeMs);
 const PROCESSTIME = Date.now();
@@ -108,7 +96,8 @@ let latence = 0;
 let lastTrame = Date.now();
 let alarmeLatence = false;
 
-let old = [];
+let oldOutils = [];
+let oldMoteurs = [];
 let rattrapage = [];
 let oldTxInterrupteurs;
 
@@ -136,47 +125,32 @@ trace("Initialisation I2C");
 
 i2c = I2C.openSync(1);
 
-// try {
-//  i2c.i2cWriteSync(CW2015ADDRESS, 2, CW2015WAKEUP);
-//  cw2015 = true;
-//  max17043 = false;
-//  bq27441 = false;
-// } catch(err) {
-//  try {
-//   i2c.i2cReadSync(MAX17043ADDRESS, 6, gaugeBuffer);
-//   cw2015 = false;
-//   max17043 = true;
-//   bq27441 = false;
-//  } catch(err) {
-//   try {
-//    i2c.i2cReadSync(BQ27441ADDRESS, 29, gaugeBuffer);
-//    cw2015 = false;
-//    max17043 = false;
-//    bq27441 = true;
-//   } catch(err) {
-//    trace("I2C désactivé");
-//    i2c.closeSync();
-//    cw2015 = false;
-//    max17043 = false;
-//    bq27441 = false;
-//   }
-//  }
-// }
-
-var pca9685driver = new pca9685.Pca9685Driver({
-   i2c: i2c,
-   address: PCA9685ADDRESS,
-   frequency: PCA9685FREQUENCY
-   //debug: true
-}, function startLoop(err) {
-   if (err) {
-      console.error("Error initializing PCA9685");
-      process.exit(-1);
-      return;
-   }
-
-   console.log("PCA9685 Initialized");
-});
+try {
+ i2c.i2cWriteSync(CW2015ADDRESS, 2, CW2015WAKEUP);
+ cw2015 = true;
+ max17043 = false;
+ bq27441 = false;
+} catch(err) {
+ try {
+  i2c.i2cReadSync(MAX17043ADDRESS, 6, gaugeBuffer);
+  cw2015 = false;
+  max17043 = true;
+  bq27441 = false;
+ } catch(err) {
+  try {
+   i2c.i2cReadSync(BQ27441ADDRESS, 29, gaugeBuffer);
+   cw2015 = false;
+   max17043 = false;
+   bq27441 = true;
+  } catch(err) {
+   trace("I2C désactivé");
+   i2c.closeSync();
+   cw2015 = false;
+   max17043 = false;
+   bq27441 = false;
+  }
+ }
+}
 
 trace("Démarrage du client");
 
@@ -264,12 +238,14 @@ function exec(nom, commande, callback) {
 }
 
 function debout() {
- //gpioOutils.forEach(function(gpio) {
- // gpio.mode(GPIO.OUTPUT);
- //});
+ if(hard.PIGPIO) {
+  gpioOutils.forEach(function(gpio) {
+   gpio.mode(GPIO.OUTPUT);
+  });
+ }
 
- //for(let i = 0; i < 8; i++)
-  //setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
+ for(let i = 0; i < 8; i++)
+  setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
 
  if(hard.CAPTURESENVEILLE) {
   sigterm("Raspistill", "raspistill", function(code) {
@@ -287,23 +263,22 @@ function debout() {
 function dodo() {
  serveurCourant = "";
 
- // gpioOutils.forEach(function(gpio) {
-  // gpio.mode(GPIO.INPUT);
- // });
+ if(hard.PIGPIO) {
+  gpioOutils.forEach(function(gpio) {
+   gpio.mode(GPIO.INPUT);
+  });
 
- //for(let i = 0; i < hard.MOTEURS.length; i++)
-  //gpioMoteurs[i].servoWrite(map(0, -0x80, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
+  for(let i = 0; i < hard.MOTEURS.length; i++)
+   gpioMoteurs[i].servoWrite(map(0, -0x80, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
+ } else {
+  // TODO write disable PWM to servo controller
+  for(let i = 0; i < hard.MOTEURS.length; i++) {
+   // TODO write 0 velocity to motor controller
+  }
+ }
 
- //for(let i = 0; i < 8; i++)
-  //setGpio(i, hard.INTERRUPTEURS[i].INV);
-
-pca9685driver.channelOff(PCADRIVER_AIN1);
-pca9685driver.channelOff(PCADRIVER_AIN2);
-pca9685driver.channelOff(PCADRIVER_PWMA);
-
-pca9685driver.channelOff(PCADRIVER_BIN1);
-pca9685driver.channelOff(PCADRIVER_BIN2);
-pca9685driver.channelOff(PCADRIVER_PWMB);
+ for(let i = 0; i < 8; i++)
+  setGpio(i, hard.INTERRUPTEURS[i].INV);
 
  sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
  });
@@ -385,9 +360,12 @@ CONF.SERVEURS.forEach(function(serveur) {
   rx = new TRAME.Rx(conf.TX, conf.RX);
 
   for(let i = 0; i < conf.TX.OUTILS.length; i++) {
-   old[i] = tx.outils[i];
+   oldOutils[i] = tx.outils[i];
    rattrapage[i] = 0;
   }
+
+  for(let i = 0; i < hard.MOTEURS.length; i++)
+   oldMoteurs[i] = 0;
 
   oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
 
@@ -397,34 +375,36 @@ CONF.SERVEURS.forEach(function(serveur) {
   confStatique = conf.CONFSSTATIQUE[oldIdConfStatique];
   confDynamique = conf.CONFSDYNAMIQUE[oldIdConfDynamique];
 
-  trace("Initialisation des I/O Raspberry PI");
+  if(hard.PIGPIO) {
+   trace("Initialisation des I/O Raspberry PI");
 
-  // gpioOutils.forEach(function(gpio) {
-   // gpio.mode(GPIO.INPUT);
-  // });
+   gpioOutils.forEach(function(gpio) {
+    gpio.mode(GPIO.INPUT);
+   });
 
-  // gpioMoteurs.forEach(function(gpio) {
-   // gpio.mode(GPIO.INPUT);
-  // });
+   gpioMoteurs.forEach(function(gpio) {
+    gpio.mode(GPIO.INPUT);
+   });
 
-  // gpioInterrupteurs.forEach(function(gpio) {
-   // gpio.mode(GPIO.INPUT);
-  // });
+   gpioInterrupteurs.forEach(function(gpio) {
+    gpio.mode(GPIO.INPUT);
+   });
 
-  gpioOutils = [];
-  gpioMoteurs = [];
-  gpioInterrupteurs = [];
+   gpioOutils = [];
+   gpioMoteurs = [];
+   gpioInterrupteurs = [];
 
-  //for(let i = 0; i < hard.OUTILS.length; i++)
-  // gpioOutils[i] = new GPIO(hard.OUTILS[i].PIN, {mode: GPIO.OUTPUT});
+   for(let i = 0; i < hard.OUTILS.length; i++)
+    gpioOutils[i] = new GPIO(hard.OUTILS[i].PIN, {mode: GPIO.OUTPUT});
 
-  // for(let i = 0; i < hard.MOTEURS.length; i++)
-   // gpioMoteurs[i] = new GPIO(hard.MOTEURS[i].PIN, {mode: GPIO.OUTPUT});
+   for(let i = 0; i < hard.MOTEURS.length; i++)
+    gpioMoteurs[i] = new GPIO(hard.MOTEURS[i].PIN, {mode: GPIO.OUTPUT});
 
-  // for(let i = 0; i < 8; i++) {
-   // gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
-   // setGpio(i, hard.INTERRUPTEURS[i].INV);
-  // }
+   for(let i = 0; i < 8; i++) {
+    gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
+    setGpio(i, hard.INTERRUPTEURS[i].INV);
+   }
+  }
 
   setTimeout(function() {
    confVideo(function(code) {
@@ -573,12 +553,13 @@ CONF.SERVEURS.forEach(function(serveur) {
    let outils = [];
 
    for(let i = 0; i < hard.OUTILS.length; i++) {
-    if(tx.outils[i] < old[i])
+    if(tx.outils[i] == oldOutils[i])
+     continue;
+    else if(tx.outils[i] < oldOutils[i])
      rattrapage[i] = -hard.OUTILS[i].RATTRAPAGE * 0x10000 / 360;
-    else if(tx.outils[i] > old[i])
+    else if(tx.outils[i] > oldOutils[i])
      rattrapage[i] = hard.OUTILS[i].RATTRAPAGE * 0x10000 / 360;
-
-    old[i] = tx.outils[i];
+    oldOutils[i] = tx.outils[i];
 
     outils[i] = constrain(tx.outils[i] + rattrapage[i] + hard.OUTILS[i].ANGLEOFFSET * 0x10000 / 360, (-hard.OUTILS[i].COURSE / 2 + 180) * 0x10000 / 360,
                                                                                                      (hard.OUTILS[i].COURSE / 2 + 180) * 0x10000 / 360);
@@ -586,15 +567,11 @@ CONF.SERVEURS.forEach(function(serveur) {
     let pwm = map(outils[i], (-hard.OUTILS[i].COURSE / 2 + 180) * 0x10000 / 360,
                              (hard.OUTILS[i].COURSE / 2 + 180) * 0x10000 / 360, hard.OUTILS[i].PWMMIN, hard.OUTILS[i].PWMMAX);
 
-    //gpioOutils[i].servoWrite(pwm);
-	switch(i){
-	case 0:
-		pca9685driver.setPulseLength(8, pwm);
-		break;
-	case 1:
-		pca9685driver.setPulseLength(10, pwm);
-		break;
-	}
+    if(hard.PIGPIO)
+     gpioOutils[i].servoWrite(pwm);
+    else {
+     // TODO write pwm to servo controller
+    }
    }
   }
 
@@ -606,56 +583,30 @@ CONF.SERVEURS.forEach(function(serveur) {
                           tx.vitesses[2] * hard.MIXAGESMOTEURS[i][2], -0x80, 0x80);
 
   for(let i = 0; i < hard.MOTEURS.length; i++) {
-   let pwm;
-   let chin1, chin2, chpwm;
-   let pwmNeutre = (hard.MOTEURS[i].PWMMAX + hard.MOTEURS[i].PWMMIN) / 2;
+   if(moteurs[i] == oldMoteurs[i])
+    continue;
+   oldMoteurs[i] = moteurs[i];
 
-   if(motorLastPwm[i] === moteurs[i]){
-      continue;
+   if(hard.PIGPIO) {
+    let pwm;
+    let pwmNeutre = (hard.MOTEURS[i].PWMMAX + hard.MOTEURS[i].PWMMIN) / 2;
+
+    if(moteurs[i] < 0)
+     pwm = map(moteurs[i] + hard.MOTEURS[i].NEUTREAR, -0x80 + hard.MOTEURS[i].NEUTREAR, 0, hard.MOTEURS[i].PWMMIN, pwmNeutre);
+    else if(moteurs[i] > 0)
+     pwm = map(moteurs[i] + hard.MOTEURS[i].NEUTREAV, 0, 0x80 + hard.MOTEURS[i].NEUTREAV, pwmNeutre, hard.MOTEURS[i].PWMMAX);
+    else
+     pwm = pwmNeutre;
+
+    gpioMoteurs[i].servoWrite(pwm);
+   } else {
+    // TODO write moteurs[i] velocity to motor controller
    }
-   motorLastPwm[i] = moteurs[i];
-
-   switch(i){
-      case 0:
-         chin1 = PCADRIVER_AIN1;
-         chin2 = PCADRIVER_AIN2;
-         chpwm = PCADRIVER_PWMA;
-         break;
-      case 1:
-         chin1 = PCADRIVER_BIN1;
-         chin2 = PCADRIVER_BIN2;
-         chpwm = PCADRIVER_PWMB;
-         break;
-      default:
-         continue;
-   }
-   if(moteurs[i] < 0){
-      //pwm = map(moteurs[i] + hard.MOTEURS[i].NEUTREAR, -0x80 + hard.MOTEURS[i].NEUTREAR, 0, hard.MOTEURS[i].PWMMIN, pwmNeutre);
-      pca9685driver.channelOff(chin1);
-      pca9685driver.channelOn(chin2);
-      pwm = (moteurs[i] * -1) / 128;
-    } else if(moteurs[i] > 0){
-      //pwm = map(moteurs[i] + hard.MOTEURS[i].NEUTREAV, 0, 0x80 + hard.MOTEURS[i].NEUTREAV, pwmNeutre, hard.MOTEURS[i].PWMMAX);
-      pca9685driver.channelOn(chin1);
-      pca9685driver.channelOff(chin2);
-      pwm = moteurs[i] / 128;
-    }else{
-      pca9685driver.channelOff(chin1);
-      pca9685driver.channelOff(chin2);
-      pwm = 0;
-    }
-    pca9685driver.setDutyCycle(chpwm, pwm);
-   //else
-   // pwm = pwmNeutre;
-
-   // gpioMoteurs[i].servoWrite(pwm);
-   //console.log('motor '+i+' pwm = '+pwm);
-   //console.log(moteurs);
   }
 
   if(tx.interrupteurs[0] != oldTxInterrupteurs) {
    for(let i = 0; i < 8; i++)
-    //setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
+    setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
    oldTxInterrupteurs = tx.interrupteurs[0]
   }
 
@@ -676,26 +627,28 @@ CONF.SERVEURS.forEach(function(serveur) {
 });
 
 function setGpio(n, etat) {
- //if(hard.INTERRUPTEURS[n].MODE == 1 && !etat || // Drain ouvert
- //   hard.INTERRUPTEURS[n].MODE == 2 && etat)    // Collecteur ouvert
- // gpioInterrupteurs[n].mode(GPIO.INPUT);
- //else
-  //gpioInterrupteurs[n].digitalWrite(etat);
+ if(hard.PIGPIO) {
+  if(hard.INTERRUPTEURS[n].MODE == 1 && !etat || // Drain ouvert
+     hard.INTERRUPTEURS[n].MODE == 2 && etat)    // Collecteur ouvert
+   gpioInterrupteurs[n].mode(GPIO.INPUT);
+  else
+   gpioInterrupteurs[n].digitalWrite(etat);
+ } else {
+  // TODO write etat to GPIO controller
+ }
 }
 
 function failSafe() {
  trace("Arrêt des moteurs");
 
-pca9685driver.channelOff(PCADRIVER_AIN1);
-pca9685driver.channelOff(PCADRIVER_AIN2);
-pca9685driver.channelOff(PCADRIVER_PWMA);
-
-pca9685driver.channelOff(PCADRIVER_BIN1);
-pca9685driver.channelOff(PCADRIVER_BIN2);
-pca9685driver.channelOff(PCADRIVER_PWMB);
-
- //for(let i = 0; i < hard.MOTEURS.length; i++){}
-  //gpioMoteurs[i].servoWrite(map(0, -0x80, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
+ if(hard.PIGPIO) {
+  for(let i = 0; i < hard.MOTEURS.length; i++)
+   gpioMoteurs[i].servoWrite(map(0, -0x80, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
+ } else {
+  for(let i = 0; i < hard.MOTEURS.length; i++) {
+   // TODO write 0 velocity to motor controller
+  }
+ }
 }
 
 setInterval(function() {
