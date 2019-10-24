@@ -50,6 +50,12 @@ const BEACONRATE = 10000;
 
 const SEPARATEURNALU = new Buffer.from([0, 0, 0, 1]);
 
+const CW2015ADDRESS = 0x62;
+const CW2015WAKEUP = new Buffer.from([0x0a, 0x00]);
+const MAX17043ADDRESS = 0x10;
+const BQ27441ADDRESS = 0x55;
+const GAUGERATE = 250;
+
 const PCA9685ADDRESS = 0x40; // TODO user hardware conf
 const PCA9685FREQUENCY = 50;
 const PCADRIVER_PWMA = 0;
@@ -62,12 +68,6 @@ const PCASERVOCHANNELMAP = { // TODO user hardware conf
  0:8,
  1:10
 };
-
-const CW2015ADDRESS = 0x62;
-const CW2015WAKEUP = new Buffer.from([0x0a, 0x00]);
-const MAX17043ADDRESS = 0x10;
-const BQ27441ADDRESS = 0x55;
-const GAUGERATE = 250;
 
 const CAPTURESENVEILLERATE = 60000;
 
