@@ -166,7 +166,7 @@ try {
  }
 }
 
-let pca9685driver = new PCA9685.Pca9685Driver({
+let pca9685Driver = new PCA9685.Pca9685Driver({
  i2c: i2c,
  address: PCA9685ADDRESS,
  frequency: PCA9685FREQUENCY
@@ -299,7 +299,7 @@ function dodo() {
 
  if(hard.PCA9685) {
   for(let chan in PCASERVOCHANNELMAP)
-   pca9685driver.channelOff(PCASERVOCHANNELMAP[chan]);
+   pca9685Driver.channelOff(PCASERVOCHANNELMAP[chan]);
 
   for(let i = 0; i < hard.MOTEURS.length; i++)
    pca9685MotorDrive(i, 0);
@@ -599,7 +599,7 @@ CONF.SERVEURS.forEach(function(serveur) {
      gpioOutils[i].servoWrite(pwm);
 
     if(hard.PCA9685 && PCASERVOCHANNELMAP[i])
-     pca9685driver.setPulseLength(PCASERVOCHANNELMAP[i], pwm);
+     pca9685Driver.setPulseLength(PCASERVOCHANNELMAP[i], pwm);
    }
   }
 
@@ -683,25 +683,25 @@ switch(motorNum) {
   chPwm = PCADRIVER_PWMB;
   break;
  default:
-  trace("pca9685MotorDrive() invalid motor number!");
+  trace("pca9685MotorDrive() invalid motor number");
   return;
  }
 
  if(value < 0) {
-  pca9685driver.channelOff(chIn1);
-  pca9685driver.channelOn(chIn2);
+  pca9685Driver.channelOff(chIn1);
+  pca9685Driver.channelOn(chIn2);
   pwm = value * -1 / 128;
  } else if(value > 0) {
-  pca9685driver.channelOn(chIn1);
-  pca9685driver.channelOff(chIn2);
+  pca9685Driver.channelOn(chIn1);
+  pca9685Driver.channelOff(chIn2);
   pwm = value / 128;
  } else {
-  pca9685driver.channelOff(chIn1);
-  pca9685driver.channelOff(chIn2);
+  pca9685Driver.channelOff(chIn1);
+  pca9685Driver.channelOff(chIn2);
   pwm = 0;
  }
 
- pca9685driver.setDutyCycle(chPwm, pwm);
+ pca9685Driver.setDutyCycle(chPwm, pwm);
 }
 
 function failSafe() {
