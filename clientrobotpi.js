@@ -296,6 +296,9 @@ function dodo() {
   for(let i = 0; i < hard.MOTEURS.length; i++)
    gpioMoteurs[i].servoWrite(map(0, -0x80, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
  } else {
+  for(let chan in PCASERVOCHANNELMAP){
+   pca9685driver.channelOff(PCASERVOCHANNELMAP[chan]);
+  }
   for(let i = 0; i < hard.MOTEURS.length; i++) {
    pca9685MotorDrive(i,0);
   }
