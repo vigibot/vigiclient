@@ -295,7 +295,9 @@ function dodo() {
 
   for(let i = 0; i < hard.MOTEURS.length; i++)
    gpioMoteurs[i].servoWrite(map(0, -0x80, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
- } else {
+ }
+
+ if(hard.PCA9685) {
   for(let chan in PCASERVOCHANNELMAP)
    pca9685driver.channelOff(PCASERVOCHANNELMAP[chan]);
 
@@ -595,10 +597,9 @@ CONF.SERVEURS.forEach(function(serveur) {
 
     if(hard.PIGPIO)
      gpioOutils[i].servoWrite(pwm);
-    else {
-     if(PCASERVOCHANNELMAP[i])
-      pca9685driver.setPulseLength(PCASERVOCHANNELMAP[i], pwm);
-    }
+
+    if(hard.PCA9685 && PCASERVOCHANNELMAP[i])
+     pca9685driver.setPulseLength(PCASERVOCHANNELMAP[i], pwm);
    }
   }
 
@@ -626,7 +627,9 @@ CONF.SERVEURS.forEach(function(serveur) {
      pwm = pwmNeutre;
 
     gpioMoteurs[i].servoWrite(pwm);
-   } else
+   }
+
+   if(hard.PCA9685)
     pca9685MotorDrive(i, moteurs[i]);
   }
 
@@ -707,7 +710,9 @@ function failSafe() {
  if(hard.PIGPIO) {
   for(let i = 0; i < hard.MOTEURS.length; i++)
    gpioMoteurs[i].servoWrite(map(0, -0x80, 0x80, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
- } else {
+ }
+
+ if(hard.PCA9685) {
   for(let i = 0; i < hard.MOTEURS.length; i++)
    pca9685MotorDrive(i, 0);
  }
