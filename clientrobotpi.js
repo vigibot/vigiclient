@@ -386,7 +386,7 @@ CONF.SERVEURS.forEach(function(serveur) {
   rx = new TRAME.Rx(conf.TX, conf.RX);
 
   for(let i = 0; i < conf.TX.OUTILS.length; i++) {
-   oldOutils[i] = tx.outils[i];
+   oldOutils[i] = tx.outils[i] + 1;
    rattrapage[i] = 0;
   }
 
