@@ -629,7 +629,7 @@ CONF.SERVEURS.forEach(function(serveur) {
    if(hard.PIGPIO) {
     gpioMoteurs[i].servoWrite(pwm);
    } else {
-     pca9685MotorDrive(i,pwm);
+     pca9685MotorDrive(i,moteurs[i]);
    }
   }
 
