@@ -668,25 +668,25 @@ function setGpio(n, etat) {
 }
 
 function pca9685MotorDrive(motorNum, value) {
-let chIn1;
-let chIn2;
-let chPwm;
-let pwm;
+ let chIn1;
+ let chIn2;
+ let chPwm;
+ let pwm;
 
-switch(motorNum) {
- case 0:
-  chIn1 = PCA9685AIN1;
-  chIn2 = PCA9685AIN2;
-  chPwm = PCA9685PWMA;
-  break;
- case 1:
-  chIn1 = PCA9685BIN1;
-  chIn2 = PCA9685BIN2;
-  chPwm = PCA9685PWMB;
-  break;
- default:
-  trace("pca9685MotorDrive() invalid motor number");
-  return;
+ switch(motorNum) {
+  case 0:
+   chIn1 = PCA9685AIN1;
+   chIn2 = PCA9685AIN2;
+   chPwm = PCA9685PWMA;
+   break;
+  case 1:
+   chIn1 = PCA9685BIN1;
+   chIn2 = PCA9685BIN2;
+   chPwm = PCA9685PWMB;
+   break;
+  default:
+   trace("pca9685MotorDrive() invalid motor number");
+   return;
  }
 
  if(value < 0) {
