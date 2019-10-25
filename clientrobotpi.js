@@ -56,18 +56,13 @@ const MAX17043ADDRESS = 0x10;
 const BQ27441ADDRESS = 0x55;
 const GAUGERATE = 250;
 
-const PCA9685ADDRESS = 0x40; // TODO user hardware conf
 const PCA9685FREQUENCY = 50;
-const PCADRIVER_PWMA = 0;
-const PCADRIVER_AIN1 = 1;
-const PCADRIVER_AIN2 = 2;
-const PCADRIVER_PWMB = 5;
-const PCADRIVER_BIN1 = 3;
-const PCADRIVER_BIN2 = 4;
-const PCASERVOCHANNELMAP = { // TODO user hardware conf
- 0:8,
- 1:10
-};
+const PCA9685AIN1 = 1;
+const PCA9685AIN2 = 2;
+const PCA9685PWMA = 0;
+const PCA9685BIN1 = 3;
+const PCA9685BIN2 = 4;
+const PCA9685PWMB = 5;
 
 const CAPTURESENVEILLERATE = 60000;
 
@@ -125,6 +120,8 @@ let max17043;
 let bq27441;
 let gaugeBuffer = new Buffer.alloc(256);
 
+let pca9685Driver;
+
 if(typeof CONF.CMDDIFFUSION === "undefined")
  CONF.CMDDIFFUSION = CMDDIFFUSION;
 
@@ -165,17 +162,6 @@ try {
   }
  }
 }
-
-let pca9685Driver = new PCA9685.Pca9685Driver({
- i2c: i2c,
- address: PCA9685ADDRESS,
- frequency: PCA9685FREQUENCY
-}, function(err) {
- if(err)
-  trace("Error initializing PCA9685");
- else
-  trace("PCA9685 initialized");
-});
 
 trace("Démarrage du client");
 
@@ -301,8 +287,8 @@ function dodo() {
  }
 
  if(hard.PCA9685) {
-  for(let chan in PCASERVOCHANNELMAP)
-   pca9685Driver.channelOff(PCASERVOCHANNELMAP[chan]);
+  for(let chan in hard.PCA9685CHANNELMAP)
+   pca9685Driver.channelOff(hard.PCA9685CHANNELMAP[chan]);
 
   for(let i = 0; i < hard.MOTEURS.length; i++)
    pca9685MotorDrive(i, 0);
@@ -435,6 +421,19 @@ CONF.SERVEURS.forEach(function(serveur) {
     gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
     setGpio(i, hard.INTERRUPTEURS[i].INV);
    }
+  }
+
+  if(hard.PCA9685) {
+   pca9685Driver = new PCA9685.Pca9685Driver({
+    i2c: i2c,
+    address: hard.PCA9685ADDRESS,
+    frequency: PCA9685FREQUENCY
+   }, function(err) {
+    if(err)
+     trace("Error initializing PCA9685");
+    else
+     trace("PCA9685 initialized");
+   });
   }
 
   setTimeout(function() {
@@ -601,8 +600,8 @@ CONF.SERVEURS.forEach(function(serveur) {
     if(hard.PIGPIO)
      gpioOutils[i].servoWrite(pwm);
 
-    if(hard.PCA9685 && PCASERVOCHANNELMAP[i])
-     pca9685Driver.setPulseLength(PCASERVOCHANNELMAP[i], pwm);
+    if(hard.PCA9685 && hard.PCA9685CHANNELMAP[i])
+     pca9685Driver.setPulseLength(hard.PCA9685CHANNELMAP[i], pwm);
    }
   }
 
@@ -676,14 +675,14 @@ let pwm;
 
 switch(motorNum) {
  case 0:
-  chIn1 = PCADRIVER_AIN1;
-  chIn2 = PCADRIVER_AIN2;
-  chPwm = PCADRIVER_PWMA;
+  chIn1 = PCA9685AIN1;
+  chIn2 = PCA9685AIN2;
+  chPwm = PCA9685PWMA;
   break;
  case 1:
-  chIn1 = PCADRIVER_BIN1;
-  chIn2 = PCADRIVER_BIN2;
-  chPwm = PCADRIVER_PWMB;
+  chIn1 = PCA9685BIN1;
+  chIn2 = PCA9685BIN2;
+  chPwm = PCA9685PWMB;
   break;
  default:
   trace("pca9685MotorDrive() invalid motor number");
