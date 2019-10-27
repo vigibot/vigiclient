@@ -193,13 +193,6 @@ function traces(id, messages) {
   trace(id + " | " + tableau[i]);
 }
 
-function notification(serveur, message, type) {
- sockets[serveur].emit("serveurrobotnotification", {
-  message: message,
-  type: type
- });
-}
-
 function constrain(n, nMin, nMax) {
  if(n > nMax)
   n = nMax;
@@ -456,21 +449,18 @@ CONF.SERVEURS.forEach(function(serveur) {
  sockets[serveur].on("clientsrobotdebout", function() {
   if(!init) {
    trace("Ce robot n'est pas initialisé");
-   notification(serveur, "Ce robot n'est pas initialisé", "error");
    sockets[serveur].emit("serveurrobotdebout", false);
    return;
   }
 
   if(!initVideo) {
    trace("La vidéo n'est pas initialisée");
-   notification(serveur, "La vidéo n'est pas initialisée", "error");
    sockets[serveur].emit("serveurrobotdebout", false);
    return;
   }
 
   if(serveurCourant) {
    trace("Ce robot est déjà utilisé depuis le serveur " + serveurCourant);
-   notification(serveur, "Utilisé par " + serveurCourant, "error");
    sockets[serveur].emit("serveurrobotdebout", false);
    return;
   }
