@@ -416,7 +416,8 @@ CONF.SERVEURS.forEach(function(serveur) {
 
   for(let i = 0; i < hard.MOTEURS.length; i++) {
    if(hard.MOTEURS[i].PCA9685 < 0) {
-    gpioMoteurs[i] = new GPIO(hard.MOTEURS[i].PIN, {mode: GPIO.OUTPUT});
+    if(hard.MOTEURS[i].PIN >= 0)
+     gpioMoteurs[i] = new GPIO(hard.MOTEURS[i].PIN, {mode: GPIO.OUTPUT});
     if(hard.MOTEURS[i].PINA >= 0)
      gpioMoteursA[i] = new GPIO(hard.MOTEURS[i].PINA, {mode: GPIO.OUTPUT});
     if(hard.MOTEURS[i].PINB >= 0)
