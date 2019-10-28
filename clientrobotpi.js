@@ -669,7 +669,7 @@ function setMotor(n, value) {
    l9110MotorDrive(n, pwm);
    break;
   default:
-   pca9685MotorDrive(n, pwm);
+   pca9685MotorDrive(n, value);
  }
 }
 
@@ -716,11 +716,11 @@ function pca9685MotorDrive(n, value) {
  if(value < 0) {
   pca9685Driver[pcaId].channelOff(chIn1);
   pca9685Driver[pcaId].channelOn(chIn2);
-  pwm = -value;
+  pwm = value * -1 / 128;
  } else if(value > 0) {
   pca9685Driver[pcaId].channelOn(chIn1);
   pca9685Driver[pcaId].channelOff(chIn2);
-  pwm = value;
+  pwm = value / 128;
  } else {
   pca9685Driver[pcaId].channelOff(chIn1);
   pca9685Driver[pcaId].channelOff(chIn2);
