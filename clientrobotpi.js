@@ -58,6 +58,10 @@ const GAUGERATE = 250;
 
 const PCA9685FREQUENCY = 50;
 
+const PIGPIO = -1;
+const L298 = -2;
+const L9110 = -3;
+
 const CAPTURESENVEILLERATE = 60000;
 
 const OS = require("os");
@@ -404,7 +408,7 @@ CONF.SERVEURS.forEach(function(serveur) {
   gpioInterrupteurs = [];
 
   for(let i = 0; i < hard.OUTILS.length; i++)
-   if(hard.OUTILS[i].PCA9685 == -1)
+   if(hard.OUTILS[i].PCA9685 == PIGPIO)
     gpioOutils[i] = new GPIO(hard.OUTILS[i].PIN, {mode: GPIO.OUTPUT});
 
   for(let i = 0; i < hard.MOTEURS.length; i++) {
@@ -419,7 +423,7 @@ CONF.SERVEURS.forEach(function(serveur) {
   }
 
   for(let i = 0; i < 8; i++) {
-   if(hard.INTERRUPTEURS[i].PCA9685 == -1)
+   if(hard.INTERRUPTEURS[i].PCA9685 == PIGPIO)
     gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
    setGpio(i, hard.INTERRUPTEURS[i].INV);
   }
@@ -622,15 +626,15 @@ CONF.SERVEURS.forEach(function(serveur) {
 
 });
 
-function setPca9685Gpio(pcaId, pin, value) {
- if(value)
+function setPca9685Gpio(pcaId, pin, state) {
+ if(state)
   pca9685Driver[pcaId].channelOn(pin);
  else
   pca9685Driver[pcaId].channelOff(pin);
 }
 
 function setGpio(n, etat) {
- if(hard.INTERRUPTEURS[n].PCA9685 == -1) {
+ if(hard.INTERRUPTEURS[n].PCA9685 == PIGPIO) {
   if(hard.INTERRUPTEURS[n].MODE == 1 && !etat || // Drain ouvert
      hard.INTERRUPTEURS[n].MODE == 2 && etat)    // Collecteur ouvert
    gpioInterrupteurs[n].mode(GPIO.INPUT);
@@ -641,49 +645,53 @@ function setGpio(n, etat) {
 }
 
 function setOutil(n, pwm) {
- if(hard.OUTILS[n].PCA9685 == -1)
+ if(hard.OUTILS[n].PCA9685 == PIGPIO)
   gpioOutils[n].servoWrite(pwm);
  else
   pca9685Driver[hard.OUTILS[n].PCA9685].setPulseLength(hard.OUTILS[n].PIN, pwm);
 }
 
-function setMotor(n, value) {
+function computePwm(n, velocity, min, max) {
  let pwm;
  let pwmNeutre = (hard.MOTEURS[n].PWMMAX + hard.MOTEURS[n].PWMMIN) / 2;
 
- if(value < 0)
-  pwm = map(value + hard.MOTEURS[n].NEUTREAR, -0x80 + hard.MOTEURS[n].NEUTREAR, 0, hard.MOTEURS[n].PWMMIN, pwmNeutre);
- else if(value > 0)
-  pwm = map(value + hard.MOTEURS[n].NEUTREAV, 0, 0x80 + hard.MOTEURS[n].NEUTREAV, pwmNeutre, hard.MOTEURS[n].PWMMAX);
+ if(velocity < 0)
+  pwm = map(velocity + hard.MOTEURS[n].NEUTREAR, -0x80 + hard.MOTEURS[n].NEUTREAR, 0, min, pwmNeutre);
+ else if(velocity > 0)
+  pwm = map(velocity + hard.MOTEURS[n].NEUTREAV, 0, 0x80 + hard.MOTEURS[n].NEUTREAV, pwmNeutre, max);
  else
   pwm = pwmNeutre;
 
+ return pwm;
+}
+
+function setMotor(n, velocity) {
  switch(hard.MOTEURS[n].PCA9685) {
-  case -1:
-   gpioMoteurs[n].servoWrite(pwm);
+  case PIGPIO:
+   gpioMoteurs[n].servoWrite(computePwm(n, velocity, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
    break;
-  case -2:
-   l298MotorDrive(n, pwm);
+  case L298:
+   l298MotorDrive(n, computePwm(n, velocity, -255, 255));
    break;
-  case -3:
-   l9110MotorDrive(n, pwm);
+  case L9110:
+   l9110MotorDrive(n, computePwm(n, velocity, -255, 255));
    break;
   default:
-   pca9685MotorDrive(n, pwm);
+   pca9685MotorDrive(n, computePwm(n, velocity, -100, 100));
  }
 }
 
-function l298MotorDrive(n, value) {
+function l298MotorDrive(n, velocity) {
  let pwm;
 
- if(value < 0) {
+ if(velocity < 0) {
   gpioMoteursA[n].digitalWrite(false);
   gpioMoteursB[n].digitalWrite(true);
-  pwm = -value;
- } else if(value > 0) {
+  pwm = -velocity;
+ } else if(velocity > 0) {
   gpioMoteursA[n].digitalWrite(true);
   gpioMoteursB[n].digitalWrite(false);
-  pwm = value;
+  pwm = velocity;
  } else {
   gpioMoteursA[n].digitalWrite(false);
   gpioMoteursB[n].digitalWrite(false);
@@ -693,12 +701,12 @@ function l298MotorDrive(n, value) {
  gpioMoteurs[n].pwmWrite(pwm);
 }
 
-function l9110MotorDrive(n, value) {
- if(value < 0) {
+function l9110MotorDrive(n, velocity) {
+ if(velocity < 0) {
   gpioMoteursA[n].digitalWrite(false);
-  gpioMoteursB[n].pwmWrite(-value);
- } else if(value > 0) {
-  gpioMoteursA[n].pwmWrite(value);
+  gpioMoteursB[n].pwmWrite(-velocity);
+ } else if(velocity > 0) {
+  gpioMoteursA[n].pwmWrite(velocity);
   gpioMoteursB[n].digitalWrite(false);
  } else {
   gpioMoteursA[n].digitalWrite(false);
@@ -706,28 +714,27 @@ function l9110MotorDrive(n, value) {
  }
 }
 
-function pca9685MotorDrive(n, value) {
+function pca9685MotorDrive(n, velocity) {
  let pcaId = hard.MOTEURS[n].PCA9685;
- let pwm;
  let chIn1 = hard.MOTEURS[n].PINA;
  let chIn2 = hard.MOTEURS[n].PINB;
- let chPwm = hard.MOTEURS[n].PIN;
+ let pwm;
 
- if(value < 0) {
+ if(velocity < 0) {
   pca9685Driver[pcaId].channelOff(chIn1);
   pca9685Driver[pcaId].channelOn(chIn2);
-  pwm = -value / 100;
- } else if(value > 0) {
+  pwm = -velocity / 100;
+ } else if(velocity > 0) {
   pca9685Driver[pcaId].channelOn(chIn1);
   pca9685Driver[pcaId].channelOff(chIn2);
-  pwm = value / 100;
+  pwm = velocity / 100;
  } else {
   pca9685Driver[pcaId].channelOff(chIn1);
   pca9685Driver[pcaId].channelOff(chIn2);
   pwm = 0;
  }
 
- pca9685Driver[pcaId].setDutyCycle(chPwm, pwm);
+ pca9685Driver[pcaId].setDutyCycle(hard.MOTEURS[n].PIN, pwm);
 }
 
 function failSafe() {
