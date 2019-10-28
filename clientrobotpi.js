@@ -716,11 +716,11 @@ function pca9685MotorDrive(n, value) {
  if(value < 0) {
   pca9685Driver[pcaId].channelOff(chIn1);
   pca9685Driver[pcaId].channelOn(chIn2);
-  pwm = -value;
+  pwm = -value / 100;
  } else if(value > 0) {
   pca9685Driver[pcaId].channelOn(chIn1);
   pca9685Driver[pcaId].channelOff(chIn2);
-  pwm = value;
+  pwm = value / 100;
  } else {
   pca9685Driver[pcaId].channelOff(chIn1);
   pca9685Driver[pcaId].channelOff(chIn2);
