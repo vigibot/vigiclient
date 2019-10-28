@@ -653,7 +653,7 @@ function setOutil(n, pwm) {
 
 function computePwm(n, velocity, min, max) {
  let pwm;
- let pwmNeutre = (hard.MOTEURS[n].PWMMAX + hard.MOTEURS[n].PWMMIN) / 2;
+ let pwmNeutre = (min + max) / 2;
 
  if(velocity < 0)
   pwm = map(velocity + hard.MOTEURS[n].NEUTREAR, -0x80 + hard.MOTEURS[n].NEUTREAR, 0, min, pwmNeutre);
