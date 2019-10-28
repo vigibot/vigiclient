@@ -25,7 +25,7 @@ fgrep bcm2835-v4l2 /etc/modules || echo bcm2835-v4l2 >> /etc/modules
 
 echo "Disable Bluetooth"
 fgrep dtoverlay=pi3-disable-bt /boot/config.txt || echo dtoverlay=pi3-disable-bt >> /boot/config.txt
-systemctl disable hciuart
+systemctl disable hciuart || true
 
 echo "eSpeak, FFmpeg, pigpio and Node.js installation"
 apt update
