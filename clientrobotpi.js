@@ -115,6 +115,8 @@ let gpioMoteursA = [];
 let gpioMoteursB = [];
 let gpioInterrupteurs = [];
 
+let serial;
+
 let i2c;
 let cw2015;
 let max17043;
@@ -133,7 +135,7 @@ CONF.SERVEURS.forEach(function(serveur) {
  sockets[serveur] = IO.connect(serveur, {"connect timeout": 1000, transports: ["websocket"], path: "/" + PORTROBOTS + "/socket.io"});
 });
 
-trace("Initialisation I2C");
+trace("Démarrage du client");
 
 i2c = I2C.openSync(1);
 
@@ -155,7 +157,7 @@ try {
    max17043 = false;
    bq27441 = true;
   } catch(err) {
-   trace("I2C désactivé");
+   trace("No I2C fuel gauge detected");
    i2c.closeSync();
    cw2015 = false;
    max17043 = false;
@@ -163,8 +165,6 @@ try {
   }
  }
 }
-
-trace("Démarrage du client");
 
 function map(n, inMin, inMax, outMin, outMax) {
  return Math.trunc((n - inMin) * (outMax - outMin) / (inMax - inMin) + outMin);
@@ -435,7 +435,32 @@ CONF.SERVEURS.forEach(function(serveur) {
    });
   }, 100);
 
-  init = true;
+  if(!init) {
+   serial = new SP(hard.DEVROBOT, {
+    baudRate: hard.DEVDEBIT,
+    lock: false
+   });
+
+   serial.on("open", function() {
+    trace("Connecté sur " + hard.DEVROBOT);
+
+    serial.on("data", function(data) {
+     if(hard.DEVTELEMETRIE) {
+      CONF.SERVEURS.forEach(function(serveur) {
+       if(serveurCourant && serveur != serveurCourant)
+        return;
+
+       sockets[serveur].emit("serveurrobotrx", {
+        timestamp: Date.now(),
+        data: data
+       });
+      });
+     }
+    });
+
+    init = true;
+   });
+  }
  });
 
  sockets[serveur].on("disconnect", function() {
@@ -541,6 +566,8 @@ CONF.SERVEURS.forEach(function(serveur) {
     tx.vitesses[i] = 0;
   }
 
+  serial.write(tx.bytes);
+
   let camera = tx.choixCameras[0];
   if(camera != oldCamera) {
    let idConfStatique = conf.CAMERAS[camera].CONFSTATIQUE;
@@ -611,18 +638,20 @@ CONF.SERVEURS.forEach(function(serveur) {
    oldTxInterrupteurs = tx.interrupteurs[0]
   }
 
-  rx.sync[1] = FRAME1R;
-  for(let i = 0; i < conf.TX.OUTILS.length; i++)
-   rx.outils[i] = tx.outils[i];
-  rx.choixCameras[0] = tx.choixCameras[0];
-  for(let i = 0; i < conf.TX.VITESSES.length; i++)
-   rx.vitesses[i] = tx.vitesses[i];
-  rx.interrupteurs[0] = tx.interrupteurs[0];
+  if(!hard.DEVTELEMETRIE) {
+   rx.sync[1] = FRAME1R;
+   for(let i = 0; i < conf.TX.OUTILS.length; i++)
+    rx.outils[i] = tx.outils[i];
+   rx.choixCameras[0] = tx.choixCameras[0];
+   for(let i = 0; i < conf.TX.VITESSES.length; i++)
+    rx.vitesses[i] = tx.vitesses[i];
+   rx.interrupteurs[0] = tx.interrupteurs[0];
 
-  sockets[serveur].emit("serveurrobotrx", {
-   timestamp: now,
-   data: rx.arrayBuffer
-  });
+   sockets[serveur].emit("serveurrobotrx", {
+    timestamp: now,
+    data: rx.arrayBuffer
+   });
+  }
  });
 
 });
