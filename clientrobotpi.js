@@ -332,7 +332,7 @@ function diffAudio() {
  });
 }
 
-CONF.SERVEURS.forEach(function(serveur) {
+CONF.SERVEURS.forEach(function(serveur, index) {
 
  sockets[serveur].on("connect", function() {
   trace("Connecté sur " + serveur + "/" + PORTROBOTS);
@@ -344,124 +344,126 @@ CONF.SERVEURS.forEach(function(serveur) {
   });
  });
 
- sockets[serveur].on("clientsrobotconf", function(data) {
-  trace("Réception des données de configuration du robot depuis le serveur " + serveur);
+ if(index == 0) {
+  sockets[serveur].on("clientsrobotconf", function(data) {
+   trace("Réception des données de configuration du robot depuis le serveur " + serveur);
 
-  conf = data.conf;
-  hard = data.hard;
+   conf = data.conf;
+   hard = data.hard;
 
-  tx = new TRAME.Tx(conf.TX);
-  rx = new TRAME.Rx(conf.TX, conf.RX);
+   tx = new TRAME.Tx(conf.TX);
+   rx = new TRAME.Rx(conf.TX, conf.RX);
 
-  for(let i = 0; i < conf.TX.OUTILS.length; i++) {
-   oldOutils[i] = tx.outils[i];
-   rattrapage[i] = 0;
-  }
-
-  for(let i = 0; i < hard.MOTEURS.length; i++)
-   oldMoteurs[i] = 0;
-
-  oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
-
-  oldCamera = conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA;
-  oldIdConfStatique = conf.CAMERAS[oldCamera].CONFSTATIQUE;
-  oldIdConfDynamique = conf.CAMERAS[oldCamera].CONFDYNAMIQUE;
-  confStatique = conf.CONFSSTATIQUE[oldIdConfStatique];
-  confDynamique = conf.CONFSDYNAMIQUE[oldIdConfDynamique];
-
-  for(let i = 0; i < hard.PCA9685ADDRESSES.length; i++) {
-   pca9685Driver[i] = new PCA9685.Pca9685Driver({
-    i2c: i2c,
-    address: hard.PCA9685ADDRESSES[i],
-    frequency: PCA9685FREQUENCY
-   }, function(err) {
-    if(err)
-     trace("Error initializing PCA9685 at address " + hard.PCA9685ADDRESSES[i]);
-    else
-     trace("PCA9685 initialized at address " + hard.PCA9685ADDRESSES[i]);
-   });
-  }
-
-  gpioOutils.forEach(function(gpio) {
-   gpio.mode(GPIO.INPUT);
-  });
-
-  gpioMoteurs.forEach(function(gpio) {
-   gpio.mode(GPIO.INPUT);
-  });
-
-  gpioMoteursA.forEach(function(gpio) {
-   gpio.mode(GPIO.INPUT);
-  });
-
-  gpioMoteursB.forEach(function(gpio) {
-   gpio.mode(GPIO.INPUT);
-  });
-
-  gpioInterrupteurs.forEach(function(gpio) {
-   gpio.mode(GPIO.INPUT);
-  });
-
-  gpioOutils = [];
-  gpioMoteurs = [];
-  gpioMoteursA = [];
-  gpioMoteursB = [];
-  gpioInterrupteurs = [];
-
-  for(let i = 0; i < hard.OUTILS.length; i++)
-   if(hard.OUTILS[i].PCA9685 == PIGPIO)
-    gpioOutils[i] = new GPIO(hard.OUTILS[i].PIN, {mode: GPIO.OUTPUT});
-
-  for(let i = 0; i < hard.MOTEURS.length; i++) {
-   if(hard.MOTEURS[i].PCA9685 < 0) {
-    if(hard.MOTEURS[i].PIN >= 0)
-     gpioMoteurs[i] = new GPIO(hard.MOTEURS[i].PIN, {mode: GPIO.OUTPUT});
-    if(hard.MOTEURS[i].PINA >= 0)
-     gpioMoteursA[i] = new GPIO(hard.MOTEURS[i].PINA, {mode: GPIO.OUTPUT});
-    if(hard.MOTEURS[i].PINB >= 0)
-     gpioMoteursB[i] = new GPIO(hard.MOTEURS[i].PINB, {mode: GPIO.OUTPUT});
+   for(let i = 0; i < conf.TX.OUTILS.length; i++) {
+    oldOutils[i] = tx.outils[i];
+    rattrapage[i] = 0;
    }
-  }
 
-  for(let i = 0; i < 8; i++) {
-   if(hard.INTERRUPTEURS[i].PCA9685 == PIGPIO)
-    gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
-   setGpio(i, hard.INTERRUPTEURS[i].INV);
-  }
+   for(let i = 0; i < hard.MOTEURS.length; i++)
+    oldMoteurs[i] = 0;
 
-  setTimeout(function() {
-   confVideo(function(code) {
-    initVideo = true;
+   oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
+
+   oldCamera = conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA;
+   oldIdConfStatique = conf.CAMERAS[oldCamera].CONFSTATIQUE;
+   oldIdConfDynamique = conf.CAMERAS[oldCamera].CONFDYNAMIQUE;
+   confStatique = conf.CONFSSTATIQUE[oldIdConfStatique];
+   confDynamique = conf.CONFSDYNAMIQUE[oldIdConfDynamique];
+
+   for(let i = 0; i < hard.PCA9685ADDRESSES.length; i++) {
+    pca9685Driver[i] = new PCA9685.Pca9685Driver({
+     i2c: i2c,
+     address: hard.PCA9685ADDRESSES[i],
+     frequency: PCA9685FREQUENCY
+    }, function(err) {
+     if(err)
+      trace("Error initializing PCA9685 at address " + hard.PCA9685ADDRESSES[i]);
+     else
+      trace("PCA9685 initialized at address " + hard.PCA9685ADDRESSES[i]);
+    });
+   }
+
+   gpioOutils.forEach(function(gpio) {
+    gpio.mode(GPIO.INPUT);
    });
-  }, 100);
 
-  if(!init) {
-   serial = new SP(hard.DEVROBOT, {
-    baudRate: hard.DEVDEBIT,
-    lock: false
+   gpioMoteurs.forEach(function(gpio) {
+    gpio.mode(GPIO.INPUT);
    });
 
-   serial.on("open", function() {
-    trace("Connecté sur " + hard.DEVROBOT);
+   gpioMoteursA.forEach(function(gpio) {
+    gpio.mode(GPIO.INPUT);
+   });
 
-    serial.on("data", function(data) {
-     if(hard.DEVTELEMETRIE) {
-      CONF.SERVEURS.forEach(function(serveur) {
-       if(serveurCourant && serveur != serveurCourant)
-        return;
+   gpioMoteursB.forEach(function(gpio) {
+    gpio.mode(GPIO.INPUT);
+   });
 
-       sockets[serveur].emit("serveurrobotrx", {
-        timestamp: Date.now(),
-        data: data
-       });
-      });
-     }
+   gpioInterrupteurs.forEach(function(gpio) {
+    gpio.mode(GPIO.INPUT);
+   });
+
+   gpioOutils = [];
+   gpioMoteurs = [];
+   gpioMoteursA = [];
+   gpioMoteursB = [];
+   gpioInterrupteurs = [];
+
+   for(let i = 0; i < hard.OUTILS.length; i++)
+    if(hard.OUTILS[i].PCA9685 == PIGPIO)
+     gpioOutils[i] = new GPIO(hard.OUTILS[i].PIN, {mode: GPIO.OUTPUT});
+
+   for(let i = 0; i < hard.MOTEURS.length; i++) {
+    if(hard.MOTEURS[i].PCA9685 < 0) {
+     if(hard.MOTEURS[i].PIN >= 0)
+      gpioMoteurs[i] = new GPIO(hard.MOTEURS[i].PIN, {mode: GPIO.OUTPUT});
+     if(hard.MOTEURS[i].PINA >= 0)
+      gpioMoteursA[i] = new GPIO(hard.MOTEURS[i].PINA, {mode: GPIO.OUTPUT});
+     if(hard.MOTEURS[i].PINB >= 0)
+      gpioMoteursB[i] = new GPIO(hard.MOTEURS[i].PINB, {mode: GPIO.OUTPUT});
+    }
+   }
+
+   for(let i = 0; i < 8; i++) {
+    if(hard.INTERRUPTEURS[i].PCA9685 == PIGPIO)
+     gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
+    setGpio(i, hard.INTERRUPTEURS[i].INV);
+   }
+
+   setTimeout(function() {
+    confVideo(function(code) {
+     initVideo = true;
+    });
+   }, 100);
+
+   if(!init) {
+    serial = new SP(hard.DEVROBOT, {
+     baudRate: hard.DEVDEBIT,
+     lock: false
     });
 
-    init = true;
-   });
-  }
- });
+    serial.on("open", function() {
+     trace("Connecté sur " + hard.DEVROBOT);
+
+     serial.on("data", function(data) {
+      if(hard.DEVTELEMETRIE) {
+       CONF.SERVEURS.forEach(function(serveur) {
+        if(serveurCourant && serveur != serveurCourant)
+         return;
+
+        sockets[serveur].emit("serveurrobotrx", {
+         timestamp: Date.now(),
+         data: data
+        });
+       });
+      }
+     });
+
+     init = true;
+    });
+   }
+  });
+ }
 
  sockets[serveur].on("disconnect", function() {
   trace("Déconnecté de " + serveur + "/" + PORTROBOTS);
@@ -855,7 +857,7 @@ setInterval(function() {
 }, STATSRATE);
 
 setInterval(function() {
- if(up || !init)
+ if(up || !init || hard.DEVTELEMETRIE)
   return;
 
  CONF.SERVEURS.forEach(function(serveur) {
@@ -867,7 +869,7 @@ setInterval(function() {
 }, BEACONRATE);
 
 setInterval(function() {
- if(!hard.CAPTURESENVEILLE || up || !init || !initVideo)
+ if(up || !init || !initVideo || !hard.CAPTURESENVEILLE)
   return;
 
  let date = new Date();
