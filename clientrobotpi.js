@@ -547,9 +547,10 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
   if(data.data[0] != FRAME0 ||
      data.data[1] != FRAME1S) {
-   if(data.data[1] == FRAME1T)
+   if(data.data[1] == FRAME1T) {
     trace("Réception d'une trame texte");
-   else
+    serial.write(data.data);
+   } else
     trace("Réception d'une trame corrompue");
    return;
   }
@@ -566,9 +567,8 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    //trace("Réception d'une trame avec trop de latence");
    for(let i = 0; i < conf.TX.VITESSES.length; i++)
     tx.vitesses[i] = 0;
-  }
-
-  serial.write(tx.bytes);
+  } else
+   serial.write(data.data);
 
   let camera = tx.choixCameras[0];
   if(camera != oldCamera) {
