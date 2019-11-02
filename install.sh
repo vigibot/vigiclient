@@ -27,6 +27,9 @@ echo "Disable Bluetooth"
 fgrep dtoverlay=pi3-disable-bt /boot/config.txt || echo dtoverlay=pi3-disable-bt >> /boot/config.txt
 systemctl disable hciuart || true
 
+echo "Disable serial console"
+sed -i "s/console=serial0,115200 //" /boot/cmdline.txt
+
 echo "eSpeak, FFmpeg, pigpio and Node.js installation"
 apt update
 apt install -y espeak ffmpeg pigpio npm
