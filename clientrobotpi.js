@@ -337,7 +337,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
  sockets[serveur].on("connect", function() {
   trace("Connecté sur " + serveur + "/" + PORTROBOTS);
   EXEC("hostname -I").stdout.on("data", function(ipPriv) {
-   EXEC("iwgetid -r").stdout.on("data", function(ssid) {
+   EXEC("iwgetid -r || echo $?").stdout.on("data", function(ssid) {
     sockets[serveur].emit("serveurrobotlogin", {
      conf: CONF,
      version: VERSION,
