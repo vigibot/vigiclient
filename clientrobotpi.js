@@ -356,7 +356,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
 
    oldCamera = conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA;
-   confVideo = conf.CAMERAS[oldCamera];
+   confVideo = hard.CAMERAS[oldCamera];
 
    for(let i = 0; i < hard.PCA9685ADDRESSES.length; i++) {
     pca9685Driver[i] = new PCA9685.Pca9685Driver({
@@ -560,7 +560,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
   let camera = tx.choixCameras[0];
   if(camera != oldCamera) {
-   confVideo = conf.CAMERAS[camera];
+   confVideo = hard.CAMERAS[camera];
    if(up) {
     sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
      configurationVideo(function(code) {
