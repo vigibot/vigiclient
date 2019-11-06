@@ -92,10 +92,7 @@ let hard;
 let tx;
 let rx;
 let oldCamera;
-let confStatique;
-let confDynamique;
-let oldIdConfStatique;
-let oldIdConfDynamique;
+let confVideo;
 let cmdDiffusion;
 let cmdDiffAudio;
 
@@ -283,38 +280,26 @@ function dodo() {
  up = false;
 }
 
-function confVideo(callback) {
- cmdDiffusion = CONF.CMDDIFFUSION.join("").replace("SOURCEVIDEO", confStatique.SOURCE
+function configurationVideo(callback) {
+ cmdDiffusion = CONF.CMDDIFFUSION.join("").replace("SOURCEVIDEO", confVideo.SOURCE
                                          ).replace("PORTTCPVIDEO", PORTTCPVIDEO
-                                         ).replace("ROTATIONVIDEO", confDynamique.ROTATION
-                                         ).replace(new RegExp("BITRATEVIDEO", "g"), confDynamique.BITRATE);
+                                         ).replace("ROTATIONVIDEO", confVideo.ROTATION
+                                         ).replace(new RegExp("BITRATEVIDEO", "g"), confVideo.BITRATE);
  cmdDiffAudio = CONF.CMDDIFFAUDIO.join("").replace("PORTTCPAUDIO", PORTTCPAUDIO);
 
  trace("Initialisation de la configuration Video4Linux");
 
- exec("v4l2-ctl", V4L2 + " -v width=" + confStatique.WIDTH +
-                            ",height=" + confStatique.HEIGHT +
+ exec("v4l2-ctl", V4L2 + " -v width=" + confVideo.WIDTH +
+                            ",height=" + confVideo.HEIGHT +
                             ",pixelformat=4" +
-                         " -p " + confStatique.FPS +
+                         " -p " + confVideo.FPS +
                          " -c h264_profile=0" +
                             ",repeat_sequence_header=1" +
-                            ",rotate=" + confDynamique.ROTATION +
-                            ",video_bitrate=" + confDynamique.BITRATE +
-                            ",brightness=" + confDynamique.LUMINOSITE +
-                            ",contrast=" + confDynamique.CONTRASTE, function(code) {
+                            ",rotate=" + confVideo.ROTATION +
+                            ",video_bitrate=" + confVideo.BITRATE +
+                            ",brightness=" + confVideo.LUMINOSITE +
+                            ",contrast=" + confVideo.CONTRASTE, function(code) {
   callback(code);
- });
-}
-
-function confDynamiqueVideo() {
- trace("Modification de la configuration Video4Linux");
-
- exec("v4l2-ctl", V4L2 + " -c h264_profile=0" +
-                            ",repeat_sequence_header=1" +
-                            ",rotate=" + confDynamique.ROTATION +
-                            ",video_bitrate=" + confDynamique.BITRATE +
-                            ",brightness=" + confDynamique.LUMINOSITE +
-                            ",contrast=" + confDynamique.CONTRASTE, function(code) {
  });
 }
 
@@ -371,10 +356,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
 
    oldCamera = conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA;
-   oldIdConfStatique = conf.CAMERAS[oldCamera].CONFSTATIQUE;
-   oldIdConfDynamique = conf.CAMERAS[oldCamera].CONFDYNAMIQUE;
-   confStatique = conf.CONFSSTATIQUE[oldIdConfStatique];
-   confDynamique = conf.CONFSDYNAMIQUE[oldIdConfDynamique];
+   confVideo = conf.CAMERAS[oldCamera];
 
    for(let i = 0; i < hard.PCA9685ADDRESSES.length; i++) {
     pca9685Driver[i] = new PCA9685.Pca9685Driver({
@@ -437,7 +419,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    }
 
    setTimeout(function() {
-    confVideo(function(code) {
+    configurationVideo(function(code) {
      initVideo = true;
     });
    }, 100);
@@ -578,29 +560,16 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
   let camera = tx.choixCameras[0];
   if(camera != oldCamera) {
-   let idConfStatique = conf.CAMERAS[camera].CONFSTATIQUE;
-   let idConfDynamique = conf.CAMERAS[camera].CONFDYNAMIQUE;
-
-   if(idConfStatique != oldIdConfStatique) {
-    confStatique = conf.CONFSSTATIQUE[idConfStatique];
-    confDynamique = conf.CONFSDYNAMIQUE[idConfDynamique];
-    if(up) {
-     sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
-      confVideo(function(code) {
-       diffusion();
-      });
+   confVideo = conf.CAMERAS[camera];
+   if(up) {
+    sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
+     configurationVideo(function(code) {
+      diffusion();
      });
-    } else {
-     confVideo(function(code) {
-     });
-    }
-   } else if(idConfDynamique != oldIdConfDynamique) {
-    confDynamique = conf.CONFSDYNAMIQUE[idConfDynamique];
-    confDynamiqueVideo();
-   }
-
-   oldIdConfStatique = idConfStatique;
-   oldIdConfDynamique = idConfDynamique;
+    });
+   } else
+    configurationVideo(function(code) {
+    });
    oldCamera = camera;
   }
 
@@ -789,7 +758,7 @@ setInterval(function() {
 
  if(latencePredictive < LATENCEFINALARME && alarmeLatence) {
   trace("Latence de " + latencePredictive + " ms, retour au débit vidéo configuré");
-  exec("v4l2-ctl", V4L2 + " -c video_bitrate=" + confDynamique.BITRATE, function(code) {
+  exec("v4l2-ctl", V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function(code) {
   });
   alarmeLatence = false;
  } else if(latencePredictive > LATENCEDEBUTALARME && !alarmeLatence) {
@@ -882,7 +851,7 @@ setInterval(function() {
  let overlay = date.toLocaleDateString() + " " + date.toLocaleTimeString();
  if(hard.CAPTURESHDR)
   overlay += " HDR " + hard.CAPTURESHDR;
- let options = "-a 1024 -a '" + overlay + "' -rot " + confDynamique.ROTATION;
+ let options = "-a 1024 -a '" + overlay + "' -rot " + confVideo.ROTATION;
 
  if(hard.CAPTURESHDR) {
   EXEC("raspistill -ev " + -hard.CAPTURESHDR + " " + options + " -o /tmp/1.jpg", function(err) {
