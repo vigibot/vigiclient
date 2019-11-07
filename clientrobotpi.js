@@ -47,6 +47,9 @@ const LATENCEDEBUTALARME = 500;
 const BITRATEVIDEOFAIBLE = 100000;
 const TXRATE = 50;
 const BEACONRATE = 10000;
+const BOOSTVIDEOLUMINOSITE = 80;
+const BOOSTVIDEOCONTRASTE = 50;
+const CAPTURESENVEILLERATE = 60000;
 
 const SEPARATEURNALU = new Buffer.from([0, 0, 0, 1]);
 
@@ -61,8 +64,6 @@ const PCA9685FREQUENCY = 50;
 const PIGPIO = -1;
 const L298 = -2;
 const L9110 = -3;
-
-const CAPTURESENVEILLERATE = 60000;
 
 const OS = require("os");
 const FS = require("fs");
@@ -105,6 +106,9 @@ let oldOutils = [];
 let oldMoteurs = [];
 let rattrapage = [];
 let oldTxInterrupteurs;
+
+let boostVideo = false;
+let oldBoostVideo = false;
 
 let gpioOutils = [];
 let gpioMoteurs = [];
@@ -610,9 +614,26 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   }
 
   if(tx.interrupteurs[0] != oldTxInterrupteurs) {
-   for(let i = 0; i < 8; i++)
-    setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
+   for(let i = 0; i < 8; i++) {
+    let etat = tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV;
+    setGpio(i, etat);
+    if(i == hard.INTERRUPTEURBOOSTVIDEO)
+     boostVideo = etat;
+   }
    oldTxInterrupteurs = tx.interrupteurs[0]
+  }
+
+  if(boostVideo != oldBoostVideo) {
+   if(boostVideo) {
+    exec("v4l2-ctl", V4L2 + " -c brightness=" + BOOSTVIDEOLUMINOSITE +
+                               ",contrast=" + BOOSTVIDEOCONTRASTE, function(code) {
+    });
+   } else {
+    exec("v4l2-ctl", V4L2 + " -c brightness=" + confVideo.LUMINOSITE +
+                               ",contrast=" + confVideo.CONTRASTE, function(code) {
+    });
+   }
+   oldBoostVideo = boostVideo;
   }
 
   if(!hard.DEVTELEMETRIE) {
