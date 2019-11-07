@@ -76,7 +76,7 @@ then
 
  npm cache clean --force
 
- npm install && {
+ sudo npm install && {
   rm -rf node_modules.old
   trace "Success"
  } || {

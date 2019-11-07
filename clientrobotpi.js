@@ -332,8 +332,8 @@ CONF.SERVEURS.forEach(function(serveur, index) {
      version: VERSION,
      processTime: PROCESSTIME,
      osTime: OSTIME,
-     ipPriv: ipPriv.trimEnd(),
-     ssid: ssid.trimEnd()
+     ipPriv: ipPriv.trim(),
+     ssid: ssid.trim()
     });
    });
   });
