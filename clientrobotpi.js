@@ -361,6 +361,8 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
    oldCamera = conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA;
    confVideo = hard.CAMERAS[oldCamera];
+   boostVideo = false;
+   oldBoostVideo = false;
 
    for(let i = 0; i < hard.PCA9685ADDRESSES.length; i++) {
     pca9685Driver[i] = new PCA9685.Pca9685Driver({
