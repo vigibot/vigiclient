@@ -119,9 +119,7 @@ let gpioInterrupteurs = [];
 let serial;
 
 let i2c;
-let cw2015;
-let max17043;
-let bq27441;
+let gaugeType;
 let gaugeBuffer = new Buffer.alloc(256);
 
 let pca9685Driver = [];
@@ -142,27 +140,19 @@ i2c = I2C.openSync(1);
 
 try {
  i2c.i2cWriteSync(CW2015ADDRESS, 2, CW2015WAKEUP);
- cw2015 = true;
- max17043 = false;
- bq27441 = false;
+ gaugeType = "cw2015";
 } catch(err) {
  try {
   i2c.i2cReadSync(MAX17043ADDRESS, 6, gaugeBuffer);
-  cw2015 = false;
-  max17043 = true;
-  bq27441 = false;
+  gaugeType = "max17043";
  } catch(err) {
   try {
    i2c.i2cReadSync(BQ27441ADDRESS, 29, gaugeBuffer);
-   cw2015 = false;
-   max17043 = false;
-   bq27441 = true;
+   gaugeType = "bq27441";
   } catch(err) {
    trace("No I2C fuel gauge detected");
    i2c.closeSync();
-   cw2015 = false;
-   max17043 = false;
-   bq27441 = false;
+   gaugeType = "";
   }
  }
 }
@@ -793,7 +783,7 @@ setInterval(function() {
  }
 }, TXRATE);
 
-if(cw2015) {
+if(gaugeType = "cw2015") {
  setInterval(function() {
   if(!init)
    return;
@@ -808,7 +798,7 @@ if(cw2015) {
  }, GAUGERATE);
 }
 
-if(max17043) {
+if(gaugeType = "max17043") {
  setInterval(function() {
   if(!init)
    return;
@@ -823,7 +813,7 @@ if(max17043) {
  }, GAUGERATE);
 }
 
-if(bq27441) {
+if(gaugeType = "bq27441") {
  setInterval(function() {
   if(!init)
    return;
