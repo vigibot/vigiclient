@@ -783,7 +783,7 @@ setInterval(function() {
  }
 }, TXRATE);
 
-if(gaugeType = "cw2015") {
+if(gaugeType == "cw2015") {
  setInterval(function() {
   if(!init)
    return;
@@ -798,7 +798,7 @@ if(gaugeType = "cw2015") {
  }, GAUGERATE);
 }
 
-if(gaugeType = "max17043") {
+if(gaugeType == "max17043") {
  setInterval(function() {
   if(!init)
    return;
@@ -813,7 +813,7 @@ if(gaugeType = "max17043") {
  }, GAUGERATE);
 }
 
-if(gaugeType = "bq27441") {
+if(gaugeType == "bq27441") {
  setInterval(function() {
   if(!init)
    return;
