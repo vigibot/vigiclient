@@ -415,9 +415,16 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    }
 
    setTimeout(function() {
-    configurationVideo(function(code) {
-     initVideo = true;
-    });
+    if(up) {
+     sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
+      configurationVideo(function(code) {
+       diffusion();
+      });
+     });
+    } else
+     configurationVideo(function(code) {
+      initVideo = true;
+     });
    }, 100);
 
    if(!init) {
