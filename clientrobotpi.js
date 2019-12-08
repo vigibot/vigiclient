@@ -283,6 +283,16 @@ function configurationVideo(callback) {
 
  trace("Initialisation de la configuration Video4Linux");
 
+ let luminosite;
+ let contraste;
+ if(boostVideo) {
+  luminosite = BOOSTVIDEOLUMINOSITE;
+  contraste = BOOSTVIDEOCONTRASTE;
+ } else {
+  luminosite = confVideo.LUMINOSITE;
+  contraste = confVideo.CONTRASTE;
+ }
+
  exec("v4l2-ctl", V4L2 + " -v width=" + confVideo.WIDTH +
                             ",height=" + confVideo.HEIGHT +
                             ",pixelformat=4" +
@@ -291,8 +301,8 @@ function configurationVideo(callback) {
                             ",repeat_sequence_header=1" +
                             ",rotate=" + confVideo.ROTATION +
                             ",video_bitrate=" + confVideo.BITRATE +
-                            ",brightness=" + confVideo.LUMINOSITE +
-                            ",contrast=" + confVideo.CONTRASTE, function(code) {
+                            ",brightness=" + luminosite +
+                            ",contrast=" + contraste, function(code) {
   callback(code);
  });
 }
