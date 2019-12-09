@@ -47,8 +47,6 @@ const LATENCEDEBUTALARME = 500;
 const BITRATEVIDEOFAIBLE = 100000;
 const TXRATE = 50;
 const BEACONRATE = 10000;
-const BOOSTVIDEOLUMINOSITE = 80;
-const BOOSTVIDEOCONTRASTE = 100;
 const CAPTURESENVEILLERATE = 60000;
 
 const SEPARATEURNALU = new Buffer.from([0, 0, 0, 1]);
@@ -286,8 +284,8 @@ function configurationVideo(callback) {
  let luminosite;
  let contraste;
  if(boostVideo) {
-  luminosite = BOOSTVIDEOLUMINOSITE;
-  contraste = BOOSTVIDEOCONTRASTE;
+  luminosite = confVideo.BOOSTVIDEOLUMINOSITE;
+  contraste = confVideo.BOOSTVIDEOCONTRASTE;
  } else {
   luminosite = confVideo.LUMINOSITE;
   contraste = confVideo.CONTRASTE;
@@ -634,8 +632,8 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
   if(boostVideo != oldBoostVideo) {
    if(boostVideo) {
-    exec("v4l2-ctl", V4L2 + " -c brightness=" + BOOSTVIDEOLUMINOSITE +
-                               ",contrast=" + BOOSTVIDEOCONTRASTE, function(code) {
+    exec("v4l2-ctl", V4L2 + " -c brightness=" + confVideo.BOOSTVIDEOLUMINOSITE +
+                               ",contrast=" + confVideo.BOOSTVIDEOCONTRASTE, function(code) {
     });
    } else {
     exec("v4l2-ctl", V4L2 + " -c brightness=" + confVideo.LUMINOSITE +
