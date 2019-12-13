@@ -348,16 +348,16 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    // Security hardening: even if already done on server side,
    // always filter values integrated in command lines
    for(let i = 0; i < hard.CAMERAS.length; i++) {
-    if(!(CMDINT.test(hard.CAMERAS[i].SOURCE &&
-         CMDINT.test(hard.CAMERAS[i].WIDTH &&
-         CMDINT.test(hard.CAMERAS[i].HEIGHT &&
-         CMDINT.test(hard.CAMERAS[i].FPS &&
-         CMDINT.test(hard.CAMERAS[i].BITRATE &&
-         CMDINT.test(hard.CAMERAS[i].ROTATION &&
-         CMDINT.test(hard.CAMERAS[i].LUMINOSITE &&
-         CMDINT.test(hard.CAMERAS[i].CONTRASTE &&
-         CMDINT.test(hard.CAMERAS[i].BOOSTVIDEOLUMINOSITE &&
-         CMDINT.test(hard.CAMERAS[i].BOOSTVIDEOCONTRASTE))
+    if(!(CMDINT.test(hard.CAMERAS[i].SOURCE) &&
+         CMDINT.test(hard.CAMERAS[i].WIDTH) &&
+         CMDINT.test(hard.CAMERAS[i].HEIGHT) &&
+         CMDINT.test(hard.CAMERAS[i].FPS) &&
+         CMDINT.test(hard.CAMERAS[i].BITRATE) &&
+         CMDINT.test(hard.CAMERAS[i].ROTATION) &&
+         CMDINT.test(hard.CAMERAS[i].LUMINOSITE) &&
+         CMDINT.test(hard.CAMERAS[i].CONTRASTE) &&
+         CMDINT.test(hard.CAMERAS[i].BOOSTVIDEOLUMINOSITE) &&
+         CMDINT.test(hard.CAMERAS[i].BOOSTVIDEOCONTRASTE)))
      return;
    }
 
