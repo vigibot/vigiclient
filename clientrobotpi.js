@@ -19,7 +19,7 @@ const PROCESSDIFFAUDIO = "/usr/local/vigiclient/processdiffaudio";
 
 const CMDDIFFUSION = [
  PROCESSDIFFUSION,
- " SOURCEVIDEO",
+ " /dev/video0",
  " | /bin/nc 127.0.0.1 PORTTCPVIDEO",
  " -w 2"
 ];
@@ -273,8 +273,7 @@ function dodo() {
 }
 
 function configurationVideo(callback) {
- cmdDiffusion = CONF.CMDDIFFUSION.join("").replace("SOURCEVIDEO", confVideo.SOURCE
-                                         ).replace("PORTTCPVIDEO", PORTTCPVIDEO
+ cmdDiffusion = CONF.CMDDIFFUSION.join("").replace("PORTTCPVIDEO", PORTTCPVIDEO
                                          ).replace("ROTATIONVIDEO", confVideo.ROTATION
                                          ).replace(new RegExp("BITRATEVIDEO", "g"), confVideo.BITRATE);
  cmdDiffAudio = CONF.CMDDIFFAUDIO.join("").replace("PORTTCPAUDIO", PORTTCPAUDIO);
