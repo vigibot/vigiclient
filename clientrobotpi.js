@@ -17,6 +17,8 @@ const STATSRATE = 250;
 const PROCESSDIFFUSION = "/usr/local/vigiclient/processdiffusion";
 const PROCESSDIFFAUDIO = "/usr/local/vigiclient/processdiffaudio";
 
+const CMDINT = RegExp(/^-?\d{1,10}$/);
+
 const CMDDIFFUSION = [
  PROCESSDIFFUSION,
  " /dev/video0",
@@ -342,6 +344,22 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
    conf = data.conf;
    hard = data.hard;
+
+   // Security hardening: even if already done on server side,
+   // always filter values integrated in command lines
+   for(let i = 0; i < hard.CAMERAS.length; i++) {
+    if(!(CMDINT.test(hard.CAMERAS[i].SOURCE &&
+         CMDINT.test(hard.CAMERAS[i].WIDTH &&
+         CMDINT.test(hard.CAMERAS[i].HEIGHT &&
+         CMDINT.test(hard.CAMERAS[i].FPS &&
+         CMDINT.test(hard.CAMERAS[i].BITRATE &&
+         CMDINT.test(hard.CAMERAS[i].ROTATION &&
+         CMDINT.test(hard.CAMERAS[i].LUMINOSITE &&
+         CMDINT.test(hard.CAMERAS[i].CONTRASTE &&
+         CMDINT.test(hard.CAMERAS[i].BOOSTVIDEOLUMINOSITE &&
+         CMDINT.test(hard.CAMERAS[i].BOOSTVIDEOCONTRASTE))
+     return;
+   }
 
    tx = new TRAME.Tx(conf.TX);
    rx = new TRAME.Rx(conf.TX, conf.RX);
