@@ -39,8 +39,9 @@ rm -rf $BASEDIR
 mkdir -p $BASEDIR
 cd $BASEDIR
 
-echo "Adding symbolic links for video and audio process"
+echo "Adding symbolic links for video and audio processes"
 ln -s /bin/cat processdiffusion
+ln -s $(which ffmpeg || echo ffmpegnotfound) processdiffvideo
 ln -s $(which ffmpeg || echo ffmpegnotfound) processdiffaudio
 
 echo "Updater installation"
