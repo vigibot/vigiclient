@@ -15,15 +15,30 @@ const FICHIERSTATS = "/proc/net/wireless";
 const STATSRATE = 250;
 
 const PROCESSDIFFUSION = "/usr/local/vigiclient/processdiffusion";
+const PROCESSDIFFVIDEO = "/usr/local/vigiclient/processdiffvideo";
 const PROCESSDIFFAUDIO = "/usr/local/vigiclient/processdiffaudio";
 
 const CMDINT = RegExp(/^-?\d{1,10}$/);
 
 const CMDDIFFUSION = [
- PROCESSDIFFUSION,
- " /dev/video0",
- " | /bin/nc 127.0.0.1 PORTTCPVIDEO",
- " -w 2"
+ [
+  PROCESSDIFFUSION,
+  " /dev/video0",
+  " | /bin/nc 127.0.0.1 PORTTCPVIDEO",
+  " -w 2"
+ ], [
+  PROCESSDIFFVIDEO,
+  " -loglevel fatal",
+  " -f fbdev",
+  " -i /dev/fb0",
+  " -c:v h264_omx",
+  " -profile:v baseline",
+  " -b:v BITRATEVIDEO",
+  " -flags:v +global_header",
+  " -bsf:v dump_extra",
+  " -f rawvideo",
+  " tcp://127.0.0.1:PORTTCPVIDEO"
+ ]
 ];
 
 const CMDDIFFAUDIO = [
@@ -266,6 +281,8 @@ function dodo() {
   setGpio(i, hard.INTERRUPTEURS[i].INV);
 
  sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
+  sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
+  });
  });
 
  sigterm("DiffAudio", PROCESSDIFFAUDIO, function(code) {
@@ -275,9 +292,9 @@ function dodo() {
 }
 
 function configurationVideo(callback) {
- cmdDiffusion = CONF.CMDDIFFUSION.join("").replace("PORTTCPVIDEO", PORTTCPVIDEO
-                                         ).replace("ROTATIONVIDEO", confVideo.ROTATION
-                                         ).replace(new RegExp("BITRATEVIDEO", "g"), confVideo.BITRATE);
+ cmdDiffusion = CONF.CMDDIFFUSION[confVideo.SOURCE].join("").replace("PORTTCPVIDEO", PORTTCPVIDEO
+                                                           ).replace("ROTATIONVIDEO", confVideo.ROTATION
+                                                           ).replace(new RegExp("BITRATEVIDEO", "g"), confVideo.BITRATE);
  cmdDiffAudio = CONF.CMDDIFFAUDIO.join("").replace("PORTTCPAUDIO", PORTTCPAUDIO);
 
  trace("Initialisation de la configuration Video4Linux");
@@ -442,8 +459,10 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    setTimeout(function() {
     if(up) {
      sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
-      configurationVideo(function(code) {
-       diffusion();
+      sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
+       configurationVideo(function(code) {
+        diffusion();
+       });
       });
      });
     } else
@@ -591,8 +610,10 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    confVideo = hard.CAMERAS[camera];
    if(up) {
     sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
-     configurationVideo(function(code) {
-      diffusion();
+     sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
+      configurationVideo(function(code) {
+       diffusion();
+      });
      });
     });
    } else
