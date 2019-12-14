@@ -23,6 +23,9 @@ fgrep gpu_mem=128 /boot/config.txt || echo gpu_mem=128 >> /boot/config.txt
 echo "Enable Video4Linux"
 fgrep bcm2835-v4l2 /etc/modules || echo bcm2835-v4l2 >> /etc/modules
 
+echo "Enable /dev/fb0"
+sed -i "s/#hdmi_force_hotplug=1/hdmi_force_hotplug=1/" /boot/config.txt
+
 echo "Disable Bluetooth"
 fgrep dtoverlay=pi3-disable-bt /boot/config.txt || echo dtoverlay=pi3-disable-bt >> /boot/config.txt
 systemctl disable hciuart || true
