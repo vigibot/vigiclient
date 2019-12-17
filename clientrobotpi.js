@@ -4,9 +4,9 @@ const CONF = require("/boot/robot.json");
 
 const TRAME = require("./trame.js");
 
-const PORTROBOTS = 86;
-const PORTTCPVIDEO = 8003;
-const PORTTCPAUDIO = 8004;
+const PORTROBOTS = 8042;
+const PORTTCPVIDEO = 8043;
+const PORTTCPAUDIO = 8044;
 
 const FICHIERLOG = "/var/log/vigiclient.log";
 
