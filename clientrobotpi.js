@@ -30,10 +30,11 @@ const CMDDIFFUSION = [
   PROCESSDIFFVIDEO,
   " -loglevel fatal",
   " -f fbdev",
+  " -r FPS",
   " -i /dev/fb0",
   " -c:v h264_omx",
   " -profile:v baseline",
-  " -b:v BITRATEVIDEO",
+  " -b:v BITRATE",
   " -flags:v +global_header",
   " -bsf:v dump_extra",
   " -f rawvideo",
@@ -292,9 +293,12 @@ function dodo() {
 }
 
 function configurationVideo(callback) {
- cmdDiffusion = CONF.CMDDIFFUSION[confVideo.SOURCE].join("").replace("PORTTCPVIDEO", PORTTCPVIDEO
-                                                           ).replace("ROTATIONVIDEO", confVideo.ROTATION
-                                                           ).replace(new RegExp("BITRATEVIDEO", "g"), confVideo.BITRATE);
+ cmdDiffusion = CONF.CMDDIFFUSION[confVideo.SOURCE].join("").replace("WIDTH", confVideo.WIDTH
+                                                           ).replace("HEIGHT", confVideo.HEIGHT
+                                                           ).replace(new RegExp("FPS", "g"), confVideo.FPS
+                                                           ).replace(new RegExp("BITRATE", "g"), confVideo.BITRATE
+                                                           ).replace("ROTATION", confVideo.ROTATION
+                                                           ).replace("PORTTCPVIDEO", PORTTCPVIDEO);
  cmdDiffAudio = CONF.CMDDIFFAUDIO.join("").replace("PORTTCPAUDIO", PORTTCPAUDIO);
 
  trace("Initialisation de la configuration Video4Linux");
