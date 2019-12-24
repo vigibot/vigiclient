@@ -441,7 +441,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    }
 
    for(let i = 0; i < hard.OUTILS.length; i++)
-    if(hard.OUTILS[i].PCA9685 == PIGPIO)
+    if(hard.OUTILS[i].PCA9685 == PIGPIO && hard.OUTILS[i].PIN >= 0)
      gpioOutils[i] = new GPIO(hard.OUTILS[i].PIN, {mode: GPIO.OUTPUT});
 
    for(let i = 0; i < hard.MOTEURS.length; i++) {
@@ -456,9 +456,11 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    }
 
    for(let i = 0; i < 8; i++) {
-    if(hard.INTERRUPTEURS[i].PCA9685 == PIGPIO)
-     gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
-    setGpio(i, hard.INTERRUPTEURS[i].INV);
+    if(hard.INTERRUPTEURS[i].PIN >= 0) {
+     if(hard.INTERRUPTEURS[i].PCA9685 == PIGPIO)
+      gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
+     setGpio(i, hard.INTERRUPTEURS[i].INV);
+    }
    }
 
    setTimeout(function() {
@@ -712,21 +714,25 @@ function setPca9685Gpio(pcaId, pin, state) {
 }
 
 function setGpio(n, etat) {
- if(hard.INTERRUPTEURS[n].PCA9685 == PIGPIO) {
-  if(hard.INTERRUPTEURS[n].MODE == 1 && !etat || // Drain ouvert
-     hard.INTERRUPTEURS[n].MODE == 2 && etat)    // Collecteur ouvert
-   gpioInterrupteurs[n].mode(GPIO.INPUT);
-  else
-   gpioInterrupteurs[n].digitalWrite(etat);
- } else
-  setPca9685Gpio(hard.INTERRUPTEURS[n].PCA9685, hard.INTERRUPTEURS[n].PIN, etat);
+ if(hard.INTERRUPTEURS[n].PIN >= 0)
+  if(hard.INTERRUPTEURS[n].PCA9685 == PIGPIO) {
+   if(hard.INTERRUPTEURS[n].MODE == 1 && !etat || // Drain ouvert
+      hard.INTERRUPTEURS[n].MODE == 2 && etat)    // Collecteur ouvert
+    gpioInterrupteurs[n].mode(GPIO.INPUT);
+   else
+    gpioInterrupteurs[n].digitalWrite(etat);
+  } else
+   setPca9685Gpio(hard.INTERRUPTEURS[n].PCA9685, hard.INTERRUPTEURS[n].PIN, etat);
+ }
 }
 
 function setOutil(n, pwm) {
- if(hard.OUTILS[n].PCA9685 == PIGPIO)
-  gpioOutils[n].servoWrite(pwm);
- else
-  pca9685Driver[hard.OUTILS[n].PCA9685].setPulseLength(hard.OUTILS[n].PIN, pwm);
+ if(hard.OUTILS[n].PIN >= 0) {
+  if(hard.OUTILS[n].PCA9685 == PIGPIO)
+   gpioOutils[n].servoWrite(pwm);
+  else
+   pca9685Driver[hard.OUTILS[n].PCA9685].setPulseLength(hard.OUTILS[n].PIN, pwm);
+ }
 }
 
 function computePwm(n, velocity, min, max) {
