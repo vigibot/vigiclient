@@ -76,6 +76,7 @@ const BQ27441ADDRESS = 0x55;
 const GAUGERATE = 250;
 
 const PCA9685FREQUENCY = 50;
+const PIGPIOMOTORFREQUENCY = 8000;
 
 const PIGPIO = -1;
 const L9110 = -2;
@@ -452,6 +453,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
       gpioMoteursA[i] = new GPIO(hard.MOTEURS[i].PINA, {mode: GPIO.OUTPUT});
      if(hard.MOTEURS[i].PINB >= 0)
       gpioMoteursB[i] = new GPIO(hard.MOTEURS[i].PINB, {mode: GPIO.OUTPUT});
+     setMotorFrequency(i);
     }
    }
 
@@ -749,16 +751,28 @@ function computePwm(n, velocity, min, max) {
  return pwm;
 }
 
+function setMotorFrequency(n) {
+ switch(hard.MOTEURS[n].PCA9685) {
+  case L9110:
+   gpioMoteursA[n].pwmFrequency(PIGPIOMOTORFREQUENCY);
+   gpioMoteursB[n].pwmFrequency(PIGPIOMOTORFREQUENCY);
+   break;
+  case L298:
+   gpioMoteurs[n].pwmFrequency(PIGPIOMOTORFREQUENCY);
+   break;
+ }
+}
+
 function setMotor(n, velocity) {
  switch(hard.MOTEURS[n].PCA9685) {
   case PIGPIO:
    gpioMoteurs[n].servoWrite(computePwm(n, velocity, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
    break;
-  case L298:
-   l298MotorDrive(n, computePwm(n, velocity, -255, 255));
-   break;
   case L9110:
    l9110MotorDrive(n, computePwm(n, velocity, -255, 255));
+   break;
+  case L298:
+   l298MotorDrive(n, computePwm(n, velocity, -255, 255));
    break;
   default:
    pca9685MotorDrive(n, computePwm(n, velocity, -100, 100));
