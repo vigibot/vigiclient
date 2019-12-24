@@ -714,7 +714,7 @@ function setPca9685Gpio(pcaId, pin, state) {
 }
 
 function setGpio(n, etat) {
- if(hard.INTERRUPTEURS[n].PIN >= 0)
+ if(hard.INTERRUPTEURS[n].PIN >= 0) {
   if(hard.INTERRUPTEURS[n].PCA9685 == PIGPIO) {
    if(hard.INTERRUPTEURS[n].MODE == 1 && !etat || // Drain ouvert
       hard.INTERRUPTEURS[n].MODE == 2 && etat)    // Collecteur ouvert
