@@ -78,8 +78,8 @@ const GAUGERATE = 250;
 const PCA9685FREQUENCY = 50;
 
 const PIGPIO = -1;
-const L298 = -2;
-const L9110 = -3;
+const L9110 = -2;
+const L298 = -3;
 
 const OS = require("os");
 const FS = require("fs");
@@ -400,19 +400,6 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    boostVideo = false;
    oldBoostVideo = false;
 
-   for(let i = 0; i < hard.PCA9685ADDRESSES.length; i++) {
-    pca9685Driver[i] = new PCA9685.Pca9685Driver({
-     i2c: i2c,
-     address: hard.PCA9685ADDRESSES[i],
-     frequency: PCA9685FREQUENCY
-    }, function(err) {
-     if(err)
-      trace("Error initializing PCA9685 at address " + hard.PCA9685ADDRESSES[i]);
-     else
-      trace("PCA9685 initialized at address " + hard.PCA9685ADDRESSES[i]);
-    });
-   }
-
    gpioOutils.forEach(function(gpio) {
     gpio.mode(GPIO.INPUT);
    });
@@ -433,11 +420,25 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     gpio.mode(GPIO.INPUT);
    });
 
+   pca9685Driver = [];
    gpioOutils = [];
    gpioMoteurs = [];
    gpioMoteursA = [];
    gpioMoteursB = [];
    gpioInterrupteurs = [];
+
+   for(let i = 0; i < hard.PCA9685ADDRESSES.length; i++) {
+    pca9685Driver[i] = new PCA9685.Pca9685Driver({
+     i2c: i2c,
+     address: hard.PCA9685ADDRESSES[i],
+     frequency: PCA9685FREQUENCY
+    }, function(err) {
+     if(err)
+      trace("Error initializing PCA9685 at address " + hard.PCA9685ADDRESSES[i]);
+     else
+      trace("PCA9685 initialized at address " + hard.PCA9685ADDRESSES[i]);
+    });
+   }
 
    for(let i = 0; i < hard.OUTILS.length; i++)
     if(hard.OUTILS[i].PCA9685 == PIGPIO)
