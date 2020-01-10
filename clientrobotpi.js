@@ -883,8 +883,8 @@ if(gaugeType == "max17043") {
   if(!init)
    return;
 
-  i2c.readWord(MAX17043ADDRESS, 0x02, function(err, voltsTest) {
-   rx.setValeur16(0, swapWord(voltsTest) * 12800);
+  i2c.readWord(MAX17043ADDRESS, 0x02, function(err, volts12800) {
+   rx.setValeur16(0, swapWord(volts12800) / 12800);
    i2c.readWord(MAX17043ADDRESS, 0x04, function(err, pour25600) {
     rx.setValeur16(1, swapWord(pour25600) / 256);
    });
