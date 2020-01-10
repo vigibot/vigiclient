@@ -71,7 +71,7 @@ const SEPARATEURNALU = new Buffer.from([0, 0, 0, 1]);
 
 const CW2015ADDRESS = 0x62;
 const CW2015WAKEUP = new Buffer.from([0x0a, 0x00]);
-const MAX17043ADDRESS = 0x10;
+const MAX17043ADDRESS = 0x36;
 const BQ27441ADDRESS = 0x55;
 const GAUGERATE = 250;
 
@@ -137,7 +137,6 @@ let serial;
 
 let i2c;
 let gaugeType;
-let gaugeBuffer = new Buffer.alloc(256);
 
 let pca9685Driver = [];
 
@@ -160,11 +159,11 @@ try {
  gaugeType = "cw2015";
 } catch(err) {
  try {
-  i2c.i2cReadSync(MAX17043ADDRESS, 6, gaugeBuffer);
+  i2c.readWordSync(MAX17043ADDRESS, 0x02);
   gaugeType = "max17043";
  } catch(err) {
   try {
-   i2c.i2cReadSync(BQ27441ADDRESS, 29, gaugeBuffer);
+   i2c.readWordSync(BQ27441ADDRESS, 0x04);
    gaugeType = "bq27441";
   } catch(err) {
    trace("No I2C fuel gauge detected");
@@ -861,17 +860,20 @@ setInterval(function() {
  }
 }, TXRATE);
 
+function swapWord(word) {
+ return (word & 0xff) << 8 | word >> 8;
+}
+
 if(gaugeType == "cw2015") {
  setInterval(function() {
   if(!init)
    return;
 
-  i2c.i2cRead(CW2015ADDRESS, 256, gaugeBuffer, function() {
-   let microVolts = ((gaugeBuffer[247] << 8) + gaugeBuffer[248]) * 305;
-   let pour25600 = (gaugeBuffer[249] << 8) + gaugeBuffer[250];
-
-   rx.setValeur16(0, microVolts / 1000000);
-   rx.setValeur16(1, pour25600 / 256);
+  i2c.readWord(CW2015ADDRESS, 0x02, function(err, microVolts305) {
+   rx.setValeur16(0, swapWord(microVolts305) * 305 / 1000000);
+   i2c.readWord(CW2015ADDRESS, 0x04, function(err, pour25600) {
+    rx.setValeur16(1, swapWord(pour25600) / 256);
+   });
   });
  }, GAUGERATE);
 }
@@ -881,12 +883,11 @@ if(gaugeType == "max17043") {
   if(!init)
    return;
 
-  i2c.i2cRead(MAX17043ADDRESS, 7, gaugeBuffer, function() {
-   let milliVolts = ((gaugeBuffer[3] << 8) + gaugeBuffer[4]) * 5000 / 4096;
-   let pour25600 = (gaugeBuffer[5] << 8) + gaugeBuffer[6];
-
-   rx.setValeur16(0, milliVolts / 1000);
-   rx.setValeur16(1, pour25600 / 256);
+  i2c.readWord(MAX17043ADDRESS, 0x02, function(err, voltsTest) {
+   rx.setValeur16(0, swapWord(voltsTest) * 12800);
+   i2c.readWord(MAX17043ADDRESS, 0x04, function(err, pour25600) {
+    rx.setValeur16(1, swapWord(pour25600) / 256);
+   });
   });
  }, GAUGERATE);
 }
@@ -898,10 +899,9 @@ if(gaugeType == "bq27441") {
 
   i2c.readWord(BQ27441ADDRESS, 0x04, function(err, milliVolts) {
    rx.setValeur16(0, milliVolts / 1000);
-  });
-
-  i2c.readByte(BQ27441ADDRESS, 0x1c, function(err, pourcents) {
-   rx.setValeur16(1, pourcents);
+   i2c.readByte(BQ27441ADDRESS, 0x1c, function(err, pourcents) {
+    rx.setValeur16(1, pourcents);
+   });
   });
  }, GAUGERATE);
 }
