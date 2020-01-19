@@ -1,7 +1,7 @@
 class Tx {
  constructor(conftx) {
   let p = 0;
-  let nb16 = conftx.OUTILS.length + conftx.AUTOGOTO.length + conftx.AUTOANGLES.length + conftx.COMMANDES16.length;
+  let nb16 = conftx.POSITIONS.length + conftx.AUTOGOTO.length + conftx.AUTOANGLES.length + conftx.COMMANDES16.length;
   let nb8 = conftx.SYNC.length + conftx.CHOIXCAMERAS.length + conftx.VITESSES.length + conftx.REQUETESMISSION.length +
             conftx.INTERRUPTEURS.length + conftx.COMMANDES8.length + conftx.FIN.length;
 
@@ -16,10 +16,10 @@ class Tx {
   for(let i = 0; i < conftx.SYNC.length; i++)
    this.sync[i] = conftx.SYNC[i].charCodeAt();
 
-  this.outils = new Uint16Array(this.arrayBuffer, p,  conftx.OUTILS.length);
-  p += this.outils.byteLength;
-  for(let i = 0; i < conftx.OUTILS.length; i++)
-   this.outils[i] = (conftx.OUTILS[i] + 180) * 0x10000 / 360;
+  this.positions = new Uint16Array(this.arrayBuffer, p,  conftx.POSITIONS.length);
+  p += this.positions.byteLength;
+  for(let i = 0; i < conftx.POSITIONS.length; i++)
+   this.positions[i] = (conftx.POSITIONS[i] + 180) * 0x10000 / 360;
 
   this.autoGoto = new Int16Array(this.arrayBuffer, p, conftx.AUTOGOTO.length);
   p += this.autoGoto.byteLength;
@@ -169,7 +169,7 @@ class Rx {
   this.confrx = confrx;
 
   let p = 0;
-  let nb16 = conftx.OUTILS.length + conftx.AUTOGOTO.length + conftx.AUTOANGLES.length + conftx.COMMANDES16.length +
+  let nb16 = conftx.POSITIONS.length + conftx.AUTOGOTO.length + conftx.AUTOANGLES.length + conftx.COMMANDES16.length +
              confrx.ODOMETRIES.length + confrx.ANGLES.length + confrx.CIBLES.length + confrx.RESULTATSMISSION.length +
             (confrx.NBCORRECTEURS + confrx.NBCLUSTERS) * 4 + confrx.NBPOINTSLIDAR2D * 2 + confrx.VALEURS16.length;
   let nb8 = confrx.SYNC.length + conftx.CHOIXCAMERAS.length + conftx.VITESSES.length + conftx.REQUETESMISSION.length + conftx.INTERRUPTEURS.length +
@@ -184,10 +184,10 @@ class Rx {
   for(let i = 0; i < confrx.SYNC.length; i++)
    this.sync[i] = confrx.SYNC[i].charCodeAt();
 
-  this.outils = new Uint16Array(this.arrayBuffer, p,  conftx.OUTILS.length);
-  p += this.outils.byteLength;
-  for(let i = 0; i < conftx.OUTILS.length; i++)
-   this.outils[i] = (conftx.OUTILS[i] + 180) * 0x10000 / 360;
+  this.positions = new Uint16Array(this.arrayBuffer, p,  conftx.POSITIONS.length);
+  p += this.positions.byteLength;
+  for(let i = 0; i < conftx.POSITIONS.length; i++)
+   this.positions[i] = (conftx.POSITIONS[i] + 180) * 0x10000 / 360;
 
   this.autoGoto = new Int16Array(this.arrayBuffer, p, conftx.AUTOGOTO.length);
   p += this.autoGoto.byteLength;
