@@ -627,7 +627,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     for(let j = 0; j < 8; j++) {
      let etat = tx.interrupteurs[i] >> j & 1 ^ hard.INTERRUPTEURS[i].INV;
      setGpio(i * 8 + j, etat);
-     if(i == hard.INTERRUPTEURBOOSTVIDEO)
+     if(i * 8 + j == hard.INTERRUPTEURBOOSTVIDEO)
       boostVideo = etat;
      }
     oldTxInterrupteurs[i] = tx.interrupteurs[i];
