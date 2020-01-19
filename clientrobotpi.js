@@ -276,11 +276,13 @@ function dodo() {
 
  for(let i = 0; i < conf.TX.POSITIONS.length; i++)
   tx.positions[i] = (conf.TX.POSITIONS[i] + 180) * 0x10000 / 360;
+
  for(let i = 0; i < conf.TX.VITESSES.length; i++)
   tx.vitesses[i] = conf.TX.VITESSES[i];
 
  for(let i = 0; i < hard.MOTEURS.length; i++)
-  setConsigneMoteur(i, 0);
+  if(hard.MOTEURS[i].FAILSAFE)
+   setConsigneMoteur(i, 0);
 
  for(let i = 0; i < 8; i++)
   setGpio(i, hard.INTERRUPTEURS[i].INV);
@@ -817,8 +819,9 @@ function failSafe() {
 
  for(let i = 0; i < conf.TX.VITESSES.length; i++)
   tx.vitesses[i] = conf.TX.VITESSES[i];
+
  for(let i = 0; i < hard.MOTEURS.length; i++)
-  if(hard.MOTEURS.FAILSAFE)
+  if(hard.MOTEURS[i].FAILSAFE)
    setConsigneMoteur(i, 0);
 }
 
