@@ -256,7 +256,7 @@ function debout() {
   oldMoteurs[i]++;
 
  for(let i = 0; i < 8; i++)
-  setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
+  setGpio(i, tx.interrupteurs[0] >> i & 1);
 
  if(hard.CAPTURESENVEILLE) {
   sigterm("Raspistill", "raspistill", function(code) {
@@ -291,7 +291,7 @@ function dodo() {
  }
 
  for(let i = 0; i < 8; i++)
-  setGpio(i, hard.INTERRUPTEURS[i].INV);
+  setGpio(i, 0);
 
  sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
   sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
@@ -455,7 +455,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     if(hard.INTERRUPTEURS[i].PIN >= 0) {
      if(hard.INTERRUPTEURS[i].PCA9685 == PIGPIO)
       gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
-     setGpio(i, hard.INTERRUPTEURS[i].INV);
+     setGpio(i, 0);
     }
    }
 
@@ -630,7 +630,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
   if(tx.interrupteurs[0] != oldTxInterrupteurs) {
    for(let i = 0; i < 8; i++) {
-    let etat = tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV;
+    let etat = tx.interrupteurs[0] >> i & 1;
     setGpio(i, etat);
     if(i == hard.INTERRUPTEURBOOSTVIDEO)
      boostVideo = etat;
@@ -677,6 +677,7 @@ function setPca9685Gpio(pcaId, pin, state) {
 }
 
 function setGpio(n, etat) {
+ etat ^= hard.INTERRUPTEURS[n].INV;
  if(hard.INTERRUPTEURS[n].PIN >= 0) {
   if(hard.INTERRUPTEURS[n].PCA9685 == PIGPIO) {
    if(hard.INTERRUPTEURS[n].MODE == 1 && !etat || // Drain ouvert
