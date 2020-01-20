@@ -127,7 +127,7 @@ let oldVitesses = [];
 let moteurs = [];
 let oldMoteurs = [];
 let rattrapage = [];
-let oldTxInterrupteurs = [];
+let oldTxInterrupteurs;
 
 let boostVideo = false;
 let oldBoostVideo = false;
@@ -255,10 +255,8 @@ function debout() {
  for(let i = 0; i < hard.MOTEURS.length; i++)
   oldMoteurs[i]++;
 
- for(let i = 0; i < hard.INTERRUPTEURS.length; i++) {
-  let j = Math.trunc(i / 8);
-  setGpio(i, tx.interrupteurs[j] >> (i - j * 8) & 1 ^ hard.INTERRUPTEURS[i].INV);
- }
+ for(let i = 0; i < 8; i++)
+  setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
 
  if(hard.CAPTURESENVEILLE) {
   sigterm("Raspistill", "raspistill", function(code) {
@@ -292,7 +290,7 @@ function dodo() {
   }
  }
 
- for(let i = 0; i < hard.INTERRUPTEURS.length; i++)
+ for(let i = 0; i < 8; i++)
   setGpio(i, hard.INTERRUPTEURS[i].INV);
 
  sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
@@ -410,8 +408,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     rattrapage[i] = 0;
    }
 
-   for(let i = 0; i < conf.TX.INTERRUPTEURS.length; i++)
-    oldTxInterrupteurs[i] = conf.TX.INTERRUPTEURS[i] + 1;
+   oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
 
    oldCamera = conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA;
    confVideo = hard.CAMERAS[oldCamera];
@@ -454,7 +451,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     }
    }
 
-   for(let i = 0; i < hard.INTERRUPTEURS.length; i++) {
+   for(let i = 0; i < 8; i++) {
     if(hard.INTERRUPTEURS[i].PIN >= 0) {
      if(hard.INTERRUPTEURS[i].PCA9685 == PIGPIO)
       gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
@@ -631,16 +628,14 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   for(let i = 0; i < hard.MOTEURS.length; i++)
    setConsigneMoteur(i, 1);
 
-  for(let i = 0; i < conf.TX.INTERRUPTEURS.length; i++) {
-   if(tx.interrupteurs[i] != oldTxInterrupteurs[i]) {
-    for(let j = 0; j < 8; j++) {
-     let etat = tx.interrupteurs[i] >> j & 1 ^ hard.INTERRUPTEURS[i].INV;
-     setGpio(i * 8 + j, etat);
-     if(i * 8 + j == hard.INTERRUPTEURBOOSTVIDEO)
-      boostVideo = etat;
-     }
-    oldTxInterrupteurs[i] = tx.interrupteurs[i];
+  if(tx.interrupteurs[0] != oldTxInterrupteurs) {
+   for(let i = 0; i < 8; i++) {
+    let etat = tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV;
+    setGpio(i, etat);
+    if(i == hard.INTERRUPTEURBOOSTVIDEO)
+     boostVideo = etat;
    }
+   oldTxInterrupteurs = tx.interrupteurs[0]
   }
 
   if(boostVideo != oldBoostVideo) {
@@ -663,8 +658,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    rx.choixCameras[0] = tx.choixCameras[0];
    for(let i = 0; i < conf.TX.VITESSES.length; i++)
     rx.vitesses[i] = tx.vitesses[i];
-   for(let i = 0; i < hard.INTERRUPTEURS.length; i++)
-    rx.interrupteurs[i] = tx.interrupteurs[i];
+   rx.interrupteurs[0] = tx.interrupteurs[0];
 
    sockets[serveur].emit("serveurrobotrx", {
     timestamp: now,
