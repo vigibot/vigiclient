@@ -255,8 +255,10 @@ function debout() {
  for(let i = 0; i < hard.MOTEURS.length; i++)
   oldMoteurs[i]++;
 
- for(let i = 0; i < hard.INTERRUPTEURS.length; i++)
-  setGpio(i, tx.interrupteurs[0] >> i & 1 ^ hard.INTERRUPTEURS[i].INV);
+ for(let i = 0; i < hard.INTERRUPTEURS.length; i++) {
+  let j = Math.trunc(i / 8);
+  setGpio(i, tx.interrupteurs[j] >> (i - j * 8) & 1 ^ hard.INTERRUPTEURS[i].INV);
+ }
 
  if(hard.CAPTURESENVEILLE) {
   sigterm("Raspistill", "raspistill", function(code) {
@@ -280,11 +282,17 @@ function dodo() {
  for(let i = 0; i < conf.TX.VITESSES.length; i++)
   tx.vitesses[i] = conf.TX.VITESSES[i];
 
- for(let i = 0; i < hard.MOTEURS.length; i++)
+ for(let i = 0; i < hard.MOTEURS.length; i++) {
   if(hard.MOTEURS[i].FAILSAFE)
    setConsigneMoteur(i, 0);
+  else {
+   gpiosMoteurs[i].forEach(function(gpio) {
+    gpio.digitalWrite(false);
+   });
+  }
+ }
 
- for(let i = 0; i < 8; i++)
+ for(let i = 0; i < hard.INTERRUPTEURS.length; i++)
   setGpio(i, hard.INTERRUPTEURS[i].INV);
 
  sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
@@ -391,7 +399,6 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    tx = new TRAME.Tx(conf.TX);
    rx = new TRAME.Rx(conf.TX, conf.RX);
 
-
    for(let i = 0; i < conf.TX.POSITIONS.length; i++)
     oldPositions[i] = tx.positions[i] + 1;
 
@@ -447,7 +454,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     }
    }
 
-   for(let i = 0; i < 8; i++) {
+   for(let i = 0; i < hard.INTERRUPTEURS.length; i++) {
     if(hard.INTERRUPTEURS[i].PIN >= 0) {
      if(hard.INTERRUPTEURS[i].PCA9685 == PIGPIO)
       gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
@@ -656,7 +663,8 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    rx.choixCameras[0] = tx.choixCameras[0];
    for(let i = 0; i < conf.TX.VITESSES.length; i++)
     rx.vitesses[i] = tx.vitesses[i];
-   rx.interrupteurs[0] = tx.interrupteurs[0];
+   for(let i = 0; i < hard.INTERRUPTEURS.length; i++)
+    rx.interrupteurs[i] = tx.interrupteurs[i];
 
    sockets[serveur].emit("serveurrobotrx", {
     timestamp: now,
