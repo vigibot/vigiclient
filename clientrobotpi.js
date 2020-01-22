@@ -124,7 +124,6 @@ let alarmeLatence = false;
 
 let oldPositions = [];
 let oldVitesses = [];
-let moteurs = [];
 let oldMoteurs = [];
 let rattrapage = [];
 let oldTxInterrupteurs;
@@ -722,25 +721,27 @@ function setMotorFrequency(n) {
 
 
 function setConsigneMoteur(n, rattrape) {
- oldMoteurs[n] = moteurs[n];
- moteurs[n] = 0;
+ let moteur = 0;
 
  for(let i = 0; i < conf.TX.POSITIONS.length; i++)
-  moteurs[n] += (tx.positions[i] - 0x8000) * hard.MIXAGES[n][i];
+  moteur += (tx.positions[i] - 0x8000) * hard.MIXAGES[n][i];
 
  for(let i = 0; i < conf.TX.VITESSES.length; i++)
-  moteurs[n] += tx.vitesses[i] * hard.MIXAGES[n][i + conf.TX.POSITIONS.length] * 0x100;
+  moteur += tx.vitesses[i] * hard.MIXAGES[n][i + conf.TX.POSITIONS.length] * 0x100;
 
- if(moteurs[n] != oldMoteurs[n]) {
+ if(moteur != oldMoteurs[n]) {
   if(rattrape) {
-   if(moteurs[n] < oldMoteurs[n])
+   if(moteur < oldMoteurs[n])
     rattrapage[n] = -hard.MOTEURS[n].RATTRAPAGE * 0x10000 / 360;
-   if(moteurs[n] > oldMoteurs[n])
+   else if(moteur > oldMoteurs[n])
     rattrapage[n] = hard.MOTEURS[n].RATTRAPAGE * 0x10000 / 360;
   } else
    rattrapage[n] = 0;
-  let consigne = constrain(moteurs[n] + rattrapage[n] + hard.MOTEURS[n].OFFSET * 0x10000 / 360, -hard.MOTEURS[n].COURSE * 0x8000 / 360,
-                                                                                                 hard.MOTEURS[n].COURSE * 0x8000 / 360);
+
+  oldMoteurs[n] = moteur;
+
+  let consigne = constrain(moteur + rattrapage[n] + hard.MOTEURS[n].OFFSET * 0x10000 / 360, -hard.MOTEURS[n].COURSE * 0x8000 / 360,
+                                                                                             hard.MOTEURS[n].COURSE * 0x8000 / 360);
   setMoteur(n, consigne);
  }
 }
