@@ -78,7 +78,7 @@ const GAUGERATE = 250;
 const PCA9685FREQUENCY = 50;
 const PIGPIOMOTORFREQUENCY = 100;
 
-const PIGPIO = -1;
+const UNUSED = -1;
 const SERVO = 0;
 const PCASERVO = 1;
 const L9110 = 2;
@@ -452,8 +452,8 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    }
 
    for(let i = 0; i < 8; i++) {
-    if(hard.INTERRUPTEURS[i].PIN >= 0) {
-     if(hard.INTERRUPTEURS[i].PCA9685 == PIGPIO)
+    if(hard.INTERRUPTEURS[i].PIN != UNUSED) {
+     if(hard.INTERRUPTEURS[i].PCA9685 == UNUSED)
       gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
      setGpio(i, 0);
     }
@@ -678,8 +678,8 @@ function setPca9685Gpio(pcaId, pin, state) {
 
 function setGpio(n, etat) {
  etat ^= hard.INTERRUPTEURS[n].INV;
- if(hard.INTERRUPTEURS[n].PIN >= 0) {
-  if(hard.INTERRUPTEURS[n].PCA9685 == PIGPIO) {
+ if(hard.INTERRUPTEURS[n].PIN != UNUSED) {
+  if(hard.INTERRUPTEURS[n].PCA9685 == UNUSED) {
    if(hard.INTERRUPTEURS[n].MODE == 1 && !etat || // Drain ouvert
       hard.INTERRUPTEURS[n].MODE == 2 && etat)    // Collecteur ouvert
     gpioInterrupteurs[n].mode(GPIO.INPUT);
