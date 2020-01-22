@@ -285,7 +285,7 @@ function dodo() {
    setConsigneMoteur(i, 0);
   else {
    gpiosMoteurs[i].forEach(function(gpio) {
-    gpio.digitalWrite(false);
+    gpio.mode(GPIO.INPUT);
    });
   }
  }
