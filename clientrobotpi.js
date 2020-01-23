@@ -173,6 +173,13 @@ try {
  }
 }
 
+setTimeout(function() {
+ if(gaugeType)
+  trace(gaugeType + " I2C fuel gauge detected");
+ else
+  trace("No I2C fuel gauge detected");
+}, 1000);
+
 function map(n, inMin, inMax, outMin, outMax) {
  return Math.trunc((n - inMin) * (outMax - outMin) / (inMax - inMin) + outMin);
 }
@@ -371,12 +378,6 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
  if(index == 0) {
   sockets[serveur].on("clientsrobotconf", function(data) {
-
-   if(gaugeType)
-    trace(gaugeType + " I2C fuel gauge detected");
-   else
-    trace("No I2C fuel gauge detected");
-
    trace("Réception des données de configuration du robot depuis le serveur " + serveur);
 
    conf = data.conf;
