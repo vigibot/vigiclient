@@ -564,12 +564,30 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   });
  });
 
- sockets[serveur].on("clientsrobotexit", function() {
-  trace("Redémarrage du robot");
-  dodo();
-  setTimeout(function() {
-   EXEC("reboot");
-  }, 1000);
+ sockets[serveur].on("clientsrobotsys", function(data) {
+  switch(data) {
+   case "exit":
+    trace("Fin du processus Node.js");
+    dodo();
+    setTimeout(function() {
+     process.exit();
+    }, 1000);
+    break;
+   case "reboot":
+    trace("Redémarrage du système");
+    dodo();
+    setTimeout(function() {
+     EXEC("reboot");
+    }, 1000);
+    break;
+   case "poweroff":
+    trace("Arrêt du système");
+    dodo();
+    setTimeout(function() {
+     EXEC("poweroff");
+    }, 1000);
+    break;
+  }
  });
 
  sockets[serveur].on("echo", function(data) {
