@@ -568,24 +568,15 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   switch(data) {
    case "exit":
     trace("Fin du processus Node.js");
-    dodo();
-    setTimeout(function() {
-     process.exit();
-    }, 1000);
+    process.exit();
     break;
    case "reboot":
     trace("Redémarrage du système");
-    dodo();
-    setTimeout(function() {
-     EXEC("reboot");
-    }, 1000);
+    EXEC("reboot");
     break;
    case "poweroff":
     trace("Arrêt du système");
-    dodo();
-    setTimeout(function() {
-     EXEC("poweroff");
-    }, 1000);
+    EXEC("poweroff");
     break;
   }
  });
