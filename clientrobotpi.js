@@ -157,22 +157,26 @@ i2c = I2C.openSync(1);
 
 try {
  i2c.i2cWriteSync(CW2015ADDRESS, 2, CW2015WAKEUP);
- gaugeType = "cw2015";
+ gaugeType = "CW2015";
 } catch(err) {
  try {
   i2c.readWordSync(MAX17043ADDRESS, 0x02);
-  gaugeType = "max17043";
+  gaugeType = "MAX17043";
  } catch(err) {
   try {
    i2c.readWordSync(BQ27441ADDRESS, 0x04);
-   gaugeType = "bq27441";
+   gaugeType = "BQ27441";
   } catch(err) {
-   trace("No I2C fuel gauge detected");
    i2c.closeSync();
    gaugeType = "";
   }
  }
 }
+
+if(gaugeType)
+ trace(gaugeType + " I2C fuel gauge detected");
+else
+ trace("No I2C fuel gauge detected");
 
 function map(n, inMin, inMax, outMin, outMax) {
  return Math.trunc((n - inMin) * (outMax - outMin) / (inMax - inMin) + outMin);
@@ -857,46 +861,45 @@ function swapWord(word) {
  return (word & 0xff) << 8 | word >> 8;
 }
 
-if(gaugeType == "cw2015") {
- setInterval(function() {
-  if(!init)
-   return;
-
-  i2c.readWord(CW2015ADDRESS, 0x02, function(err, microVolts305) {
-   rx.setValeur16(0, swapWord(microVolts305) * 305 / 1000000);
-   i2c.readWord(CW2015ADDRESS, 0x04, function(err, pour25600) {
-    rx.setValeur16(1, swapWord(pour25600) / 256);
+switch(gaugeType) {
+ case "CW2015":
+  setInterval(function() {
+   if(!init)
+    return;
+   i2c.readWord(CW2015ADDRESS, 0x02, function(err, microVolts305) {
+    rx.setValeur16(0, swapWord(microVolts305) * 305 / 1000000);
+    i2c.readWord(CW2015ADDRESS, 0x04, function(err, pour25600) {
+     rx.setValeur16(1, swapWord(pour25600) / 256);
+    });
    });
-  });
- }, GAUGERATE);
-}
+  }, GAUGERATE);
+  break;
 
-if(gaugeType == "max17043") {
- setInterval(function() {
-  if(!init)
-   return;
-
-  i2c.readWord(MAX17043ADDRESS, 0x02, function(err, volts12800) {
-   rx.setValeur16(0, swapWord(volts12800) / 12800);
-   i2c.readWord(MAX17043ADDRESS, 0x04, function(err, pour25600) {
-    rx.setValeur16(1, swapWord(pour25600) / 256);
+ case "MAX17043":
+  setInterval(function() {
+   if(!init)
+    return;
+   i2c.readWord(MAX17043ADDRESS, 0x02, function(err, volts12800) {
+    rx.setValeur16(0, swapWord(volts12800) / 12800);
+    i2c.readWord(MAX17043ADDRESS, 0x04, function(err, pour25600) {
+     rx.setValeur16(1, swapWord(pour25600) / 256);
+    });
    });
-  });
- }, GAUGERATE);
-}
+  }, GAUGERATE);
+  break;
 
-if(gaugeType == "bq27441") {
- setInterval(function() {
-  if(!init)
-   return;
-
-  i2c.readWord(BQ27441ADDRESS, 0x04, function(err, milliVolts) {
-   rx.setValeur16(0, milliVolts / 1000);
-   i2c.readByte(BQ27441ADDRESS, 0x1c, function(err, pourcents) {
-    rx.setValeur16(1, pourcents);
+ case "BQ27441":
+  setInterval(function() {
+   if(!init)
+    return;
+   i2c.readWord(BQ27441ADDRESS, 0x04, function(err, milliVolts) {
+    rx.setValeur16(0, milliVolts / 1000);
+    i2c.readByte(BQ27441ADDRESS, 0x1c, function(err, pourcents) {
+     rx.setValeur16(1, pourcents);
+    });
    });
-  });
- }, GAUGERATE);
+  }, GAUGERATE);
+  break;
 }
 
 setInterval(function() {
