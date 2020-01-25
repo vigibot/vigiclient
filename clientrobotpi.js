@@ -735,10 +735,10 @@ function setConsigneMoteur(n, rattrape) {
  let moteur = 0;
 
  for(let i = 0; i < conf.TX.POSITIONS.length; i++)
-  moteur += (tx.positions[i] - 0x8000) * hard.MIXAGES[n][i];
+  moteur += (tx.positions[i] - 0x8000) * hard.MIXAGES[n].POSITIONS[i];
 
  for(let i = 0; i < conf.TX.VITESSES.length; i++)
-  moteur += tx.vitesses[i] * hard.MIXAGES[n][i + conf.TX.POSITIONS.length] * 0x100;
+  moteur += tx.vitesses[i] * hard.MIXAGES[n].VITESSES[i] * 0x100;
 
  if(moteur != oldMoteurs[n]) {
   if(rattrape) {
