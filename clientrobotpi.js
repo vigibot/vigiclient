@@ -707,15 +707,11 @@ function setGpio(n, etat) {
 function computePwm(n, velocity, min, max) {
  let pwm;
  let pwmNeutre = (min + max) / 2 + hard.MOTEURS[n].OFFSET;
- let sens = 1;
-
- if(max < min)
-  sens = -1;
 
  if(velocity < 0)
-  pwm = map(velocity, -hard.MOTEURS[n].COURSE * 0x8000 / 360, 0, min, pwmNeutre + sens * hard.MOTEURS[n].NEUTREAR);
+  pwm = map(velocity, -hard.MOTEURS[n].COURSE * 0x8000 / 360, 0, min, pwmNeutre + hard.MOTEURS[n].NEUTREAR);
  else if(velocity > 0)
-  pwm = map(velocity, 0, hard.MOTEURS[n].COURSE * 0x8000 / 360, pwmNeutre + sens * hard.MOTEURS[n].NEUTREAV, max);
+  pwm = map(velocity, 0, hard.MOTEURS[n].COURSE * 0x8000 / 360, pwmNeutre + hard.MOTEURS[n].NEUTREAV, max);
  else
   pwm = pwmNeutre;
 
