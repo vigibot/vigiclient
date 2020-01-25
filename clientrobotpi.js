@@ -3,7 +3,7 @@
 const CONF = require("/boot/robot.json");
 
 const TRAME = require("./trame.js");
-const LOGGER = new require("./logger.js")("/var/log/vigiclient.log");
+const LOGGER = new require("./utils/logger.js")("/var/log/vigiclient.log");
 
 const PORTROBOTS = 8042;
 const PORTTCPVIDEO = 8043;
