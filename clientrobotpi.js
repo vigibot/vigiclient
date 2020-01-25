@@ -3,12 +3,11 @@
 const CONF = require("/boot/robot.json");
 
 const TRAME = require("./trame.js");
+const LOGGER = new require("./logger.js")("/var/log/vigiclient.log");
 
 const PORTROBOTS = 8042;
 const PORTTCPVIDEO = 8043;
 const PORTTCPAUDIO = 8044;
-
-const FICHIERLOG = "/var/log/vigiclient.log";
 
 const INTERFACEWIFI = "wlan0";
 const FICHIERSTATS = "/proc/net/wireless";
@@ -148,9 +147,10 @@ if(typeof CONF.CMDDIFFAUDIO === "undefined")
 
 CONF.SERVEURS.forEach(function(serveur) {
  sockets[serveur] = IO.connect(serveur, {"connect timeout": 1000, transports: ["websocket"], path: "/" + PORTROBOTS + "/socket.io"});
+ LOGGER.addSocket(sockets[serveur]);
 });
 
-trace("Démarrage du client");
+LOGGER.log("Démarrage du client");
 
 i2c = I2C.openSync(1);
 
@@ -174,33 +174,13 @@ try {
 
 setTimeout(function() {
  if(gaugeType)
-  trace(gaugeType + " I2C fuel gauge detected");
+  LOGGER.log(gaugeType + " I2C fuel gauge detected");
  else
-  trace("No I2C fuel gauge detected");
+  LOGGER.log("No I2C fuel gauge detected");
 }, 1000);
 
 function map(n, inMin, inMax, outMin, outMax) {
  return Math.trunc((n - inMin) * (outMax - outMin) / (inMax - inMin) + outMin);
-}
-
-function heure(date) {
- return ("0" + date.getHours()).slice(-2) + ":" +
-        ("0" + date.getMinutes()).slice(-2) + ":" +
-        ("0" + date.getSeconds()).slice(-2) + ":" +
-        ("00" + date.getMilliseconds()).slice(-3);
-}
-
-function trace(message) {
- let trace = heure(new Date());
-
- trace += " | " + message;
-
- FS.appendFile(FICHIERLOG, trace + "\n", function(err) {
- });
-
- CONF.SERVEURS.forEach(function(serveur) {
-  sockets[serveur].emit("serveurrobottrace", message);
- });
 }
 
 function traces(id, messages) {
@@ -208,7 +188,7 @@ function traces(id, messages) {
  if(!tableau[tableau.length - 1])
   tableau.pop();
  for(let i = 0; i < tableau.length; i++)
-  trace(id + " | " + tableau[i]);
+  LOGGER.log(id + " | " + tableau[i]);
 }
 
 function constrain(n, nMin, nMax) {
@@ -221,7 +201,7 @@ function constrain(n, nMin, nMax) {
 }
 
 function sigterm(nom, processus, callback) {
- trace("Envoi du signal SIGTERM au processus " + nom);
+ LOGGER.log("Envoi du signal SIGTERM au processus " + nom);
  let processkill = EXEC("/usr/bin/pkill -15 -f ^" + processus);
  processkill.on("close", function(code) {
   callback(code);
@@ -229,8 +209,8 @@ function sigterm(nom, processus, callback) {
 }
 
 function exec(nom, commande, callback) {
- trace("Démarrage du processus " + nom);
- trace(commande);
+ LOGGER.log("Démarrage du processus " + nom);
+ LOGGER.log(commande);
  let processus = EXEC(commande);
  let stdout = RL.createInterface(processus.stdout);
  let stderr = RL.createInterface(processus.stderr);
@@ -250,7 +230,7 @@ function exec(nom, commande, callback) {
  processus.on("close", function(code) {
   let elapsed = Date.now() - execTime;
 
-  trace("Le processus " + nom + " c'est arrêté après " + elapsed + " millisecondes avec le code de sortie " + code);
+  LOGGER.log("Le processus " + nom + " c'est arrêté après " + elapsed + " millisecondes avec le code de sortie " + code);
   callback(code);
  });
 }
@@ -317,7 +297,7 @@ function configurationVideo(callback) {
                                                            ).replace("PORTTCPVIDEO", PORTTCPVIDEO);
  cmdDiffAudio = CONF.CMDDIFFAUDIO.join("").replace("PORTTCPAUDIO", PORTTCPAUDIO);
 
- trace("Initialisation de la configuration Video4Linux");
+ LOGGER.log("Initialisation de la configuration Video4Linux");
 
  let luminosite;
  let contraste;
@@ -344,23 +324,23 @@ function configurationVideo(callback) {
 }
 
 function diffusion() {
- trace("Démarrage du flux de diffusion vidéo H.264");
+ LOGGER.log("Démarrage du flux de diffusion vidéo H.264");
  exec("Diffusion", cmdDiffusion, function(code) {
-  trace("Arrêt du flux de diffusion vidéo H.264");
+  LOGGER.log("Arrêt du flux de diffusion vidéo H.264");
  });
 }
 
 function diffAudio() {
- trace("Démarrage du flux de diffusion audio");
+ LOGGER.log("Démarrage du flux de diffusion audio");
  exec("DiffAudio", cmdDiffAudio, function(code) {
-  trace("Arrêt du flux de diffusion audio");
+  LOGGER.log("Arrêt du flux de diffusion audio");
  });
 }
 
 CONF.SERVEURS.forEach(function(serveur, index) {
 
  sockets[serveur].on("connect", function() {
-  trace("Connecté sur " + serveur + "/" + PORTROBOTS);
+  LOGGER.log("Connecté sur " + serveur + "/" + PORTROBOTS);
   EXEC("hostname -I").stdout.on("data", function(ipPriv) {
    EXEC("iwgetid -r || echo $?").stdout.on("data", function(ssid) {
     sockets[serveur].emit("serveurrobotlogin", {
@@ -377,7 +357,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
  if(index == 0) {
   sockets[serveur].on("clientsrobotconf", function(data) {
-   trace("Réception des données de configuration du robot depuis le serveur " + serveur);
+   LOGGER.log("Réception des données de configuration du robot depuis le serveur " + serveur);
 
    conf = data.conf;
    hard = data.hard;
@@ -440,9 +420,9 @@ CONF.SERVEURS.forEach(function(serveur, index) {
      frequency: PCA9685FREQUENCY
     }, function(err) {
      if(err)
-      trace("Error initializing PCA9685 at address " + hard.PCA9685ADDRESSES[i]);
+      LOGGER.log("Error initializing PCA9685 at address " + hard.PCA9685ADDRESSES[i]);
      else
-      trace("PCA9685 initialized at address " + hard.PCA9685ADDRESSES[i]);
+      LOGGER.log("PCA9685 initialized at address " + hard.PCA9685ADDRESSES[i]);
     });
    }
 
@@ -485,7 +465,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     });
 
     serial.on("open", function() {
-     trace("Connecté sur " + hard.DEVROBOT);
+     LOGGER.log("Connecté sur " + hard.DEVROBOT);
 
      serial.on("data", function(data) {
       if(hard.DEVTELEMETRIE) {
@@ -508,7 +488,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
  }
 
  sockets[serveur].on("disconnect", function() {
-  trace("Déconnecté de " + serveur + "/" + PORTROBOTS);
+  LOGGER.log("Déconnecté de " + serveur + "/" + PORTROBOTS);
 
   if(serveur != serveurCourant)
    return;
@@ -517,24 +497,24 @@ CONF.SERVEURS.forEach(function(serveur, index) {
  });
 
  sockets[serveur].on("connect_error", function(err) {
-  //trace("Erreur de connexion au serveur " + serveur + "/" + PORTROBOTS);
+  //LOGGER.log("Erreur de connexion au serveur " + serveur + "/" + PORTROBOTS);
  });
 
  sockets[serveur].on("clientsrobotdebout", function() {
   if(!init) {
-   trace("Ce robot n'est pas initialisé");
+   LOGGER.log("Ce robot n'est pas initialisé");
    sockets[serveur].emit("serveurrobotdebout", false);
    return;
   }
 
   if(!initVideo) {
-   trace("La vidéo n'est pas initialisée");
+   LOGGER.log("La vidéo n'est pas initialisée");
    sockets[serveur].emit("serveurrobotdebout", false);
    return;
   }
 
   if(serveurCourant) {
-   trace("Ce robot est déjà utilisé depuis le serveur " + serveurCourant);
+   LOGGER.log("Ce robot est déjà utilisé depuis le serveur " + serveurCourant);
    sockets[serveur].emit("serveurrobotdebout", false);
    return;
   }
@@ -555,7 +535,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
  sockets[serveur].on("clientsrobottts", function(data) {
   FS.writeFile("/tmp/tts.txt", data, function(err) {
    if(err)
-    trace(err);
+    LOGGER.log(err);
    exec("eSpeak", "/usr/bin/espeak -v fr -f /tmp/tts.txt --stdout > /tmp/tts.wav", function(code) {
     exec("Aplay", "/usr/bin/aplay -D plughw:" + hard.PLAYBACKDEVICE + " /tmp/tts.wav", function(code) {
     });
@@ -566,15 +546,15 @@ CONF.SERVEURS.forEach(function(serveur, index) {
  sockets[serveur].on("clientsrobotsys", function(data) {
   switch(data) {
    case "exit":
-    trace("Fin du processus Node.js");
+    LOGGER.log("Fin du processus Node.js");
     process.exit();
     break;
    case "reboot":
-    trace("Redémarrage du système");
+    LOGGER.log("Redémarrage du système");
     EXEC("reboot");
     break;
    case "poweroff":
-    trace("Arrêt du système");
+    LOGGER.log("Arrêt du système");
     EXEC("poweroff");
     break;
   }
@@ -599,10 +579,10 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   if(data.data[0] != FRAME0 ||
      data.data[1] != FRAME1S) {
    if(data.data[1] == FRAME1T) {
-    trace("Réception d'une trame texte");
+    LOGGER.log("Réception d'une trame texte");
     serial.write(data.data);
    } else
-    trace("Réception d'une trame corrompue");
+    LOGGER.log("Réception d'une trame corrompue");
    return;
   }
 
@@ -615,7 +595,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    tx.bytes[i] = data.data[i];
 
   if(latence > LATENCEDEBUTALARME) {
-   //trace("Réception d'une trame avec trop de latence");
+   //LOGGER.log("Réception d'une trame avec trop de latence");
    for(let i = 0; i < conf.TX.VITESSES.length; i++)
     tx.vitesses[i] = 0;
   } else
@@ -833,7 +813,7 @@ function pca9685MotorDrive(n, velocity) {
 }
 
 function failSafe() {
- trace("Arrêt des moteurs");
+ LOGGER.log("Arrêt des moteurs");
 
  for(let i = 0; i < conf.TX.VITESSES.length; i++)
   tx.vitesses[i] = conf.TX.VITESSES[i];
@@ -850,13 +830,13 @@ setInterval(function() {
  let latencePredictive = Math.max(latence, Date.now() - lastTimestamp);
 
  if(latencePredictive < LATENCEFINALARME && alarmeLatence) {
-  trace("Latence de " + latencePredictive + " ms, retour au débit vidéo configuré");
+  LOGGER.log("Latence de " + latencePredictive + " ms, retour au débit vidéo configuré");
   exec("v4l2-ctl", V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function(code) {
   });
   alarmeLatence = false;
  } else if(latencePredictive > LATENCEDEBUTALARME && !alarmeLatence) {
   failSafe();
-  trace("Latence de " + latencePredictive + " ms, passage en débit vidéo réduit");
+  LOGGER.log("Latence de " + latencePredictive + " ms, passage en débit vidéo réduit");
   exec("v4l2-ctl", V4L2 + " -c video_bitrate=" + BITRATEVIDEOFAIBLE, function(code) {
   });
   alarmeLatence = true;
@@ -949,26 +929,26 @@ setInterval(function() {
  if(hard.CAPTURESHDR) {
   EXEC("raspistill -ev " + -hard.CAPTURESHDR + " " + options + " -o /tmp/1.jpg", function(err) {
    if(err) {
-    trace("Erreur lors de la capture de la première photo");
+    LOGGER.log("Erreur lors de la capture de la première photo");
     return;
    }
    EXEC("raspistill " + options + " -o /tmp/2.jpg", function(err) {
     if(err) {
-     trace("Erreur lors de la capture de la deuxième photo");
+     LOGGER.log("Erreur lors de la capture de la deuxième photo");
      return;
     }
     EXEC("raspistill -ev " + hard.CAPTURESHDR + " " + options + " -o /tmp/3.jpg", function(err) {
      if(err) {
-      trace("Erreur lors de la capture de la troisième photo");
+      LOGGER.log("Erreur lors de la capture de la troisième photo");
       return;
      }
      EXEC("enfuse -o /tmp/out.jpg /tmp/1.jpg /tmp/2.jpg /tmp/3.jpg", function(err) {
       if(err)
-       trace("Erreur lors de la fusion des photos");
+       LOGGER.log("Erreur lors de la fusion des photos");
       else {
        FS.readFile("/tmp/out.jpg", function(err, data) {
         CONF.SERVEURS.forEach(function(serveur) {
-         trace("Envoi d'une photo sur le serveur " + serveur);
+         LOGGER.log("Envoi d'une photo sur le serveur " + serveur);
          sockets[serveur].emit("serveurrobotcapturesenveille", data);
         });
        });
@@ -980,11 +960,11 @@ setInterval(function() {
  } else {
   EXEC("raspistill -q 10 " + options + " -o /tmp/out.jpg", function(err) {
    if(err)
-    trace("Erreur lors de la capture de la photo");
+    LOGGER.log("Erreur lors de la capture de la photo");
    else {
     FS.readFile("/tmp/out.jpg", function(err, data) {
      CONF.SERVEURS.forEach(function(serveur) {
-      trace("Envoi d'une photo sur le serveur " + serveur);
+      LOGGER.log("Envoi d'une photo sur le serveur " + serveur);
       sockets[serveur].emit("serveurrobotcapturesenveille", data);
      });
     });
@@ -996,7 +976,7 @@ setInterval(function() {
 NET.createServer(function(socket) {
  const SPLITTER = new SPLIT(SEPARATEURNALU);
 
- trace("Le processus de diffusion vidéo H.264 est connecté sur tcp://127.0.0.1:" + PORTTCPVIDEO);
+ LOGGER.log("Le processus de diffusion vidéo H.264 est connecté sur tcp://127.0.0.1:" + PORTTCPVIDEO);
 
  SPLITTER.on("data", function(data) {
 
@@ -1008,20 +988,20 @@ NET.createServer(function(socket) {
   }
 
  }).on("error", function(err) {
-  trace("Erreur lors du découpage du flux d'entrée en unités de couche d'abstraction réseau H.264");
+  LOGGER.log("Erreur lors du découpage du flux d'entrée en unités de couche d'abstraction réseau H.264");
  });
 
  socket.pipe(SPLITTER);
 
  socket.on("end", function() {
-  trace("Le processus de diffusion vidéo H.264 est déconnecté de tcp://127.0.0.1:" + PORTTCPVIDEO);
+  LOGGER.log("Le processus de diffusion vidéo H.264 est déconnecté de tcp://127.0.0.1:" + PORTTCPVIDEO);
  });
 
 }).listen(PORTTCPVIDEO);
 
 NET.createServer(function(socket) {
 
- trace("Le processus de diffusion audio est connecté sur tcp://127.0.0.1:" + PORTTCPAUDIO);
+ LOGGER.log("Le processus de diffusion audio est connecté sur tcp://127.0.0.1:" + PORTTCPAUDIO);
 
  let array = [];
  let i = 0;
@@ -1044,7 +1024,7 @@ NET.createServer(function(socket) {
  })
 
  socket.on("end", function() {
-  trace("Le processus de diffusion audio est déconnecté de tcp://127.0.0.1:" + PORTTCPAUDIO);
+  LOGGER.log("Le processus de diffusion audio est déconnecté de tcp://127.0.0.1:" + PORTTCPAUDIO);
  });
 
 }).listen(PORTTCPAUDIO);
@@ -1054,12 +1034,12 @@ process.on("uncaughtException", function(err) {
  let erreur = err.stack.split("\n");
 
  while(i < erreur.length)
-  trace(erreur[i++]);
+  LOGGER.log(erreur[i++]);
 
- trace("Suite à cette exception non interceptée, le processus Node.js va être terminé automatiquement");
+ LOGGER.log("Suite à cette exception non interceptée, le processus Node.js va être terminé automatiquement");
  setTimeout(function() {
   process.exit(1);
  }, 1000);
 })
 
-trace("Client prêt");
+LOGGER.log("Client prêt");
