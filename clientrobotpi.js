@@ -150,7 +150,7 @@ CONF.SERVEURS.forEach(function(serveur) {
  LOGGER.addSocket(sockets[serveur]);
 });
 
-LOGGER.log("Démarrage du client");
+LOGGER.both("Démarrage du client");
 
 i2c = I2C.openSync(1);
 
@@ -174,9 +174,9 @@ try {
 
 setTimeout(function() {
  if(gaugeType)
-  LOGGER.log(gaugeType + " I2C fuel gauge detected");
+  LOGGER.both(gaugeType + " I2C fuel gauge detected");
  else
-  LOGGER.log("No I2C fuel gauge detected");
+  LOGGER.both("No I2C fuel gauge detected");
 }, 1000);
 
 function map(n, inMin, inMax, outMin, outMax) {
@@ -188,7 +188,7 @@ function traces(id, messages) {
  if(!tableau[tableau.length - 1])
   tableau.pop();
  for(let i = 0; i < tableau.length; i++)
-  LOGGER.log(id + " | " + tableau[i]);
+  LOGGER.both(id + " | " + tableau[i]);
 }
 
 function constrain(n, nMin, nMax) {
@@ -201,7 +201,7 @@ function constrain(n, nMin, nMax) {
 }
 
 function sigterm(nom, processus, callback) {
- LOGGER.log("Envoi du signal SIGTERM au processus " + nom);
+ LOGGER.both("Envoi du signal SIGTERM au processus " + nom);
  let processkill = EXEC("/usr/bin/pkill -15 -f ^" + processus);
  processkill.on("close", function(code) {
   callback(code);
@@ -209,8 +209,8 @@ function sigterm(nom, processus, callback) {
 }
 
 function exec(nom, commande, callback) {
- LOGGER.log("Démarrage du processus " + nom);
- LOGGER.log(commande);
+ LOGGER.both("Démarrage du processus " + nom);
+ LOGGER.both(commande);
  let processus = EXEC(commande);
  let stdout = RL.createInterface(processus.stdout);
  let stderr = RL.createInterface(processus.stderr);
@@ -230,7 +230,7 @@ function exec(nom, commande, callback) {
  processus.on("close", function(code) {
   let elapsed = Date.now() - execTime;
 
-  LOGGER.log("Le processus " + nom + " c'est arrêté après " + elapsed + " millisecondes avec le code de sortie " + code);
+  LOGGER.both("Le processus " + nom + " c'est arrêté après " + elapsed + " millisecondes avec le code de sortie " + code);
   callback(code);
  });
 }
@@ -297,7 +297,7 @@ function configurationVideo(callback) {
                                                            ).replace("PORTTCPVIDEO", PORTTCPVIDEO);
  cmdDiffAudio = CONF.CMDDIFFAUDIO.join("").replace("PORTTCPAUDIO", PORTTCPAUDIO);
 
- LOGGER.log("Initialisation de la configuration Video4Linux");
+ LOGGER.both("Initialisation de la configuration Video4Linux");
 
  let luminosite;
  let contraste;
@@ -324,23 +324,23 @@ function configurationVideo(callback) {
 }
 
 function diffusion() {
- LOGGER.log("Démarrage du flux de diffusion vidéo H.264");
+ LOGGER.both("Démarrage du flux de diffusion vidéo H.264");
  exec("Diffusion", cmdDiffusion, function(code) {
-  LOGGER.log("Arrêt du flux de diffusion vidéo H.264");
+  LOGGER.both("Arrêt du flux de diffusion vidéo H.264");
  });
 }
 
 function diffAudio() {
- LOGGER.log("Démarrage du flux de diffusion audio");
+ LOGGER.both("Démarrage du flux de diffusion audio");
  exec("DiffAudio", cmdDiffAudio, function(code) {
-  LOGGER.log("Arrêt du flux de diffusion audio");
+  LOGGER.both("Arrêt du flux de diffusion audio");
  });
 }
 
 CONF.SERVEURS.forEach(function(serveur, index) {
 
  sockets[serveur].on("connect", function() {
-  LOGGER.log("Connecté sur " + serveur + "/" + PORTROBOTS);
+  LOGGER.both("Connecté sur " + serveur + "/" + PORTROBOTS);
   EXEC("hostname -I").stdout.on("data", function(ipPriv) {
    EXEC("iwgetid -r || echo $?").stdout.on("data", function(ssid) {
     sockets[serveur].emit("serveurrobotlogin", {
@@ -357,7 +357,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
  if(index == 0) {
   sockets[serveur].on("clientsrobotconf", function(data) {
-   LOGGER.log("Réception des données de configuration du robot depuis le serveur " + serveur);
+   LOGGER.both("Réception des données de configuration du robot depuis le serveur " + serveur);
 
    conf = data.conf;
    hard = data.hard;
@@ -420,9 +420,9 @@ CONF.SERVEURS.forEach(function(serveur, index) {
      frequency: PCA9685FREQUENCY
     }, function(err) {
      if(err)
-      LOGGER.log("Error initializing PCA9685 at address " + hard.PCA9685ADDRESSES[i]);
+      LOGGER.both("Error initializing PCA9685 at address " + hard.PCA9685ADDRESSES[i]);
      else
-      LOGGER.log("PCA9685 initialized at address " + hard.PCA9685ADDRESSES[i]);
+      LOGGER.both("PCA9685 initialized at address " + hard.PCA9685ADDRESSES[i]);
     });
    }
 
@@ -465,7 +465,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     });
 
     serial.on("open", function() {
-     LOGGER.log("Connecté sur " + hard.DEVROBOT);
+     LOGGER.both("Connecté sur " + hard.DEVROBOT);
 
      serial.on("data", function(data) {
       if(hard.DEVTELEMETRIE) {
@@ -488,7 +488,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
  }
 
  sockets[serveur].on("disconnect", function() {
-  LOGGER.log("Déconnecté de " + serveur + "/" + PORTROBOTS);
+  LOGGER.both("Déconnecté de " + serveur + "/" + PORTROBOTS);
 
   if(serveur != serveurCourant)
    return;
@@ -497,24 +497,24 @@ CONF.SERVEURS.forEach(function(serveur, index) {
  });
 
  sockets[serveur].on("connect_error", function(err) {
-  //LOGGER.log("Erreur de connexion au serveur " + serveur + "/" + PORTROBOTS);
+  //LOGGER.both("Erreur de connexion au serveur " + serveur + "/" + PORTROBOTS);
  });
 
  sockets[serveur].on("clientsrobotdebout", function() {
   if(!init) {
-   LOGGER.log("Ce robot n'est pas initialisé");
+   LOGGER.both("Ce robot n'est pas initialisé");
    sockets[serveur].emit("serveurrobotdebout", false);
    return;
   }
 
   if(!initVideo) {
-   LOGGER.log("La vidéo n'est pas initialisée");
+   LOGGER.both("La vidéo n'est pas initialisée");
    sockets[serveur].emit("serveurrobotdebout", false);
    return;
   }
 
   if(serveurCourant) {
-   LOGGER.log("Ce robot est déjà utilisé depuis le serveur " + serveurCourant);
+   LOGGER.both("Ce robot est déjà utilisé depuis le serveur " + serveurCourant);
    sockets[serveur].emit("serveurrobotdebout", false);
    return;
   }
@@ -535,7 +535,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
  sockets[serveur].on("clientsrobottts", function(data) {
   FS.writeFile("/tmp/tts.txt", data, function(err) {
    if(err)
-    LOGGER.log(err);
+    LOGGER.both(err);
    exec("eSpeak", "/usr/bin/espeak -v fr -f /tmp/tts.txt --stdout > /tmp/tts.wav", function(code) {
     exec("Aplay", "/usr/bin/aplay -D plughw:" + hard.PLAYBACKDEVICE + " /tmp/tts.wav", function(code) {
     });
@@ -546,15 +546,15 @@ CONF.SERVEURS.forEach(function(serveur, index) {
  sockets[serveur].on("clientsrobotsys", function(data) {
   switch(data) {
    case "exit":
-    LOGGER.log("Fin du processus Node.js");
+    LOGGER.both("Fin du processus Node.js");
     process.exit();
     break;
    case "reboot":
-    LOGGER.log("Redémarrage du système");
+    LOGGER.both("Redémarrage du système");
     EXEC("reboot");
     break;
    case "poweroff":
-    LOGGER.log("Arrêt du système");
+    LOGGER.both("Arrêt du système");
     EXEC("poweroff");
     break;
   }
@@ -579,10 +579,10 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   if(data.data[0] != FRAME0 ||
      data.data[1] != FRAME1S) {
    if(data.data[1] == FRAME1T) {
-    LOGGER.log("Réception d'une trame texte");
+    LOGGER.both("Réception d'une trame texte");
     serial.write(data.data);
    } else
-    LOGGER.log("Réception d'une trame corrompue");
+    LOGGER.both("Réception d'une trame corrompue");
    return;
   }
 
@@ -595,7 +595,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    tx.bytes[i] = data.data[i];
 
   if(latence > LATENCEDEBUTALARME) {
-   //LOGGER.log("Réception d'une trame avec trop de latence");
+   //LOGGER.both("Réception d'une trame avec trop de latence");
    for(let i = 0; i < conf.TX.VITESSES.length; i++)
     tx.vitesses[i] = 0;
   } else
@@ -813,7 +813,7 @@ function pca9685MotorDrive(n, velocity) {
 }
 
 function failSafe() {
- LOGGER.log("Arrêt des moteurs");
+ LOGGER.both("Arrêt des moteurs");
 
  for(let i = 0; i < conf.TX.VITESSES.length; i++)
   tx.vitesses[i] = conf.TX.VITESSES[i];
@@ -830,13 +830,13 @@ setInterval(function() {
  let latencePredictive = Math.max(latence, Date.now() - lastTimestamp);
 
  if(latencePredictive < LATENCEFINALARME && alarmeLatence) {
-  LOGGER.log("Latence de " + latencePredictive + " ms, retour au débit vidéo configuré");
+  LOGGER.both("Latence de " + latencePredictive + " ms, retour au débit vidéo configuré");
   exec("v4l2-ctl", V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function(code) {
   });
   alarmeLatence = false;
  } else if(latencePredictive > LATENCEDEBUTALARME && !alarmeLatence) {
   failSafe();
-  LOGGER.log("Latence de " + latencePredictive + " ms, passage en débit vidéo réduit");
+  LOGGER.both("Latence de " + latencePredictive + " ms, passage en débit vidéo réduit");
   exec("v4l2-ctl", V4L2 + " -c video_bitrate=" + BITRATEVIDEOFAIBLE, function(code) {
   });
   alarmeLatence = true;
@@ -929,26 +929,26 @@ setInterval(function() {
  if(hard.CAPTURESHDR) {
   EXEC("raspistill -ev " + -hard.CAPTURESHDR + " " + options + " -o /tmp/1.jpg", function(err) {
    if(err) {
-    LOGGER.log("Erreur lors de la capture de la première photo");
+    LOGGER.both("Erreur lors de la capture de la première photo");
     return;
    }
    EXEC("raspistill " + options + " -o /tmp/2.jpg", function(err) {
     if(err) {
-     LOGGER.log("Erreur lors de la capture de la deuxième photo");
+     LOGGER.both("Erreur lors de la capture de la deuxième photo");
      return;
     }
     EXEC("raspistill -ev " + hard.CAPTURESHDR + " " + options + " -o /tmp/3.jpg", function(err) {
      if(err) {
-      LOGGER.log("Erreur lors de la capture de la troisième photo");
+      LOGGER.both("Erreur lors de la capture de la troisième photo");
       return;
      }
      EXEC("enfuse -o /tmp/out.jpg /tmp/1.jpg /tmp/2.jpg /tmp/3.jpg", function(err) {
       if(err)
-       LOGGER.log("Erreur lors de la fusion des photos");
+       LOGGER.both("Erreur lors de la fusion des photos");
       else {
        FS.readFile("/tmp/out.jpg", function(err, data) {
         CONF.SERVEURS.forEach(function(serveur) {
-         LOGGER.log("Envoi d'une photo sur le serveur " + serveur);
+         LOGGER.both("Envoi d'une photo sur le serveur " + serveur);
          sockets[serveur].emit("serveurrobotcapturesenveille", data);
         });
        });
@@ -960,11 +960,11 @@ setInterval(function() {
  } else {
   EXEC("raspistill -q 10 " + options + " -o /tmp/out.jpg", function(err) {
    if(err)
-    LOGGER.log("Erreur lors de la capture de la photo");
+    LOGGER.both("Erreur lors de la capture de la photo");
    else {
     FS.readFile("/tmp/out.jpg", function(err, data) {
      CONF.SERVEURS.forEach(function(serveur) {
-      LOGGER.log("Envoi d'une photo sur le serveur " + serveur);
+      LOGGER.both("Envoi d'une photo sur le serveur " + serveur);
       sockets[serveur].emit("serveurrobotcapturesenveille", data);
      });
     });
@@ -976,7 +976,7 @@ setInterval(function() {
 NET.createServer(function(socket) {
  const SPLITTER = new SPLIT(SEPARATEURNALU);
 
- LOGGER.log("Le processus de diffusion vidéo H.264 est connecté sur tcp://127.0.0.1:" + PORTTCPVIDEO);
+ LOGGER.both("Le processus de diffusion vidéo H.264 est connecté sur tcp://127.0.0.1:" + PORTTCPVIDEO);
 
  SPLITTER.on("data", function(data) {
 
@@ -988,20 +988,20 @@ NET.createServer(function(socket) {
   }
 
  }).on("error", function(err) {
-  LOGGER.log("Erreur lors du découpage du flux d'entrée en unités de couche d'abstraction réseau H.264");
+  LOGGER.both("Erreur lors du découpage du flux d'entrée en unités de couche d'abstraction réseau H.264");
  });
 
  socket.pipe(SPLITTER);
 
  socket.on("end", function() {
-  LOGGER.log("Le processus de diffusion vidéo H.264 est déconnecté de tcp://127.0.0.1:" + PORTTCPVIDEO);
+  LOGGER.both("Le processus de diffusion vidéo H.264 est déconnecté de tcp://127.0.0.1:" + PORTTCPVIDEO);
  });
 
 }).listen(PORTTCPVIDEO);
 
 NET.createServer(function(socket) {
 
- LOGGER.log("Le processus de diffusion audio est connecté sur tcp://127.0.0.1:" + PORTTCPAUDIO);
+ LOGGER.both("Le processus de diffusion audio est connecté sur tcp://127.0.0.1:" + PORTTCPAUDIO);
 
  let array = [];
  let i = 0;
@@ -1024,7 +1024,7 @@ NET.createServer(function(socket) {
  })
 
  socket.on("end", function() {
-  LOGGER.log("Le processus de diffusion audio est déconnecté de tcp://127.0.0.1:" + PORTTCPAUDIO);
+  LOGGER.both("Le processus de diffusion audio est déconnecté de tcp://127.0.0.1:" + PORTTCPAUDIO);
  });
 
 }).listen(PORTTCPAUDIO);
@@ -1034,12 +1034,12 @@ process.on("uncaughtException", function(err) {
  let erreur = err.stack.split("\n");
 
  while(i < erreur.length)
-  LOGGER.log(erreur[i++]);
+  LOGGER.both(erreur[i++]);
 
- LOGGER.log("Suite à cette exception non interceptée, le processus Node.js va être terminé automatiquement");
+ LOGGER.both("Suite à cette exception non interceptée, le processus Node.js va être terminé automatiquement");
  setTimeout(function() {
   process.exit(1);
  }, 1000);
 })
 
-LOGGER.log("Client prêt");
+LOGGER.both("Client prêt");

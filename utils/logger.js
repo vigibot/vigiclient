@@ -17,16 +17,19 @@ class Logger {
 		this.sockets.push(socket);
 	}
 
-	debug(message) {
+	local(message) {
 		FS.appendFile(this.filePath, getTimePrefix(new Date()) + ' | ' + message + '\n', function (err) {});
 	}
 
-	log(message) {
-		this.trace(message);
-
+	remote(message) {
 		this.sockets.forEach(function(socket) {
 			socket.emit('serveurrobottrace', message);
 		});
+	}
+
+	both(message) {
+		this.local(message);
+		this.remote(message);
 	}
 }
 
