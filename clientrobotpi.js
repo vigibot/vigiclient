@@ -703,14 +703,14 @@ function setGpio(n, etat) {
  }
 }
 
-function computePwm(n, velocity, min, max) {
+function computePwm(n, consigne, min, max) {
  let pwm;
  let pwmNeutre = (min + max) / 2 + hard.MOTEURS[n].OFFSET;
 
- if(velocity < 0)
-  pwm = map(velocity, -hard.MOTEURS[n].COURSE * 0x8000 / 360, 0, min, pwmNeutre + hard.MOTEURS[n].NEUTREAR);
- else if(velocity > 0)
-  pwm = map(velocity, 0, hard.MOTEURS[n].COURSE * 0x8000 / 360, pwmNeutre + hard.MOTEURS[n].NEUTREAV, max);
+ if(consigne < -1)
+  pwm = map(consigne, -hard.MOTEURS[n].COURSE * 0x8000 / 360, 0, min, pwmNeutre + hard.MOTEURS[n].NEUTREAR);
+ else if(consigne > 1)
+  pwm = map(consigne, 0, hard.MOTEURS[n].COURSE * 0x8000 / 360, pwmNeutre + hard.MOTEURS[n].NEUTREAV, max);
  else
   pwm = pwmNeutre;
 
@@ -750,43 +750,43 @@ function setConsigneMoteur(n, rattrape) {
 
   oldMoteurs[n] = moteur;
 
-  let consigne = constrain(moteur + rattrapage[n] + hard.MOTEURS[n].OFFSET * 0x10000 / 360, -hard.MOTEURS[n].COURSE * 0x8000 / 360,
-                                                                                             hard.MOTEURS[n].COURSE * 0x8000 / 360);
+  let consigne = Math.trunc(constrain(moteur + rattrapage[n] + hard.MOTEURS[n].OFFSET * 0x10000 / 360, -hard.MOTEURS[n].COURSE * 0x8000 / 360,
+                                                                                                        hard.MOTEURS[n].COURSE * 0x8000 / 360));
   setMoteur(n, consigne);
  }
 }
 
-function setMoteur(n, velocity) {
+function setMoteur(n, consigne) {
  switch(hard.MOTEURS[n].TYPE) {
   case PCASERVO:
-   pca9685Driver[hard.MOTEURS[n].PCA9685].setPulseLength(hard.MOTEURS[n].PIN, computePwm(n, velocity, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
+   pca9685Driver[hard.MOTEURS[n].PCA9685].setPulseLength(hard.MOTEURS[n].PIN, computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
    break;
   case SERVO:
-   gpiosMoteurs[n][0].servoWrite(computePwm(n, velocity, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
+   gpiosMoteurs[n][0].servoWrite(computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
    break;
   case L9110:
-   l9110MotorDrive(n, computePwm(n, velocity, -255, 255));
+   l9110MotorDrive(n, computePwm(n, consigne, -255, 255));
    break;
   case L298:
-   l298MotorDrive(n, computePwm(n, velocity, -255, 255));
+   l298MotorDrive(n, computePwm(n, consigne, -255, 255));
    break;
   case PCAL298:
-   pca9685MotorDrive(n, computePwm(n, velocity, -100, 100));
+   pca9685MotorDrive(n, computePwm(n, consigne, -100, 100));
    break;
  }
 }
 
-function l298MotorDrive(n, velocity) {
+function l298MotorDrive(n, consigne) {
  let pwm;
 
- if(velocity < 0) {
+ if(consigne < 0) {
   gpiosMoteurs[n][1].digitalWrite(false);
   gpiosMoteurs[n][2].digitalWrite(true);
-  pwm = -velocity;
- } else if(velocity > 0) {
+  pwm = -consigne;
+ } else if(consigne > 0) {
   gpiosMoteurs[n][1].digitalWrite(true);
   gpiosMoteurs[n][2].digitalWrite(false);
-  pwm = velocity;
+  pwm = consigne;
  } else {
   gpiosMoteurs[n][1].digitalWrite(false);
   gpiosMoteurs[n][2].digitalWrite(false);
@@ -796,12 +796,12 @@ function l298MotorDrive(n, velocity) {
  gpiosMoteurs[n][0].pwmWrite(pwm);
 }
 
-function l9110MotorDrive(n, velocity) {
- if(velocity < 0) {
+function l9110MotorDrive(n, consigne) {
+ if(consigne < 0) {
   gpiosMoteurs[n][0].digitalWrite(false);
-  gpiosMoteurs[n][1].pwmWrite(-velocity);
- } else if(velocity > 0) {
-  gpiosMoteurs[n][0].pwmWrite(velocity);
+  gpiosMoteurs[n][1].pwmWrite(-consigne);
+ } else if(consigne > 0) {
+  gpiosMoteurs[n][0].pwmWrite(consigne);
   gpiosMoteurs[n][1].digitalWrite(false);
  } else {
   gpiosMoteurs[n][0].digitalWrite(false);
@@ -809,20 +809,20 @@ function l9110MotorDrive(n, velocity) {
  }
 }
 
-function pca9685MotorDrive(n, velocity) {
+function pca9685MotorDrive(n, consigne) {
  let pcaId = hard.MOTEURS[n].PCA9685;
  let chIn1 = hard.MOTEURS[n].PINS[1];
  let chIn2 = hard.MOTEURS[n].PINS[2];
  let pwm;
 
- if(velocity < 0) {
+ if(consigne < 0) {
   pca9685Driver[pcaId].channelOff(chIn1);
   pca9685Driver[pcaId].channelOn(chIn2);
-  pwm = -velocity / 100;
- } else if(velocity > 0) {
+  pwm = -consigne / 100;
+ } else if(consigne > 0) {
   pca9685Driver[pcaId].channelOn(chIn1);
   pca9685Driver[pcaId].channelOff(chIn2);
-  pwm = velocity / 100;
+  pwm = consigne / 100;
  } else {
   pca9685Driver[pcaId].channelOff(chIn1);
   pca9685Driver[pcaId].channelOff(chIn2);
