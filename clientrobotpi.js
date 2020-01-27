@@ -421,7 +421,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
    gpiosMoteurs.forEach(function(gpios) {
     gpios.forEach(function(gpio) {
-     gpio.mode(GPIO.INPUT);
+     gpio.digitalWrite(true);
     });
    });
 
