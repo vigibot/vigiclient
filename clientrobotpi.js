@@ -472,10 +472,11 @@ CONF.SERVEURS.forEach(function(serveur, index) {
        });
       });
      });
-    } else
+    } else {
      configurationVideo(function(code) {
       initVideo = true;
      });
+    }
    }, 100);
 
    if(!init) {
@@ -624,17 +625,13 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   let camera = tx.choixCameras[0];
   if(camera != oldCamera) {
    confVideo = hard.CAMERAS[camera];
-   if(up) {
-    sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
-     sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
-      configurationVideo(function(code) {
-       diffusion();
-      });
+   sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
+    sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
+     configurationVideo(function(code) {
+      diffusion();
      });
     });
-   } else
-    configurationVideo(function(code) {
-    });
+   });
    oldCamera = camera;
   }
 
