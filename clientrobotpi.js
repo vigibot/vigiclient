@@ -59,6 +59,7 @@ const FRAME1S = "S".charCodeAt();
 const FRAME1T = "T".charCodeAt();
 const FRAME1R = "R".charCodeAt();
 
+const UPTIMEOUT = 5000;
 const V4L2 = "/usr/bin/v4l2-ctl";
 const LATENCEFINALARME = 250;
 const LATENCEDEBUTALARME = 500;
@@ -105,6 +106,7 @@ let sockets = {};
 let serveurCourant = "";
 
 let up = false;
+let upTimeout;
 let init = false;
 let initVideo = false;
 let conf;
@@ -255,7 +257,23 @@ function exec(nom, commande, callback) {
  });
 }
 
-function debout() {
+function debout(serveur) {
+ if(!init) {
+  trace("Ce robot n'est pas initialisé");
+  return;
+ }
+
+ if(!initVideo) {
+  trace("La vidéo n'est pas initialisée");
+  return;
+ }
+
+ if(serveurCourant) {
+  trace("Ce robot est déjà utilisé depuis le serveur " + serveurCourant);
+  return;
+ }
+ serveurCourant = serveur;
+
  for(let i = 0; i < hard.MOTEURS.length; i++)
   oldMoteurs[i]++;
 
@@ -521,38 +539,6 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   //trace("Erreur de connexion au serveur " + serveur + "/" + PORTROBOTS);
  });
 
- sockets[serveur].on("clientsrobotdebout", function() {
-  if(!init) {
-   trace("Ce robot n'est pas initialisé");
-   sockets[serveur].emit("serveurrobotdebout", false);
-   return;
-  }
-
-  if(!initVideo) {
-   trace("La vidéo n'est pas initialisée");
-   sockets[serveur].emit("serveurrobotdebout", false);
-   return;
-  }
-
-  if(serveurCourant) {
-   trace("Ce robot est déjà utilisé depuis le serveur " + serveurCourant);
-   sockets[serveur].emit("serveurrobotdebout", false);
-   return;
-  }
-  serveurCourant = serveur;
-
-  debout();
-
-  sockets[serveur].emit("serveurrobotdebout", true);
- });
-
- sockets[serveur].on("clientsrobotdodo", function() {
-  if(serveur != serveurCourant)
-   return;
-
-  dodo();
- });
-
  sockets[serveur].on("clientsrobottts", function(data) {
   FS.writeFile("/tmp/tts.txt", data, function(err) {
    if(err)
@@ -589,7 +575,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
  });
 
  sockets[serveur].on("clientsrobottx", function(data) {
-  if(serveur != serveurCourant)
+  if(serveurCourant && serveur != serveurCourant)
    return;
 
   let now = Date.now();
@@ -611,6 +597,14 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    return;
 
   lastTrame = now;
+
+  if(!up)
+   debout(serveur);
+
+  clearTimeout(upTimeout);
+  upTimeout = setTimeout(function() {
+   dodo();
+  }, UPTIMEOUT);
 
   for(let i = 0; i < tx.byteLength; i++)
    tx.bytes[i] = data.data[i];
