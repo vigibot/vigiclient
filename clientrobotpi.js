@@ -289,8 +289,6 @@ function debout(serveur) {
  diffAudio();
 
  up = true;
- lastTimestamp = Date.now();
- latence = 0;
 }
 
 function dodo() {
@@ -578,41 +576,41 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   if(serveurCourant && serveur != serveurCourant)
    return;
 
+  if(data.data[0] != FRAME0 ||
+     data.data[1] != FRAME1S &&
+     data.data[1] != FRAME1T) {
+   trace("Réception d'une trame corrompue");
+   return;
+  }
+
+  // Reject bursts
   let now = Date.now();
+  if(now - lastTrame < TXRATE / 2)
+   return;
+  lastTrame = now;
 
   lastTimestamp = data.boucleVideoCommande;
   latence = now - data.boucleVideoCommande;
 
-  if(data.data[0] != FRAME0 ||
-     data.data[1] != FRAME1S) {
-   if(data.data[1] == FRAME1T) {
-    trace("Réception d'une trame texte");
-    serial.write(data.data);
-   } else
-    trace("Réception d'une trame corrompue");
-   return;
-  }
-
-  if(now - lastTrame < TXRATE / 2)
-   return;
-
-  lastTrame = now;
-
   if(!up)
    debout(serveur);
-
   clearTimeout(upTimeout);
   upTimeout = setTimeout(function() {
    dodo();
   }, UPTIMEOUT);
+
+  if(data.data[1] == FRAME1T) {
+   trace("Réception d'une trame texte");
+   serial.write(data.data);
+   return;
+  }
 
   for(let i = 0; i < tx.byteLength; i++)
    tx.bytes[i] = data.data[i];
 
   if(latence > LATENCEDEBUTALARME) {
    //trace("Réception d'une trame avec trop de latence");
-   for(let i = 0; i < conf.TX.VITESSES.length; i++)
-    tx.vitesses[i] = 0;
+   failSafe();
   } else
    serial.write(data.data);
 
@@ -824,8 +822,6 @@ function pca9685MotorDrive(n, consigne) {
 }
 
 function failSafe() {
- trace("Arrêt des moteurs");
-
  for(let i = 0; i < conf.TX.VITESSES.length; i++)
   tx.vitesses[i] = conf.TX.VITESSES[i];
 
@@ -846,8 +842,8 @@ setInterval(function() {
   });
   alarmeLatence = false;
  } else if(latencePredictive > LATENCEDEBUTALARME && !alarmeLatence) {
+  trace("Latence de " + latencePredictive + " ms, arrêt des moteurs et passage en débit vidéo réduit");
   failSafe();
-  trace("Latence de " + latencePredictive + " ms, passage en débit vidéo réduit");
   exec("v4l2-ctl", V4L2 + " -c video_bitrate=" + BITRATEVIDEOFAIBLE, function(code) {
   });
   alarmeLatence = true;
