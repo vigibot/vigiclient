@@ -258,6 +258,9 @@ function exec(nom, commande, callback) {
 }
 
 function debout(serveur) {
+ if(up)
+  return;
+
  if(!init) {
   trace("Ce robot n'est pas initialisé");
   return;
@@ -272,7 +275,8 @@ function debout(serveur) {
   trace("Ce robot est déjà utilisé depuis le serveur " + serveurCourant);
   return;
  }
- serveurCourant = serveur;
+
+ trace("Sortie de veille du robot");
 
  for(let i = 0; i < hard.MOTEURS.length; i++)
   oldMoteurs[i]++;
@@ -288,11 +292,15 @@ function debout(serveur) {
   diffusion();
  diffAudio();
 
+ serveurCourant = serveur;
  up = true;
 }
 
 function dodo() {
- serveurCourant = "";
+ if(!up)
+  return;
+
+ trace("Mise en veille du robot");
 
  for(let i = 0; i < conf.TX.POSITIONS.length; i++)
   tx.positions[i] = (conf.TX.POSITIONS[i] + 180) * 0x10000 / 360;
@@ -321,6 +329,7 @@ function dodo() {
  sigterm("DiffAudio", PROCESSDIFFAUDIO, function(code) {
  });
 
+ serveurCourant = "";
  up = false;
 }
 
@@ -592,8 +601,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   lastTimestamp = data.boucleVideoCommande;
   latence = now - data.boucleVideoCommande;
 
-  if(!up)
-   debout(serveur);
+  debout(serveur);
   clearTimeout(upTimeout);
   upTimeout = setTimeout(function() {
    dodo();
