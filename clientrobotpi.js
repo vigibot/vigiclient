@@ -59,6 +59,7 @@ const FRAME1S = "S".charCodeAt();
 const FRAME1T = "T".charCodeAt();
 const FRAME1R = "R".charCodeAt();
 
+const UPTIMEOUT = 5000;
 const V4L2 = "/usr/bin/v4l2-ctl";
 const LATENCEFINALARME = 250;
 const LATENCEDEBUTALARME = 500;
@@ -105,6 +106,7 @@ let sockets = {};
 let serveurCourant = "";
 
 let up = false;
+let upTimeout;
 let init = false;
 let initVideo = false;
 let conf;
@@ -255,7 +257,23 @@ function exec(nom, commande, callback) {
  });
 }
 
-function debout() {
+function debout(serveur) {
+ if(!init) {
+  trace("Ce robot n'est pas initialisé");
+  return;
+ }
+
+ if(!initVideo) {
+  trace("La vidéo n'est pas initialisée");
+  return;
+ }
+
+ if(serveurCourant) {
+  trace("Ce robot est déjà utilisé depuis le serveur " + serveurCourant);
+  return;
+ }
+ serveurCourant = serveur;
+
  for(let i = 0; i < hard.MOTEURS.length; i++)
   oldMoteurs[i]++;
 
@@ -271,8 +289,6 @@ function debout() {
  diffAudio();
 
  up = true;
- lastTimestamp = Date.now();
- latence = 0;
 }
 
 function dodo() {
@@ -472,10 +488,11 @@ CONF.SERVEURS.forEach(function(serveur, index) {
        });
       });
      });
-    } else
+    } else {
      configurationVideo(function(code) {
       initVideo = true;
      });
+    }
    }, 100);
 
    if(!init) {
@@ -520,38 +537,6 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   //trace("Erreur de connexion au serveur " + serveur + "/" + PORTROBOTS);
  });
 
- sockets[serveur].on("clientsrobotdebout", function() {
-  if(!init) {
-   trace("Ce robot n'est pas initialisé");
-   sockets[serveur].emit("serveurrobotdebout", false);
-   return;
-  }
-
-  if(!initVideo) {
-   trace("La vidéo n'est pas initialisée");
-   sockets[serveur].emit("serveurrobotdebout", false);
-   return;
-  }
-
-  if(serveurCourant) {
-   trace("Ce robot est déjà utilisé depuis le serveur " + serveurCourant);
-   sockets[serveur].emit("serveurrobotdebout", false);
-   return;
-  }
-  serveurCourant = serveur;
-
-  debout();
-
-  sockets[serveur].emit("serveurrobotdebout", true);
- });
-
- sockets[serveur].on("clientsrobotdodo", function() {
-  if(serveur != serveurCourant)
-   return;
-
-  dodo();
- });
-
  sockets[serveur].on("clientsrobottts", function(data) {
   FS.writeFile("/tmp/tts.txt", data, function(err) {
    if(err)
@@ -588,53 +573,57 @@ CONF.SERVEURS.forEach(function(serveur, index) {
  });
 
  sockets[serveur].on("clientsrobottx", function(data) {
-  if(serveur != serveurCourant)
+  if(serveurCourant && serveur != serveurCourant)
    return;
 
+  if(data.data[0] != FRAME0 ||
+     data.data[1] != FRAME1S &&
+     data.data[1] != FRAME1T) {
+   trace("Réception d'une trame corrompue");
+   return;
+  }
+
+  // Reject bursts
   let now = Date.now();
+  if(now - lastTrame < TXRATE / 2)
+   return;
+  lastTrame = now;
 
   lastTimestamp = data.boucleVideoCommande;
   latence = now - data.boucleVideoCommande;
 
-  if(data.data[0] != FRAME0 ||
-     data.data[1] != FRAME1S) {
-   if(data.data[1] == FRAME1T) {
-    trace("Réception d'une trame texte");
-    serial.write(data.data);
-   } else
-    trace("Réception d'une trame corrompue");
+  if(!up)
+   debout(serveur);
+  clearTimeout(upTimeout);
+  upTimeout = setTimeout(function() {
+   dodo();
+  }, UPTIMEOUT);
+
+  if(data.data[1] == FRAME1T) {
+   trace("Réception d'une trame texte");
+   serial.write(data.data);
    return;
   }
-
-  if(now - lastTrame < TXRATE / 2)
-   return;
-
-  lastTrame = now;
 
   for(let i = 0; i < tx.byteLength; i++)
    tx.bytes[i] = data.data[i];
 
   if(latence > LATENCEDEBUTALARME) {
    //trace("Réception d'une trame avec trop de latence");
-   for(let i = 0; i < conf.TX.VITESSES.length; i++)
-    tx.vitesses[i] = 0;
+   failSafe();
   } else
    serial.write(data.data);
 
   let camera = tx.choixCameras[0];
   if(camera != oldCamera) {
    confVideo = hard.CAMERAS[camera];
-   if(up) {
-    sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
-     sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
-      configurationVideo(function(code) {
-       diffusion();
-      });
+   sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
+    sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
+     configurationVideo(function(code) {
+      diffusion();
      });
     });
-   } else
-    configurationVideo(function(code) {
-    });
+   });
    oldCamera = camera;
   }
 
@@ -703,14 +692,14 @@ function setGpio(n, etat) {
  }
 }
 
-function computePwm(n, velocity, min, max) {
+function computePwm(n, consigne, min, max) {
  let pwm;
  let pwmNeutre = (min + max) / 2 + hard.MOTEURS[n].OFFSET;
 
- if(velocity < 0)
-  pwm = map(velocity, -hard.MOTEURS[n].COURSE * 0x8000 / 360, 0, min, pwmNeutre + hard.MOTEURS[n].NEUTREAR);
- else if(velocity > 0)
-  pwm = map(velocity, 0, hard.MOTEURS[n].COURSE * 0x8000 / 360, pwmNeutre + hard.MOTEURS[n].NEUTREAV, max);
+ if(consigne < -1)
+  pwm = map(consigne, -hard.MOTEURS[n].COURSE * 0x8000 / 360, 0, min, pwmNeutre + hard.MOTEURS[n].NEUTREAR);
+ else if(consigne > 1)
+  pwm = map(consigne, 0, hard.MOTEURS[n].COURSE * 0x8000 / 360, pwmNeutre + hard.MOTEURS[n].NEUTREAV, max);
  else
   pwm = pwmNeutre;
 
@@ -750,43 +739,43 @@ function setConsigneMoteur(n, rattrape) {
 
   oldMoteurs[n] = moteur;
 
-  let consigne = constrain(moteur + rattrapage[n] + hard.MOTEURS[n].OFFSET * 0x10000 / 360, -hard.MOTEURS[n].COURSE * 0x8000 / 360,
-                                                                                             hard.MOTEURS[n].COURSE * 0x8000 / 360);
+  let consigne = Math.trunc(constrain(moteur + rattrapage[n] + hard.MOTEURS[n].OFFSET * 0x10000 / 360, -hard.MOTEURS[n].COURSE * 0x8000 / 360,
+                                                                                                        hard.MOTEURS[n].COURSE * 0x8000 / 360));
   setMoteur(n, consigne);
  }
 }
 
-function setMoteur(n, velocity) {
+function setMoteur(n, consigne) {
  switch(hard.MOTEURS[n].TYPE) {
   case PCASERVO:
-   pca9685Driver[hard.MOTEURS[n].PCA9685].setPulseLength(hard.MOTEURS[n].PIN, computePwm(n, velocity, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
+   pca9685Driver[hard.MOTEURS[n].PCA9685].setPulseLength(hard.MOTEURS[n].PIN, computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
    break;
   case SERVO:
-   gpiosMoteurs[n][0].servoWrite(computePwm(n, velocity, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
+   gpiosMoteurs[n][0].servoWrite(computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
    break;
   case L9110:
-   l9110MotorDrive(n, computePwm(n, velocity, -255, 255));
+   l9110MotorDrive(n, computePwm(n, consigne, -255, 255));
    break;
   case L298:
-   l298MotorDrive(n, computePwm(n, velocity, -255, 255));
+   l298MotorDrive(n, computePwm(n, consigne, -255, 255));
    break;
   case PCAL298:
-   pca9685MotorDrive(n, computePwm(n, velocity, -100, 100));
+   pca9685MotorDrive(n, computePwm(n, consigne, -100, 100));
    break;
  }
 }
 
-function l298MotorDrive(n, velocity) {
+function l298MotorDrive(n, consigne) {
  let pwm;
 
- if(velocity < 0) {
+ if(consigne < 0) {
   gpiosMoteurs[n][1].digitalWrite(false);
   gpiosMoteurs[n][2].digitalWrite(true);
-  pwm = -velocity;
- } else if(velocity > 0) {
+  pwm = -consigne;
+ } else if(consigne > 0) {
   gpiosMoteurs[n][1].digitalWrite(true);
   gpiosMoteurs[n][2].digitalWrite(false);
-  pwm = velocity;
+  pwm = consigne;
  } else {
   gpiosMoteurs[n][1].digitalWrite(false);
   gpiosMoteurs[n][2].digitalWrite(false);
@@ -796,12 +785,12 @@ function l298MotorDrive(n, velocity) {
  gpiosMoteurs[n][0].pwmWrite(pwm);
 }
 
-function l9110MotorDrive(n, velocity) {
- if(velocity < 0) {
+function l9110MotorDrive(n, consigne) {
+ if(consigne < 0) {
   gpiosMoteurs[n][0].digitalWrite(false);
-  gpiosMoteurs[n][1].pwmWrite(-velocity);
- } else if(velocity > 0) {
-  gpiosMoteurs[n][0].pwmWrite(velocity);
+  gpiosMoteurs[n][1].pwmWrite(-consigne);
+ } else if(consigne > 0) {
+  gpiosMoteurs[n][0].pwmWrite(consigne);
   gpiosMoteurs[n][1].digitalWrite(false);
  } else {
   gpiosMoteurs[n][0].digitalWrite(false);
@@ -809,20 +798,20 @@ function l9110MotorDrive(n, velocity) {
  }
 }
 
-function pca9685MotorDrive(n, velocity) {
+function pca9685MotorDrive(n, consigne) {
  let pcaId = hard.MOTEURS[n].PCA9685;
  let chIn1 = hard.MOTEURS[n].PINS[1];
  let chIn2 = hard.MOTEURS[n].PINS[2];
  let pwm;
 
- if(velocity < 0) {
+ if(consigne < 0) {
   pca9685Driver[pcaId].channelOff(chIn1);
   pca9685Driver[pcaId].channelOn(chIn2);
-  pwm = -velocity / 100;
- } else if(velocity > 0) {
+  pwm = -consigne / 100;
+ } else if(consigne > 0) {
   pca9685Driver[pcaId].channelOn(chIn1);
   pca9685Driver[pcaId].channelOff(chIn2);
-  pwm = velocity / 100;
+  pwm = consigne / 100;
  } else {
   pca9685Driver[pcaId].channelOff(chIn1);
   pca9685Driver[pcaId].channelOff(chIn2);
@@ -833,8 +822,6 @@ function pca9685MotorDrive(n, velocity) {
 }
 
 function failSafe() {
- trace("Arrêt des moteurs");
-
  for(let i = 0; i < conf.TX.VITESSES.length; i++)
   tx.vitesses[i] = conf.TX.VITESSES[i];
 
@@ -855,8 +842,8 @@ setInterval(function() {
   });
   alarmeLatence = false;
  } else if(latencePredictive > LATENCEDEBUTALARME && !alarmeLatence) {
+  trace("Latence de " + latencePredictive + " ms, arrêt des moteurs et passage en débit vidéo réduit");
   failSafe();
-  trace("Latence de " + latencePredictive + " ms, passage en débit vidéo réduit");
   exec("v4l2-ctl", V4L2 + " -c video_bitrate=" + BITRATEVIDEOFAIBLE, function(code) {
   });
   alarmeLatence = true;
