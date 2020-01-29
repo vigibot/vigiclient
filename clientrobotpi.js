@@ -329,6 +329,9 @@ function dodo() {
  sigterm("DiffAudio", PROCESSDIFFAUDIO, function(code) {
  });
 
+ exec("v4l2-ctl", V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function(code) {
+ });
+
  serveurCourant = "";
  up = false;
 }
