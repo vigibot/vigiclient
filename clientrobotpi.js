@@ -466,7 +466,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     if(hard.MOTEURS[i].ADRESSE < 0) {
      gpiosMoteurs[i] = [];
      for(let j = 0; j < hard.MOTEURS[i].PINS.length; j++)
-      gpiosMoteurs[i][j] =  new GPIO(hard.MOTEURS[i].PINS[j], {mode: GPIO.OUTPUT});
+      gpiosMoteurs[i][j] = new GPIO(hard.MOTEURS[i].PINS[j], {mode: GPIO.OUTPUT});
      setMotorFrequency(i);
     }
    }
