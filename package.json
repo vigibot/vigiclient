@@ -1,19 +1,20 @@
 {
   "name": "vigiclient",
-  "version": "1.0.0",
+  "version": "0.9.0",
   "description": "Raspberry PI robot client for Vigibot.com",
   "main": "clientrobotpi.js",
   "dependencies": {
-    "i2c-bus": "^4.0.10",
+    "i2c-bus": "^4.0.11",
     "pca9685": "^4.0.3",
     "pigpio": "^1.2.3",
-    "serialport": "^8.0.5",
+    "serialport": "^8.0.7",
     "socket.io-client": "^2.2.0",
-    "stream-split": "^1.1.0"
+    "stream-split": "^1.1.0",
+    "unzipper": "^0.10.7"
   },
   "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "update-release": "node vigiupdate.js"
   },
   "repository": {
     "type": "git",
