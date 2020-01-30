@@ -113,8 +113,8 @@ let conf;
 let hard;
 let tx;
 let rx;
-let oldCamera;
 let confVideo;
+let oldConfVideo;
 let cmdDiffusion;
 let cmdDiffAudio;
 
@@ -442,8 +442,8 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
    oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
 
-   oldCamera = conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA;
-   confVideo = hard.CAMERAS[oldCamera];
+   confVideo = hard.CAMERAS[conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA];
+   oldConfVideo = confVideo;
    boostVideo = false;
    oldBoostVideo = false;
 
@@ -625,9 +625,8 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   } else
    serial.write(data.data);
 
-  let camera = tx.choixCameras[0];
-  if(camera != oldCamera) {
-   confVideo = hard.CAMERAS[camera];
+  confVideo = hard.CAMERAS[tx.choixCameras[0]];
+  if(JSON.stringify(confVideo) != JSON.stringify(oldConfVideo)) {
    sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
     sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
      configurationVideo(function(code) {
@@ -635,7 +634,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
      });
     });
    });
-   oldCamera = camera;
+   oldConfVideo = confVideo;
   }
 
   for(let i = 0; i < hard.MOTEURS.length; i++)
