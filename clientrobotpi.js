@@ -519,19 +519,53 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     serial.on("open", function() {
      trace("Connecté sur " + hard.DEVROBOT);
 
-     serial.on("data", function(data) {
-      if(hard.DEVTELEMETRIE) {
-       CONF.SERVEURS.forEach(function(serveur) {
-        if(serveurCourant && serveur != serveurCourant)
-         return;
+     if(hard.DEVTELEMETRIE) {
+      let rxPos = 0;
+      serial.on("data", function(data) {
 
-        sockets[serveur].emit("serveurrobotrx", {
-         timestamp: Date.now(),
-         data: data
-        });
-       });
-      }
-     });
+       let i = 0;
+       while(i < data.length) {
+
+        switch(rxPos) {
+         case 0:
+          if(data[i] == FRAME0)
+           rxPos++;
+          else
+           trace("Premier octet de la trame télémétrique invalide");
+          break;
+
+         case 1:
+          if(data[i] == FRAME1R)
+           rxPos++;
+          else {
+           rxPos = 0;
+           trace("Second octet de la trame télémétrique invalide");
+          }
+          break;
+
+         default:
+          rx.bytes[rxPos++] = data[i];
+          if(rxPos == rx.byteLength) {
+
+           CONF.SERVEURS.forEach(function(serveur) {
+            if(serveurCourant && serveur != serveurCourant)
+             return;
+
+            sockets[serveur].emit("serveurrobotrx", {
+             timestamp: Date.now(),
+             data: rx.arrayBuffer
+            });
+           });
+
+           rxPos = 0;
+          }
+          break;
+        }
+
+        i++;
+       }
+      });
+     }
 
      init = true;
     });
@@ -541,10 +575,6 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
  sockets[serveur].on("disconnect", function() {
   trace("Déconnecté de " + serveur + "/" + PORTROBOTS);
-
-  if(serveur != serveurCourant)
-   return;
-
   dodo();
  });
 
