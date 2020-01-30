@@ -321,6 +321,8 @@ function dodo() {
  for(let i = 0; i < 8; i++)
   setGpio(i, 0);
 
+ rx.interrupteurs[0] = 0;
+
  sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
   sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
   });
@@ -428,6 +430,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
    tx = new TRAME.Tx(conf.TX);
    rx = new TRAME.Rx(conf.TX, conf.RX);
+   rx.sync[1] = FRAME1R;
 
    for(let i = 0; i < conf.TX.POSITIONS.length; i++)
     oldPositions[i] = tx.positions[i] + 1;
@@ -664,7 +667,6 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   }
 
   if(!hard.DEVTELEMETRIE) {
-   rx.sync[1] = FRAME1R;
    for(let i = 0; i < conf.TX.POSITIONS.length; i++)
     rx.positions[i] = tx.positions[i];
    rx.choixCameras[0] = tx.choixCameras[0];
