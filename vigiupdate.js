@@ -3,22 +3,48 @@ const path = require('path');
 const url = require('url');
 const unzipper = require('unzipper');
 
-function deleteFileOrFolder(path) {
-	let stats = fs.lstatSync(path);
+function deleteFileOrFolder(originPath) {
+	let stats = fs.lstatSync(originPath);
 	if (stats.isDirectory()) {
-		fs.readdirSync(path).forEach(function (file, index) {
-			let curPath = path + "/" + file;
+		fs.readdirSync(originPath).forEach(function (file, index) {
+			let curPath = originPath + path.sep + file;
 			if (fs.lstatSync(curPath).isDirectory()) { // recurse
 				deleteFileOrFolder(curPath);
 			} else { // delete file
 				fs.unlinkSync(curPath);
 			}
 		});
-		fs.rmdirSync(path);
+		fs.rmdirSync(originPath);
 	}
 	else if (stats.isFile()) {
-		fs.unlinkSync(path);
+		fs.unlinkSync(originPath);
 	}
+};
+
+function copyFolder(originPath, destinationPath, exceptionList) {
+	if (!fs.existsSync(originPath)) {
+		throw new Error('Folder ' + originPath + ' do not exists !');
+	}
+
+	if (!fs.existsSync(destinationPath)) {
+		fs.mkdirSync(destinationPath);
+	}
+
+	fs.readdirSync(originPath).forEach(function (file, index) {
+		let curPath = originPath + path.sep + file;
+		let desPath = destinationPath + path.sep + file;
+		
+		var rootPathSeparator = curPath.indexOf(path.sep);
+		if (rootPathSeparator >= 0 && exceptionList.includes(curPath.substring(rootPathSeparator + 1))) {
+			return;
+		}
+		
+		if (fs.lstatSync(curPath).isDirectory()) { // Handle folder
+			copyFolder(curPath, desPath, exceptionList);
+		} else { // Handle file
+			fs.copyFileSync(curPath, desPath);
+		}
+	});
 };
 
 function downloadAndFollowRedirect(uri) {
@@ -117,9 +143,25 @@ function replaceCurrentProject(originPath, currentProjetPath) {
 
 // Work !
 
-const repoOwner = 'waveform80';
-const repoId = 'picamera';
+const repoOwner = 'pirquessa';
+const repoId = 'vigiclient';
 const tempFolderPath = 'tmp';
+const backupFolderPath = 'update.backup';
+const projectFolderPath = '';
+
+// Create a backup
+try {
+	if (fs.existsSync(backupFolderPath)) {
+		console.log('Delete old backup: ' + backupFolderPath);
+		deleteFileOrFolder(backupFolderPath);
+	}
+
+	console.log('Backup current project');
+	copyFolder(projectFolderPath, backupFolderPath, ['docs', 'node_modules', tempFolderPath, backupFolderPath]);
+}
+catch(e) {
+	console.error('Fail to backup current project: ' + e);
+}
 
 getLatestTagInfos(repoOwner, repoId).then(function (latestTag) {
 	console.log('Distant version: ' + latestTag.name);
@@ -136,14 +178,17 @@ getLatestTagInfos(repoOwner, repoId).then(function (latestTag) {
 	return Promise.resolve(false);
 }).then(function (hasUpdated) {
 	if (hasUpdated) {
-		return replaceCurrentProject(tempFolderPath, 'wow');
+		return replaceCurrentProject(tempFolderPath, projectFolderPath);
 	}
 	
 	return Promise.reject('No need to update !');
 }).then(function () {
 	console.log('Update done');
+	return;
 }).catch(function (e) {
-	console.log('Fail: ' + e);
+	console.error('Fail: ' + e);
+	console.log('Restore backuped project');
+	copyFolder(backupFolderPath, projectFolderPath, []);
 }).finally(function() {
 	if (fs.existsSync(tempFolderPath)) {
 		deleteFileOrFolder(tempFolderPath);
