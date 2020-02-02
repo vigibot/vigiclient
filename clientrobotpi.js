@@ -113,8 +113,8 @@ let conf;
 let hard;
 let tx;
 let rx;
-let oldCamera;
 let confVideo;
+let oldConfVideo;
 let cmdDiffusion;
 let cmdDiffAudio;
 
@@ -258,6 +258,9 @@ function exec(nom, commande, callback) {
 }
 
 function debout(serveur) {
+ if(up)
+  return;
+
  if(!init) {
   trace("Ce robot n'est pas initialisé");
   return;
@@ -272,7 +275,8 @@ function debout(serveur) {
   trace("Ce robot est déjà utilisé depuis le serveur " + serveurCourant);
   return;
  }
- serveurCourant = serveur;
+
+ trace("Sortie de veille du robot");
 
  for(let i = 0; i < hard.MOTEURS.length; i++)
   oldMoteurs[i]++;
@@ -288,11 +292,15 @@ function debout(serveur) {
   diffusion();
  diffAudio();
 
+ serveurCourant = serveur;
  up = true;
 }
 
 function dodo() {
- serveurCourant = "";
+ if(!up)
+  return;
+
+ trace("Mise en veille du robot");
 
  for(let i = 0; i < conf.TX.POSITIONS.length; i++)
   tx.positions[i] = (conf.TX.POSITIONS[i] + 180) * 0x10000 / 360;
@@ -313,6 +321,8 @@ function dodo() {
  for(let i = 0; i < 8; i++)
   setGpio(i, 0);
 
+ rx.interrupteurs[0] = 0;
+
  sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
   sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
   });
@@ -321,6 +331,10 @@ function dodo() {
  sigterm("DiffAudio", PROCESSDIFFAUDIO, function(code) {
  });
 
+ exec("v4l2-ctl", V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function(code) {
+ });
+
+ serveurCourant = "";
  up = false;
 }
 
@@ -416,6 +430,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
    tx = new TRAME.Tx(conf.TX);
    rx = new TRAME.Rx(conf.TX, conf.RX);
+   rx.sync[1] = FRAME1R;
 
    for(let i = 0; i < conf.TX.POSITIONS.length; i++)
     oldPositions[i] = tx.positions[i] + 1;
@@ -430,8 +445,8 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
    oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
 
-   oldCamera = conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA;
-   confVideo = hard.CAMERAS[oldCamera];
+   confVideo = hard.CAMERAS[conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA];
+   oldConfVideo = confVideo;
    boostVideo = false;
    oldBoostVideo = false;
 
@@ -466,7 +481,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     if(hard.MOTEURS[i].ADRESSE < 0) {
      gpiosMoteurs[i] = [];
      for(let j = 0; j < hard.MOTEURS[i].PINS.length; j++)
-      gpiosMoteurs[i][j] =  new GPIO(hard.MOTEURS[i].PINS[j], {mode: GPIO.OUTPUT});
+      gpiosMoteurs[i][j] = new GPIO(hard.MOTEURS[i].PINS[j], {mode: GPIO.OUTPUT});
      setMotorFrequency(i);
     }
    }
@@ -504,19 +519,53 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     serial.on("open", function() {
      trace("Connecté sur " + hard.DEVROBOT);
 
-     serial.on("data", function(data) {
-      if(hard.DEVTELEMETRIE) {
-       CONF.SERVEURS.forEach(function(serveur) {
-        if(serveurCourant && serveur != serveurCourant)
-         return;
+     if(hard.DEVTELEMETRIE) {
+      let rxPos = 0;
+      serial.on("data", function(data) {
 
-        sockets[serveur].emit("serveurrobotrx", {
-         timestamp: Date.now(),
-         data: data
-        });
-       });
-      }
-     });
+       let i = 0;
+       while(i < data.length) {
+
+        switch(rxPos) {
+         case 0:
+          if(data[i] == FRAME0)
+           rxPos++;
+          else
+           trace("Premier octet de la trame télémétrique invalide");
+          break;
+
+         case 1:
+          if(data[i] == FRAME1R)
+           rxPos++;
+          else {
+           rxPos = 0;
+           trace("Second octet de la trame télémétrique invalide");
+          }
+          break;
+
+         default:
+          rx.bytes[rxPos++] = data[i];
+          if(rxPos == rx.byteLength) {
+
+           CONF.SERVEURS.forEach(function(serveur) {
+            if(serveurCourant && serveur != serveurCourant)
+             return;
+
+            sockets[serveur].emit("serveurrobotrx", {
+             timestamp: Date.now(),
+             data: rx.arrayBuffer
+            });
+           });
+
+           rxPos = 0;
+          }
+          break;
+        }
+
+        i++;
+       }
+      });
+     }
 
      init = true;
     });
@@ -526,10 +575,6 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
  sockets[serveur].on("disconnect", function() {
   trace("Déconnecté de " + serveur + "/" + PORTROBOTS);
-
-  if(serveur != serveurCourant)
-   return;
-
   dodo();
  });
 
@@ -592,8 +637,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   lastTimestamp = data.boucleVideoCommande;
   latence = now - data.boucleVideoCommande;
 
-  if(!up)
-   debout(serveur);
+  debout(serveur);
   clearTimeout(upTimeout);
   upTimeout = setTimeout(function() {
    dodo();
@@ -614,9 +658,8 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   } else
    serial.write(data.data);
 
-  let camera = tx.choixCameras[0];
-  if(camera != oldCamera) {
-   confVideo = hard.CAMERAS[camera];
+  confVideo = hard.CAMERAS[tx.choixCameras[0]];
+  if(JSON.stringify(confVideo) != JSON.stringify(oldConfVideo)) {
    sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
     sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
      configurationVideo(function(code) {
@@ -624,7 +667,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
      });
     });
    });
-   oldCamera = camera;
+   oldConfVideo = confVideo;
   }
 
   for(let i = 0; i < hard.MOTEURS.length; i++)
@@ -654,7 +697,6 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   }
 
   if(!hard.DEVTELEMETRIE) {
-   rx.sync[1] = FRAME1R;
    for(let i = 0; i < conf.TX.POSITIONS.length; i++)
     rx.positions[i] = tx.positions[i];
    rx.choixCameras[0] = tx.choixCameras[0];
