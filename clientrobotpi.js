@@ -893,51 +893,6 @@ setInterval(function() {
  }
 }, TXRATE);
 
-function swapWord(word) {
- return (word & 0xff) << 8 | word >> 8;
-}
-
-switch(gaugeType) {
- case "CW2015":
-  setInterval(function() {
-   if(!init)
-    return;
-   i2c.readWord(CW2015ADDRESS, 0x02, function(err, microVolts305) {
-    rx.setValeur16(0, swapWord(microVolts305) * 305 / 1000000);
-    i2c.readWord(CW2015ADDRESS, 0x04, function(err, pour25600) {
-     rx.setValeur16(1, swapWord(pour25600) / 256);
-    });
-   });
-  }, GAUGERATE);
-  break;
-
- case "MAX17043":
-  setInterval(function() {
-   if(!init)
-    return;
-   i2c.readWord(MAX17043ADDRESS, 0x02, function(err, volts12800) {
-    rx.setValeur16(0, swapWord(volts12800) / 12800);
-    i2c.readWord(MAX17043ADDRESS, 0x04, function(err, pour25600) {
-     rx.setValeur16(1, swapWord(pour25600) / 256);
-    });
-   });
-  }, GAUGERATE);
-  break;
-
- case "BQ27441":
-  setInterval(function() {
-   if(!init)
-    return;
-   i2c.readWord(BQ27441ADDRESS, 0x04, function(err, milliVolts) {
-    rx.setValeur16(0, milliVolts / 1000);
-    i2c.readByte(BQ27441ADDRESS, 0x1c, function(err, pourcents) {
-     rx.setValeur16(1, pourcents);
-    });
-   });
-  }, GAUGERATE);
-  break;
-}
-
 setInterval(function() {
  if(!init)
   return;
@@ -954,9 +909,54 @@ setInterval(function() {
  });
 
  FS.readFile(FICHIERTEMPERATURE, function(err, data) {
-  rx.setValeur16(2, data / 1000);
+  rx.setValeur16(0, data / 1000);
  });
 }, STATSRATE);
+
+function swapWord(word) {
+ return (word & 0xff) << 8 | word >> 8;
+}
+
+switch(gaugeType) {
+ case "CW2015":
+  setInterval(function() {
+   if(!init)
+    return;
+   i2c.readWord(CW2015ADDRESS, 0x02, function(err, microVolts305) {
+    rx.setValeur16(1, swapWord(microVolts305) * 305 / 1000000);
+    i2c.readWord(CW2015ADDRESS, 0x04, function(err, pour25600) {
+     rx.setValeur16(2, swapWord(pour25600) / 256);
+    });
+   });
+  }, GAUGERATE);
+  break;
+
+ case "MAX17043":
+  setInterval(function() {
+   if(!init)
+    return;
+   i2c.readWord(MAX17043ADDRESS, 0x02, function(err, volts12800) {
+    rx.setValeur16(1, swapWord(volts12800) / 12800);
+    i2c.readWord(MAX17043ADDRESS, 0x04, function(err, pour25600) {
+     rx.setValeur16(2, swapWord(pour25600) / 256);
+    });
+   });
+  }, GAUGERATE);
+  break;
+
+ case "BQ27441":
+  setInterval(function() {
+   if(!init)
+    return;
+   i2c.readWord(BQ27441ADDRESS, 0x04, function(err, milliVolts) {
+    rx.setValeur16(1, milliVolts / 1000);
+    i2c.readByte(BQ27441ADDRESS, 0x1c, function(err, pourcents) {
+     rx.setValeur16(2, pourcents);
+    });
+   });
+  }, GAUGERATE);
+  break;
+}
 
 setInterval(function() {
  if(up || !init || hard.DEVTELEMETRIE)
