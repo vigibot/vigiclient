@@ -12,6 +12,7 @@ const FICHIERLOG = "/var/log/vigiclient.log";
 
 const INTERFACEWIFI = "wlan0";
 const FICHIERSTATS = "/proc/net/wireless";
+const FICHIERTEMPERATURE = "/sys/class/thermal/thermal_zone0/temp";
 const STATSRATE = 250;
 
 const PROCESSDIFFUSION = "/usr/local/vigiclient/processdiffusion";
@@ -950,6 +951,10 @@ setInterval(function() {
    rx.setValeur8(0, ligne[3]);
    rx.setValeur8(1, ligne[4]);
   }
+ });
+
+ FS.readFile(FICHIERTEMPERATURE, function(err, data) {
+  rx.setValeur16(2, data / 1000);
  });
 }, STATSRATE);
 
