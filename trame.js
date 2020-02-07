@@ -1,3 +1,16 @@
+function constrain(n, nMin, nMax) {
+ if(n > nMax)
+  n = nMax;
+ else if(n < nMin)
+  n = nMin;
+
+ return n;
+}
+
+function map(n, inMin, inMax, outMin, outMax) {
+ return (n - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
+}
+
 class Tx {
  constructor(conftx) {
   let p = 0;
@@ -75,20 +88,7 @@ class Tx {
   this.bytes = new Uint8Array(this.arrayBuffer);
  }
 
- constrain(n, nMin, nMax) {
-  if(n > nMax)
-   n = nMax;
-  else if(n < nMin)
-   n = nMin;
-
-  return n;
- }
-
- map(n, inMin, inMax, outMin, outMax) {
-  return (n - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
- }
-
- setCommande16(id, commande) {
+ setCommande16(id, valeur) {
   let min;
   let max;
 
@@ -99,16 +99,16 @@ class Tx {
    min = 0;
    max = 65535;
   }
-  commande = this.constrain(commande, this.conftx.COMMANDES16[id].MIN, this.conftx.COMMANDES16[id].MAX);
-  commande = this.map(commande, this.conftx.COMMANDES16[id].MIN, this.conftx.COMMANDES16[id].MAX, min, max);
+  valeur = constrain(valeur, this.conftx.COMMANDES16[id].MIN, this.conftx.COMMANDES16[id].MAX);
+  valeur = map(valeur, this.conftx.COMMANDES16[id].MIN, this.conftx.COMMANDES16[id].MAX, min, max);
 
   if(this.conftx.COMMANDES16[id].SIGNE)
-   this.commandesInt16[id] = commande;
+   this.commandesInt16[id] = valeur;
   else
-   this.commandesUint16[id] = commande;
+   this.commandesUint16[id] = valeur;
  }
 
- setCommande8(id, commande) {
+ setCommande8(id, valeur) {
   let min;
   let max;
 
@@ -119,39 +119,39 @@ class Tx {
    min = 0;
    max = 255;
   }
-  commande = this.constrain(commande, this.conftx.COMMANDES8[id].MIN, this.conftx.COMMANDES8[id].MAX);
-  commande = this.map(commande, this.conftx.COMMANDES8[id].MIN, this.conftx.COMMANDES8[id].MAX, min, max);
+  valeur = constrain(valeur, this.conftx.COMMANDES8[id].MIN, this.conftx.COMMANDES8[id].MAX);
+  valeur = map(valeur, this.conftx.COMMANDES8[id].MIN, this.conftx.COMMANDES8[id].MAX, min, max);
 
   if(this.conftx.COMMANDES16[id].SIGNE)
-   this.commandesInt8[id] = commande;
+   this.commandesInt8[id] = valeur;
   else
-   this.commandesUint8[id] = commande;
+   this.commandesUint8[id] = valeur;
  }
-
+ 
  getCommande16(id) {
-  let commande;
+  let valeur;
 
   if(this.conftx.COMMANDES16[id].SIGNE)
-   commande = this.map(this.commandesInt16[id], -32768, 32767, this.conftx.COMMANDES16[id].MIN, this.conftx.COMMANDES16[id].MAX);
+   valeur = map(this.commandesInt16[id], -32768, 32767, this.conftx.COMMANDES16[id].MIN, this.conftx.COMMANDES16[id].MAX);
   else
-   commande = this.map(this.commandesUint16[id], 0, 65535, this.conftx.COMMANDES16[id].MIN, this.conftx.COMMANDES16[id].MAX);
-  commande = commande.toFixed(this.conftx.COMMANDES16[id].NBCHIFFRES);
+   valeur = map(this.commandesUint16[id], 0, 65535, this.conftx.COMMANDES16[id].MIN, this.conftx.COMMANDES16[id].MAX);
+  valeur = valeur.toFixed(this.conftx.COMMANDES16[id].NBCHIFFRES);
 
-  return commande;
+  return valeur;
  }
 
  getCommande8(id) {
   let min;
   let max;
-  let commande;
+  let valeur;
 
   if(this.conftx.COMMANDES8[id].SIGNE)
-   commande = this.map(this.commandesInt8[id], -128, 127, this.conftx.COMMANDES8[id].MIN, this.conftx.COMMANDES8[id].MAX);
+   valeur = map(this.commandesInt8[id], -128, 127, this.conftx.COMMANDES8[id].MIN, this.conftx.COMMANDES8[id].MAX);
   else
-   commande = this.map(this.commandesUint8[id], 0, 255, this.conftx.COMMANDES8[id].MIN, this.conftx.COMMANDES8[id].MAX);
-  commande = commande.toFixed(this.conftx.COMMANDES8[id].NBCHIFFRES);
+   valeur = map(this.commandesUint8[id], 0, 255, this.conftx.COMMANDES8[id].MIN, this.conftx.COMMANDES8[id].MAX);
+  valeur = valeur.toFixed(this.conftx.COMMANDES8[id].NBCHIFFRES);
 
-  return commande;
+  return valeur;
  }
 
  getTexteCommande16(id) {
@@ -300,20 +300,7 @@ class Rx {
   this.bytes = new Uint8Array(this.arrayBuffer);
  }
 
- constrain(n, nMin, nMax) {
-  if(n > nMax)
-   n = nMax;
-  else if(n < nMin)
-   n = nMin;
-
-  return n;
- }
-
- map(n, inMin, inMax, outMin, outMax) {
-  return (n - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
- }
-
- setCommande16(id, commande) {
+ setCommande16(id, valeur) {
   let min;
   let max;
 
@@ -324,16 +311,16 @@ class Rx {
    min = 0;
    max = 65535;
   }
-  commande = this.constrain(commande, this.conftx.COMMANDES16[id].MIN, this.conftx.COMMANDES16[id].MAX);
-  commande = this.map(commande, this.conftx.COMMANDES16[id].MIN, this.conftx.COMMANDES16[id].MAX, min, max);
+  valeur = constrain(valeur, this.conftx.COMMANDES16[id].MIN, this.conftx.COMMANDES16[id].MAX);
+  valeur = map(valeur, this.conftx.COMMANDES16[id].MIN, this.conftx.COMMANDES16[id].MAX, min, max);
 
   if(this.conftx.COMMANDES16[id].SIGNE)
-   this.commandesInt16[id] = commande;
+   this.commandesInt16[id] = valeur;
   else
-   this.commandesUint16[id] = commande;
+   this.commandesUint16[id] = valeur;
  }
 
- setCommande8(id, commande) {
+ setCommande8(id, valeur) {
   let min;
   let max;
 
@@ -344,39 +331,39 @@ class Rx {
    min = 0;
    max = 255;
   }
-  commande = this.constrain(commande, this.conftx.COMMANDES8[id].MIN, this.conftx.COMMANDES8[id].MAX);
-  commande = this.map(commande, this.conftx.COMMANDES8[id].MIN, this.conftx.COMMANDES8[id].MAX, min, max);
+  valeur = constrain(valeur, this.conftx.COMMANDES8[id].MIN, this.conftx.COMMANDES8[id].MAX);
+  valeur = map(valeur, this.conftx.COMMANDES8[id].MIN, this.conftx.COMMANDES8[id].MAX, min, max);
 
   if(this.conftx.COMMANDES16[id].SIGNE)
-   this.commandesInt8[id] = commande;
+   this.commandesInt8[id] = valeur;
   else
-   this.commandesUint8[id] = commande;
+   this.commandesUint8[id] = valeur;
  }
 
  getCommande16(id) {
-  let commande;
+  let valeur;
 
   if(this.conftx.COMMANDES16[id].SIGNE)
-   commande = this.map(this.commandesInt16[id], -32768, 32767, this.conftx.COMMANDES16[id].MIN, this.conftx.COMMANDES16[id].MAX);
+   valeur = map(this.commandesInt16[id], -32768, 32767, this.conftx.COMMANDES16[id].MIN, this.conftx.COMMANDES16[id].MAX);
   else
-   commande = this.map(this.commandesUint16[id], 0, 65535, this.conftx.COMMANDES16[id].MIN, this.conftx.COMMANDES16[id].MAX);
-  commande = commande.toFixed(this.conftx.COMMANDES16[id].NBCHIFFRES);
+   valeur = map(this.commandesUint16[id], 0, 65535, this.conftx.COMMANDES16[id].MIN, this.conftx.COMMANDES16[id].MAX);
+  valeur = valeur.toFixed(this.conftx.COMMANDES16[id].NBCHIFFRES);
 
-  return commande;
+  return valeur;
  }
 
  getCommande8(id) {
   let min;
   let max;
-  let commande;
+  let valeur;
 
   if(this.conftx.COMMANDES8[id].SIGNE)
-   commande = this.map(this.commandesInt8[id], -128, 127, this.conftx.COMMANDES8[id].MIN, this.conftx.COMMANDES8[id].MAX);
+   valeur = map(this.commandesInt8[id], -128, 127, this.conftx.COMMANDES8[id].MIN, this.conftx.COMMANDES8[id].MAX);
   else
-   commande = this.map(this.commandesUint8[id], 0, 255, this.conftx.COMMANDES8[id].MIN, this.conftx.COMMANDES8[id].MAX);
-  commande = commande.toFixed(this.conftx.COMMANDES8[id].NBCHIFFRES);
+   valeur = map(this.commandesUint8[id], 0, 255, this.conftx.COMMANDES8[id].MIN, this.conftx.COMMANDES8[id].MAX);
+  valeur = valeur.toFixed(this.conftx.COMMANDES8[id].NBCHIFFRES);
 
-  return commande;
+  return valeur;
  }
 
  getTexteCommande16(id) {
@@ -398,8 +385,8 @@ class Rx {
    min = 0;
    max = 65535;
   }
-  valeur = this.constrain(valeur, this.confrx.VALEURS16[id].MIN, this.confrx.VALEURS16[id].MAX);
-  valeur = this.map(valeur, this.confrx.VALEURS16[id].MIN, this.confrx.VALEURS16[id].MAX, min, max);
+  valeur = constrain(valeur, this.confrx.VALEURS16[id].MIN, this.confrx.VALEURS16[id].MAX);
+  valeur = map(valeur, this.confrx.VALEURS16[id].MIN, this.confrx.VALEURS16[id].MAX, min, max);
 
   if(this.confrx.VALEURS16[id].SIGNE)
    this.valeursInt16[id] = valeur;
@@ -418,8 +405,8 @@ class Rx {
    min = 0;
    max = 255;
   }
-  valeur = this.constrain(valeur, this.confrx.VALEURS8[id].MIN, this.confrx.VALEURS8[id].MAX);
-  valeur = this.map(valeur, this.confrx.VALEURS8[id].MIN, this.confrx.VALEURS8[id].MAX, min, max);
+  valeur = constrain(valeur, this.confrx.VALEURS8[id].MIN, this.confrx.VALEURS8[id].MAX);
+  valeur = map(valeur, this.confrx.VALEURS8[id].MIN, this.confrx.VALEURS8[id].MAX, min, max);
 
   if(this.confrx.VALEURS8[id].SIGNE)
    this.valeursInt8[id] = valeur;
@@ -431,9 +418,9 @@ class Rx {
   let valeur;
 
   if(this.confrx.VALEURS16[id].SIGNE)
-   valeur = this.map(this.valeursInt16[id], -32768, 32767, this.confrx.VALEURS16[id].MIN, this.confrx.VALEURS16[id].MAX);
+   valeur = map(this.valeursInt16[id], -32768, 32767, this.confrx.VALEURS16[id].MIN, this.confrx.VALEURS16[id].MAX);
   else
-   valeur = this.map(this.valeursUint16[id], 0, 65535, this.confrx.VALEURS16[id].MIN, this.confrx.VALEURS16[id].MAX);
+   valeur = map(this.valeursUint16[id], 0, 65535, this.confrx.VALEURS16[id].MIN, this.confrx.VALEURS16[id].MAX);
   valeur = valeur.toFixed(this.confrx.VALEURS16[id].NBCHIFFRES);
 
   return valeur;
@@ -445,9 +432,9 @@ class Rx {
   let valeur;
 
   if(this.confrx.VALEURS8[id].SIGNE)
-   valeur = this.map(this.valeursInt8[id], -128, 127, this.confrx.VALEURS8[id].MIN, this.confrx.VALEURS8[id].MAX);
+   valeur = map(this.valeursInt8[id], -128, 127, this.confrx.VALEURS8[id].MIN, this.confrx.VALEURS8[id].MAX);
   else
-   valeur = this.map(this.valeursUint8[id], 0, 255, this.confrx.VALEURS8[id].MIN, this.confrx.VALEURS8[id].MAX);
+   valeur = map(this.valeursUint8[id], 0, 255, this.confrx.VALEURS8[id].MIN, this.confrx.VALEURS8[id].MAX);
   valeur = valeur.toFixed(this.confrx.VALEURS8[id].NBCHIFFRES);
 
   return valeur;
