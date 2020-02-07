@@ -127,7 +127,7 @@ class Tx {
   else
    this.commandesUint8[id] = valeur;
  }
- 
+
  getCommande16(id) {
   let valeur;
 
