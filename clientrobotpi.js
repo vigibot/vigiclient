@@ -651,7 +651,8 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
   if(data.data[1] == FRAME1T) {
    trace("Réception d'une trame texte");
-   serial.write(data.data);
+   if(hard.DEVTELECOMMANDE)
+    serial.write(data.data);
    return;
   }
 
@@ -661,7 +662,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   if(latence > LATENCEDEBUTALARME) {
    //trace("Réception d'une trame avec trop de latence");
    failSafe();
-  } else
+  } else if(hard.DEVTELECOMMANDE)
    serial.write(data.data);
 
   confVideo = hard.CAMERAS[tx.choixCameras[0]];
