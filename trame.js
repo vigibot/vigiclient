@@ -1,3 +1,8 @@
+const TRAME0 = "$".charCodeAt();
+const TRAME1S = "S".charCodeAt();
+const TRAME1T = "T".charCodeAt();
+const TRAME1R = "R".charCodeAt();
+
 function constrain(n, nMin, nMax) {
  if(n > nMax)
   n = nMax;
@@ -175,6 +180,7 @@ class Rx {
   let nb8 = confrx.SYNC.length + conftx.CHOIXCAMERAS.length + conftx.VITESSES.length + conftx.REQUETESMISSION.length + conftx.INTERRUPTEURS.length +
             conftx.COMMANDES8.length + confrx.NBCORRECTEURS + confrx.NBCLUSTERS + confrx.VALEURS8.length + confrx.FIN.length;
 
+  this.pos = 0;
   this.byteLength = nb16 * 2 + nb8;
 
   this.arrayBuffer = new ArrayBuffer(this.byteLength);
@@ -298,6 +304,40 @@ class Rx {
    this.fin[i] = confrx.FIN[i];
 
   this.bytes = new Uint8Array(this.arrayBuffer);
+ }
+
+ update(data, success, err) {
+  let i = 0;
+  while(i < data.byteLength) {
+
+   switch(this.pos) {
+    case 0:
+     if(data[i] == TRAME0)
+      this.pos++;
+     else
+      err("Premier octet de la trame télémétrique invalide");
+     break;
+
+    case 1:
+     if(data[i] == TRAME1R)
+      this.pos++;
+     else {
+      this.pos = 0;
+      err("Second octet de la trame télémétrique invalide");
+     }
+     break;
+
+    default:
+     this.bytes[this.pos++] = data[i];
+     if(this.pos == this.byteLength) {
+      success();
+      this.pos = 0;
+     }
+     break;
+   }
+
+   i++;
+  }
  }
 
  setCommande16(id, valeur) {
