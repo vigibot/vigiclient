@@ -526,21 +526,18 @@ CONF.SERVEURS.forEach(function(serveur, index) {
      if(hard.DEVTELEMETRIE) {
       serial.on("data", function(data) {
 
-       rx.update(data,
-                 function(message) {
-                  trace(message);
-                 },
-                 function() {
+       rx.update(data, function() {
+        CONF.SERVEURS.forEach(function(serveur) {
+         if(serveurCourant && serveur != serveurCourant)
+          return;
 
-                  CONF.SERVEURS.forEach(function(serveur) {
-                   if(serveurCourant && serveur != serveurCourant)
-                    return;
-
-                   sockets[serveur].emit("serveurrobotrx", {
-                    timestamp: Date.now(),
-                    data: rx.arrayBuffer
-                   });
-                  });
+         sockets[serveur].emit("serveurrobotrx", {
+          timestamp: Date.now(),
+          data: rx.arrayBuffer
+         });
+        });
+       }, function(err) {
+        trace(err);
        });
 
       });

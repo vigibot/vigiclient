@@ -306,7 +306,7 @@ class Rx {
   this.bytes = new Uint8Array(this.arrayBuffer);
  }
 
- update(data, err, success) {
+ update(data, success, err) {
   let i = 0;
   while(i < data.byteLength) {
 
@@ -335,6 +335,7 @@ class Rx {
      }
      break;
    }
+
    i++;
   }
  }
