@@ -60,7 +60,6 @@ const CMDDIFFAUDIO = [
 const FRAME0 = "$".charCodeAt();
 const FRAME1S = "S".charCodeAt();
 const FRAME1T = "T".charCodeAt();
-const FRAME1R = "R".charCodeAt();
 
 const UPTIMEOUT = 5000;
 const V4L2 = "/usr/bin/v4l2-ctl";
@@ -436,7 +435,6 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
    tx = new TRAME.Tx(conf.TX);
    rx = new TRAME.Rx(conf.TX, conf.RX);
-   rx.sync[1] = FRAME1R;
 
    for(let i = 0; i < conf.TX.POSITIONS.length; i++)
     oldPositions[i] = tx.positions[i] + 1;
@@ -526,50 +524,25 @@ CONF.SERVEURS.forEach(function(serveur, index) {
      trace("Connecté sur " + hard.DEVROBOT);
 
      if(hard.DEVTELEMETRIE) {
-      let rxPos = 0;
       serial.on("data", function(data) {
 
-       let i = 0;
-       while(i < data.length) {
+       rx.update(data,
+                 function(message) {
+                  trace(message);
+                 },
+                 function() {
 
-        switch(rxPos) {
-         case 0:
-          if(data[i] == FRAME0)
-           rxPos++;
-          else
-           trace("Premier octet de la trame télémétrique invalide");
-          break;
+                  CONF.SERVEURS.forEach(function(serveur) {
+                   if(serveurCourant && serveur != serveurCourant)
+                    return;
 
-         case 1:
-          if(data[i] == FRAME1R)
-           rxPos++;
-          else {
-           rxPos = 0;
-           trace("Second octet de la trame télémétrique invalide");
-          }
-          break;
+                   sockets[serveur].emit("serveurrobotrx", {
+                    timestamp: Date.now(),
+                    data: rx.arrayBuffer
+                   });
+                  });
+       });
 
-         default:
-          rx.bytes[rxPos++] = data[i];
-          if(rxPos == rx.byteLength) {
-
-           CONF.SERVEURS.forEach(function(serveur) {
-            if(serveurCourant && serveur != serveurCourant)
-             return;
-
-            sockets[serveur].emit("serveurrobotrx", {
-             timestamp: Date.now(),
-             data: rx.arrayBuffer
-            });
-           });
-
-           rxPos = 0;
-          }
-          break;
-        }
-
-        i++;
-       }
       });
      }
 
