@@ -414,24 +414,24 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   sockets[serveur].on("clientsrobotconf", function(data) {
    trace("Réception des données de configuration du robot depuis le serveur " + serveur);
 
-   conf = data.conf;
-   hard = data.hard;
-
    // Security hardening: even if already done on server side,
    // always filter values integrated in command lines
-   for(let i = 0; i < hard.CAMERAS.length; i++) {
-    if(!(CMDINT.test(hard.CAMERAS[i].SOURCE) &&
-         CMDINT.test(hard.CAMERAS[i].WIDTH) &&
-         CMDINT.test(hard.CAMERAS[i].HEIGHT) &&
-         CMDINT.test(hard.CAMERAS[i].FPS) &&
-         CMDINT.test(hard.CAMERAS[i].BITRATE) &&
-         CMDINT.test(hard.CAMERAS[i].ROTATION) &&
-         CMDINT.test(hard.CAMERAS[i].LUMINOSITE) &&
-         CMDINT.test(hard.CAMERAS[i].CONTRASTE) &&
-         CMDINT.test(hard.CAMERAS[i].BOOSTVIDEOLUMINOSITE) &&
-         CMDINT.test(hard.CAMERAS[i].BOOSTVIDEOCONTRASTE)))
+   for(let i = 0; i < data.hard.CAMERAS.length; i++) {
+    if(!(CMDINT.test(data.hard.CAMERAS[i].SOURCE) &&
+         CMDINT.test(data.hard.CAMERAS[i].WIDTH) &&
+         CMDINT.test(data.hard.CAMERAS[i].HEIGHT) &&
+         CMDINT.test(data.hard.CAMERAS[i].FPS) &&
+         CMDINT.test(data.hard.CAMERAS[i].BITRATE) &&
+         CMDINT.test(data.hard.CAMERAS[i].ROTATION) &&
+         CMDINT.test(data.hard.CAMERAS[i].LUMINOSITE) &&
+         CMDINT.test(data.hard.CAMERAS[i].CONTRASTE) &&
+         CMDINT.test(data.hard.CAMERAS[i].BOOSTVIDEOLUMINOSITE) &&
+         CMDINT.test(data.hard.CAMERAS[i].BOOSTVIDEOCONTRASTE)))
      return;
    }
+
+   conf = data.conf;
+   hard = data.hard;
 
    tx = new TRAME.Tx(conf.TX);
    rx = new TRAME.Rx(conf.TX, conf.RX);
