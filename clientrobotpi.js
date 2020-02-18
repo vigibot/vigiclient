@@ -79,7 +79,6 @@ const BQ27441ADDRESS = 0x55;
 const GAUGERATE = 250;
 
 const PCA9685FREQUENCY = 50;
-const PIGPIOMOTORFREQUENCY = 100;
 
 const UNUSED = -1;
 const SERVO = 0;
@@ -737,11 +736,11 @@ function computePwm(n, consigne, min, max) {
 function setMotorFrequency(n) {
  switch(hard.MOTEURS[n].TYPE) {
   case L9110:
-   gpioMoteurs[n][0].pwmFrequency(PIGPIOMOTORFREQUENCY);
-   gpioMoteurs[n][1].pwmFrequency(PIGPIOMOTORFREQUENCY);
+   gpioMoteurs[n][0].pwmFrequency(hard.FREQUENCEPWM);
+   gpioMoteurs[n][1].pwmFrequency(hard.FREQUENCEPWM);
    break;
   case L298:
-   gpioMoteurs[n][0].pwmFrequency(PIGPIOMOTORFREQUENCY);
+   gpioMoteurs[n][0].pwmFrequency(hard.FREQUENCEPWM);
    break;
  }
 }
