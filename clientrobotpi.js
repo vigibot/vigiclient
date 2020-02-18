@@ -134,7 +134,7 @@ let oldTxInterrupteurs;
 let boostVideo = false;
 let oldBoostVideo = false;
 
-let gpiosMoteurs = [];
+let gpioMoteurs = [];
 let gpioInterrupteurs = [];
 
 let serial;
@@ -324,7 +324,7 @@ function dodo() {
   if(hard.MOTEURS[i].FAILSAFE)
    setConsigneMoteur(i, 0);
   else {
-   gpiosMoteurs[i].forEach(function(gpio) {
+   gpioMoteurs[i].forEach(function(gpio) {
     gpio.mode(GPIO.INPUT);
    });
   }
@@ -461,7 +461,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    boostVideo = false;
    oldBoostVideo = false;
 
-   gpiosMoteurs.forEach(function(gpios) {
+   gpioMoteurs.forEach(function(gpios) {
     gpios.forEach(function(gpio) {
      gpio.mode(GPIO.INPUT);
     });
@@ -472,7 +472,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    });
 
    pca9685Driver = [];
-   gpiosMoteurs = [];
+   gpioMoteurs = [];
    gpioInterrupteurs = [];
 
    for(let i = 0; i < hard.PCA9685ADDRESSES.length; i++) {
@@ -490,9 +490,9 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
    for(let i = 0; i < hard.MOTEURS.length; i++) {
     if(hard.MOTEURS[i].ADRESSE < 0) {
-     gpiosMoteurs[i] = [];
+     gpioMoteurs[i] = [];
      for(let j = 0; j < hard.MOTEURS[i].PINS.length; j++)
-      gpiosMoteurs[i][j] = new GPIO(hard.MOTEURS[i].PINS[j], {mode: GPIO.OUTPUT});
+      gpioMoteurs[i][j] = new GPIO(hard.MOTEURS[i].PINS[j], {mode: GPIO.OUTPUT});
      setMotorFrequency(i);
     }
    }
@@ -737,11 +737,11 @@ function computePwm(n, consigne, min, max) {
 function setMotorFrequency(n) {
  switch(hard.MOTEURS[n].TYPE) {
   case L9110:
-   gpiosMoteurs[n][0].pwmFrequency(PIGPIOMOTORFREQUENCY);
-   gpiosMoteurs[n][1].pwmFrequency(PIGPIOMOTORFREQUENCY);
+   gpioMoteurs[n][0].pwmFrequency(PIGPIOMOTORFREQUENCY);
+   gpioMoteurs[n][1].pwmFrequency(PIGPIOMOTORFREQUENCY);
    break;
   case L298:
-   gpiosMoteurs[n][0].pwmFrequency(PIGPIOMOTORFREQUENCY);
+   gpioMoteurs[n][0].pwmFrequency(PIGPIOMOTORFREQUENCY);
    break;
  }
 }
@@ -778,7 +778,7 @@ function setMoteur(n, consigne) {
    pca9685Driver[hard.MOTEURS[n].PCA9685].setPulseLength(hard.MOTEURS[n].PIN, computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
    break;
   case SERVO:
-   gpiosMoteurs[n][0].servoWrite(computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
+   gpioMoteurs[n][0].servoWrite(computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
    break;
   case L9110:
    l9110MotorDrive(n, computePwm(n, consigne, -255, 255));
@@ -796,32 +796,32 @@ function l298MotorDrive(n, consigne) {
  let pwm;
 
  if(consigne < 0) {
-  gpiosMoteurs[n][1].digitalWrite(false);
-  gpiosMoteurs[n][2].digitalWrite(true);
+  gpioMoteurs[n][1].digitalWrite(false);
+  gpioMoteurs[n][2].digitalWrite(true);
   pwm = -consigne;
  } else if(consigne > 0) {
-  gpiosMoteurs[n][1].digitalWrite(true);
-  gpiosMoteurs[n][2].digitalWrite(false);
+  gpioMoteurs[n][1].digitalWrite(true);
+  gpioMoteurs[n][2].digitalWrite(false);
   pwm = consigne;
  } else {
-  gpiosMoteurs[n][1].digitalWrite(false);
-  gpiosMoteurs[n][2].digitalWrite(false);
+  gpioMoteurs[n][1].digitalWrite(false);
+  gpioMoteurs[n][2].digitalWrite(false);
   pwm = 0;
  }
 
- gpiosMoteurs[n][0].pwmWrite(pwm);
+ gpioMoteurs[n][0].pwmWrite(pwm);
 }
 
 function l9110MotorDrive(n, consigne) {
  if(consigne < 0) {
-  gpiosMoteurs[n][0].digitalWrite(false);
-  gpiosMoteurs[n][1].pwmWrite(-consigne);
+  gpioMoteurs[n][0].digitalWrite(false);
+  gpioMoteurs[n][1].pwmWrite(-consigne);
  } else if(consigne > 0) {
-  gpiosMoteurs[n][0].pwmWrite(consigne);
-  gpiosMoteurs[n][1].digitalWrite(false);
+  gpioMoteurs[n][0].pwmWrite(consigne);
+  gpioMoteurs[n][1].digitalWrite(false);
  } else {
-  gpiosMoteurs[n][0].digitalWrite(false);
-  gpiosMoteurs[n][1].digitalWrite(false);
+  gpioMoteurs[n][0].digitalWrite(false);
+  gpioMoteurs[n][1].digitalWrite(false);
  }
 }
 
