@@ -520,7 +520,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     }
    }, 100);
 
-   if(hard.DEVTELECOMMANDE || hard.DEVTELEMETRIE) {
+   if(!init) {
     serial = new SP(hard.DEVROBOT, {
      baudRate: hard.DEVDEBIT,
      lock: false
@@ -552,18 +552,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
      init = true;
     });
-
-   } else {
-    init = true;
-
-    if(!serial)
-     return;
-
-    serial.close(function() {
-     trace("Déconnecté de " + hard.DEVROBOT);
-    });
    }
-
   });
  }
 
