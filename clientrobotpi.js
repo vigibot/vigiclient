@@ -68,6 +68,7 @@ const LATENCEDEBUTALARME = 500;
 const BITRATEVIDEOFAIBLE = 100000;
 const TXRATE = 50;
 const BEACONRATE = 10000;
+const CAPTURESENVEILLERATE = 60000;
 
 const SEPARATEURNALU = new Buffer.from([0, 0, 0, 1]);
 
@@ -984,64 +985,62 @@ setInterval(function() {
  });
 }, BEACONRATE);
 
-if(hard.CAPTURESENVEILLE) {
- setInterval(function() {
-  if(up || !init || !initVideo)
-   return;
+setInterval(function() {
+ if(up || !init || !initVideo || !hard.CAPTURESENVEILLE)
+  return;
 
-  let date = new Date();
-  let overlay = date.toLocaleDateString() + " " + date.toLocaleTimeString();
-  if(hard.CAPTURESHDR)
-   overlay += " HDR " + hard.CAPTURESHDR;
-  let options = "-a 1024 -a '" + overlay + "' -rot " + confVideo.ROTATION;
+ let date = new Date();
+ let overlay = date.toLocaleDateString() + " " + date.toLocaleTimeString();
+ if(hard.CAPTURESHDR)
+  overlay += " HDR " + hard.CAPTURESHDR;
+ let options = "-a 1024 -a '" + overlay + "' -rot " + confVideo.ROTATION;
 
-  if(hard.CAPTURESHDR) {
-   EXEC("raspistill -ev " + -hard.CAPTURESHDR + " " + options + " -o /tmp/1.jpg", function(err) {
+ if(hard.CAPTURESHDR) {
+  EXEC("raspistill -ev " + -hard.CAPTURESHDR + " " + options + " -o /tmp/1.jpg", function(err) {
+   if(err) {
+    trace("Erreur lors de la capture de la première photo");
+    return;
+   }
+   EXEC("raspistill " + options + " -o /tmp/2.jpg", function(err) {
     if(err) {
-     trace("Erreur lors de la capture de la première photo");
+     trace("Erreur lors de la capture de la deuxième photo");
      return;
     }
-    EXEC("raspistill " + options + " -o /tmp/2.jpg", function(err) {
+    EXEC("raspistill -ev " + hard.CAPTURESHDR + " " + options + " -o /tmp/3.jpg", function(err) {
      if(err) {
-      trace("Erreur lors de la capture de la deuxième photo");
+      trace("Erreur lors de la capture de la troisième photo");
       return;
      }
-     EXEC("raspistill -ev " + hard.CAPTURESHDR + " " + options + " -o /tmp/3.jpg", function(err) {
-      if(err) {
-       trace("Erreur lors de la capture de la troisième photo");
-       return;
-      }
-      EXEC("enfuse -o /tmp/out.jpg /tmp/1.jpg /tmp/2.jpg /tmp/3.jpg", function(err) {
-       if(err)
-        trace("Erreur lors de la fusion des photos");
-       else {
-        FS.readFile("/tmp/out.jpg", function(err, data) {
-         CONF.SERVEURS.forEach(function(serveur) {
-          trace("Envoi d'une photo sur le serveur " + serveur);
-          sockets[serveur].emit("serveurrobotcapturesenveille", data);
-         });
+     EXEC("enfuse -o /tmp/out.jpg /tmp/1.jpg /tmp/2.jpg /tmp/3.jpg", function(err) {
+      if(err)
+       trace("Erreur lors de la fusion des photos");
+      else {
+       FS.readFile("/tmp/out.jpg", function(err, data) {
+        CONF.SERVEURS.forEach(function(serveur) {
+         trace("Envoi d'une photo sur le serveur " + serveur);
+         sockets[serveur].emit("serveurrobotcapturesenveille", data);
         });
-       }
-      });
+       });
+      }
      });
     });
    });
-  } else {
-   EXEC("raspistill -q 10 " + options + " -o /tmp/out.jpg", function(err) {
-    if(err)
-     trace("Erreur lors de la capture de la photo");
-    else {
-     FS.readFile("/tmp/out.jpg", function(err, data) {
-      CONF.SERVEURS.forEach(function(serveur) {
-       trace("Envoi d'une photo sur le serveur " + serveur);
-       sockets[serveur].emit("serveurrobotcapturesenveille", data);
-      });
+  });
+ } else {
+  EXEC("raspistill -q 10 " + options + " -o /tmp/out.jpg", function(err) {
+   if(err)
+    trace("Erreur lors de la capture de la photo");
+   else {
+    FS.readFile("/tmp/out.jpg", function(err, data) {
+     CONF.SERVEURS.forEach(function(serveur) {
+      trace("Envoi d'une photo sur le serveur " + serveur);
+      sockets[serveur].emit("serveurrobotcapturesenveille", data);
      });
-    }
-   });
-  }
- }, hard.CAPTURESENVEILLE * 60000);
-}
+    });
+   }
+  });
+ }
+}, CAPTURESENVEILLERATE);
 
 NET.createServer(function(socket) {
  const SPLITTER = new SPLIT(SEPARATEURNALU);
