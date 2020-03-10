@@ -14,7 +14,7 @@ trace() {
 
 check() {
  before=$(date -r $1/$2 +%s || echo 0)
- wget $BASEURL/$2 -P $1 -N -T 2 -t 2 > /dev/null 2>&1
+ wget $BASEURL/$2 -P $1 -N -T 5 -t 5 > /dev/null 2>&1
  after=$(date -r $1/$2 +%s)
 
  if [ $after -gt $before ]
