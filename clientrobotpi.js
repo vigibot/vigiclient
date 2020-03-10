@@ -321,7 +321,7 @@ function dodo() {
 
  for(let i = 0; i < hard.MOTEURS.length; i++) {
   if(hard.MOTEURS[i].FAILSAFE)
-   setConsigneMoteur(i, 0);
+   setMoteur(i);
   else {
    gpioMoteurs[i].forEach(function(gpio) {
     gpio.mode(GPIO.INPUT);
@@ -655,7 +655,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   }
 
   for(let i = 0; i < hard.MOTEURS.length; i++)
-   setConsigneMoteur(i, 1);
+   setMoteur(i);
 
   if(tx.interrupteurs[0] != oldTxInterrupteurs) {
    for(let i = 0; i < 8; i++) {
@@ -745,7 +745,7 @@ function setMotorFrequency(n) {
  }
 }
 
-function setConsigneMoteur(n, rattrape) {
+function setMoteur(n) {
  let moteur = 0;
 
  for(let i = 0; i < conf.TX.POSITIONS.length; i++)
@@ -755,39 +755,33 @@ function setConsigneMoteur(n, rattrape) {
   moteur += tx.vitesses[i] * hard.MIXAGES[n].VITESSES[i] * 0x100;
 
  if(moteur != oldMoteurs[n]) {
-  if(rattrape) {
-   if(moteur < oldMoteurs[n])
-    rattrapage[n] = -hard.MOTEURS[n].RATTRAPAGE * 0x10000 / 360;
-   else if(moteur > oldMoteurs[n])
-    rattrapage[n] = hard.MOTEURS[n].RATTRAPAGE * 0x10000 / 360;
-  } else
-   rattrapage[n] = 0;
-
-  oldMoteurs[n] = moteur;
+  if(moteur < oldMoteurs[n])
+   rattrapage[n] = -hard.MOTEURS[n].RATTRAPAGE * 0x10000 / 360;
+  else if(moteur > oldMoteurs[n])
+   rattrapage[n] = hard.MOTEURS[n].RATTRAPAGE * 0x10000 / 360;
 
   let consigne = Math.trunc(constrain(moteur + rattrapage[n] + hard.MOTEURS[n].OFFSET * 0x10000 / 360, -hard.MOTEURS[n].COURSE * 0x8000 / 360,
                                                                                                         hard.MOTEURS[n].COURSE * 0x8000 / 360));
-  setMoteur(n, consigne);
- }
-}
 
-function setMoteur(n, consigne) {
- switch(hard.MOTEURS[n].TYPE) {
-  case PCASERVO:
-   pca9685Driver[hard.MOTEURS[n].PCA9685].setPulseLength(hard.MOTEURS[n].PIN, computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
-   break;
-  case SERVO:
-   gpioMoteurs[n][0].servoWrite(computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
-   break;
-  case L9110:
-   l9110MotorDrive(n, computePwm(n, consigne, -255, 255));
-   break;
-  case L298:
-   l298MotorDrive(n, computePwm(n, consigne, -255, 255));
-   break;
-  case PCAL298:
-   pca9685MotorDrive(n, computePwm(n, consigne, -100, 100));
-   break;
+  switch(hard.MOTEURS[n].TYPE) {
+   case PCASERVO:
+    pca9685Driver[hard.MOTEURS[n].PCA9685].setPulseLength(hard.MOTEURS[n].PIN, computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
+    break;
+   case SERVO:
+    gpioMoteurs[n][0].servoWrite(computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
+    break;
+   case L9110:
+    l9110MotorDrive(n, computePwm(n, consigne, -255, 255));
+    break;
+   case L298:
+    l298MotorDrive(n, computePwm(n, consigne, -255, 255));
+    break;
+   case PCAL298:
+    pca9685MotorDrive(n, computePwm(n, consigne, -100, 100));
+    break;
+  }
+
+  oldMoteurs[n] = moteur;
  }
 }
 
@@ -853,7 +847,7 @@ function failSafe() {
 
  for(let i = 0; i < hard.MOTEURS.length; i++)
   if(hard.MOTEURS[i].FAILSAFE)
-   setConsigneMoteur(i, 0);
+   setMoteur(i);
 }
 
 setInterval(function() {
