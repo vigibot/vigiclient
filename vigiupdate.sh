@@ -9,7 +9,7 @@ BASEDIR=/usr/local/vigiclient
 updated=no
 
 trace() {
- echo "$(date "+%d/%m/%Y %H:%M:%S") $1"
+ echo "$(date "+%d/%m/%Y %H:%M:%S") $1" | tee /var/log/vigiupdate.log
 }
 
 check() {
@@ -21,6 +21,8 @@ check() {
  then
   trace "$1/$2 is updated"
   updated=yes
+ else
+  trace "$1/$2 is checked"
  fi
 }
 
