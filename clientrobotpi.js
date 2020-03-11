@@ -68,7 +68,6 @@ const LATENCEDEBUTALARME = 500;
 const BITRATEVIDEOFAIBLE = 100000;
 const TXRATE = 50;
 const BEACONRATE = 10000;
-const CAPTURESENVEILLERATE = 60000;
 
 const SEPARATEURNALU = new Buffer.from([0, 0, 0, 1]);
 
@@ -990,6 +989,10 @@ setInterval(function() {
   return;
 
  let date = new Date();
+
+ if(date.getMinutes() % hard.CAPTURESENVEILLE)
+  return;
+
  let overlay = date.toLocaleDateString() + " " + date.toLocaleTimeString();
  if(hard.CAPTURESHDR)
   overlay += " HDR " + hard.CAPTURESHDR;
@@ -1040,7 +1043,7 @@ setInterval(function() {
    }
   });
  }
-}, CAPTURESENVEILLERATE);
+}, 60000);
 
 NET.createServer(function(socket) {
  const SPLITTER = new SPLIT(SEPARATEURNALU);
