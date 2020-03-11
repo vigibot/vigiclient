@@ -796,8 +796,8 @@ function l298MotorDrive(n, consigne) {
   gpioMoteurs[n][2].digitalWrite(false);
   pwm = consigne;
  } else {
-  gpioMoteurs[n][1].digitalWrite(false);
-  gpioMoteurs[n][2].digitalWrite(false);
+  gpioMoteurs[n][1].digitalWrite(true);
+  gpioMoteurs[n][2].digitalWrite(true);
   pwm = 0;
  }
 
@@ -812,8 +812,8 @@ function l9110MotorDrive(n, consigne) {
   gpioMoteurs[n][0].pwmWrite(consigne);
   gpioMoteurs[n][1].digitalWrite(false);
  } else {
-  gpioMoteurs[n][0].digitalWrite(false);
-  gpioMoteurs[n][1].digitalWrite(false);
+  gpioMoteurs[n][0].digitalWrite(true);
+  gpioMoteurs[n][1].digitalWrite(true);
  }
 }
 
@@ -832,8 +832,8 @@ function pca9685MotorDrive(n, consigne) {
   pca9685Driver[pcaId].channelOff(chIn2);
   pwm = consigne / 100;
  } else {
-  pca9685Driver[pcaId].channelOff(chIn1);
-  pca9685Driver[pcaId].channelOff(chIn2);
+  pca9685Driver[pcaId].channelOn(chIn1);
+  pca9685Driver[pcaId].channelOn(chIn2);
   pwm = 0;
  }
 
