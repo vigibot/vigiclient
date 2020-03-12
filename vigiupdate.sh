@@ -12,6 +12,10 @@ trace() {
  echo "$(date "+%d/%m/%Y %H:%M:%S") $1"
 }
 
+abnormal() {
+ trace "Abnormal script termination"
+}
+
 check() {
  before=$(date -r $1/$2 +%s || echo 0)
  wget $BASEURL/$2 -P $1 -N -T 5 -t 5 > /dev/null 2>&1
@@ -25,6 +29,8 @@ check() {
   trace "$1/$2 is checked"
  fi
 }
+
+trap abnormal EXIT
 
 check $BASEDIR vigiupdate.sh
 
@@ -84,3 +90,5 @@ then
  trace "Restarting vigiclient"
  systemctl restart vigiclient
 fi
+
+trap - EXIT
