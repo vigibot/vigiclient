@@ -14,7 +14,6 @@ trace() {
 
 abnormal() {
  trace "Abnormal script termination"
- wget https://www.vigibot.com/abnormal.php -O /dev/null -T 5 -t 5 > /dev/null 2>&1 || true
 }
 
 check() {
