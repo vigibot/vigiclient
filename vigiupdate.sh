@@ -9,7 +9,7 @@ BASEDIR=/usr/local/vigiclient
 updated=no
 
 trace() {
- echo "$(date "+%d/%m/%Y %H:%M:%S") $1" | tee -a /var/log/vigiupdate.log
+ echo "$(date "+%d/%m/%Y %H:%M:%S") $1"
 }
 
 check() {
