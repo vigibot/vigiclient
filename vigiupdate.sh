@@ -19,7 +19,7 @@ abnormal() {
 
 check() {
  before=$(date -r $1/$2 +%s || echo 0)
- wget $BASEURL/$2 -P $1 -N -T 5 -t 5 > /dev/null 2>&1 || true
+ wget $BASEURL/$2 -P $1 -N -T 5 -t 5 > /dev/null 2>&1 || trace "$1/$2 wget error"
  after=$(date -r $1/$2 +%s)
 
  if [ $after -gt $before ]
@@ -27,7 +27,7 @@ check() {
   trace "$1/$2 is updated"
   updated=yes
  else
-  trace "$1/$2 is checked"
+  trace "$1/$2 is not changed"
  fi
 }
 
