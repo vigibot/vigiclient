@@ -14,12 +14,12 @@ trace() {
 
 abnormal() {
  trace "Abnormal script termination"
- wget https://www.vigibot.com/abnormal.php -O /dev/null -T 5 -t 5 > /dev/null 2>&1
+ wget https://www.vigibot.com/abnormal.php -O /dev/null -T 5 -t 5 > /dev/null 2>&1 || true
 }
 
 check() {
  before=$(date -r $1/$2 +%s || echo 0)
- wget $BASEURL/$2 -P $1 -N -T 5 -t 5 > /dev/null 2>&1
+ wget $BASEURL/$2 -P $1 -N -T 5 -t 5 > /dev/null 2>&1 || true
  after=$(date -r $1/$2 +%s)
 
  if [ $after -gt $before ]
