@@ -63,32 +63,15 @@ timedatectl status | fgrep "synchronized: yes" > /dev/null || {
  exit 1
 }
 
+check $BASEDIR node_modules.tar.gz
 check $BASEDIR package.json
-
-cd $BASEDIR
 
 if [ $updated == "yes" -o ! -d node_modules ]
 then
- rm -rf node_modules.old package-lock.json
-
- if [ -d node_modules ]
- then
-  mv node_modules node_modules.old
- fi
-
+ cd $BASEDIR
+ rm -rf node_modules package-lock.json
  npm cache clean --force
-
- sudo npm install && {
-  rm -rf node_modules.old
-  trace "Success"
- } || {
-  rm -rf node_modules
-  mv node_modules.old node_modules && {
-   trace "Rollback"
-  } || {
-   trace "Can't rollback"
-  }
- }
+ tar xvf node_modules.tar.gz
 fi
 
 check $BASEDIR clientrobotpi.js
