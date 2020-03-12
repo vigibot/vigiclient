@@ -37,6 +37,7 @@ check $BASEDIR vigiupdate.sh
 if [ $updated == "yes" ]
 then
  trace "Exiting"
+ trap - EXIT
  exit 0
 fi
 
@@ -47,6 +48,7 @@ then
  trace "Purging updater log"
  rm -f /var/log/vigiupdate.log
  trace "Exiting"
+ trap - EXIT
  exit 0
 fi
 
@@ -55,17 +57,20 @@ check /etc/systemd/system vigiclient.service
 if [ $updated == "yes" ]
 then
  trace "Rebooting"
+ trap - EXIT
  sudo reboot
 fi
 
 if pidof -x $0 -o $$ > /dev/null
 then
  trace "Only one instance is allowed from here"
+ trap - EXIT
  exit 1
 fi
 
 timedatectl status | fgrep "synchronized: yes" > /dev/null || {
  trace "System clock must be synchronized from here"
+ trap - EXIT
  exit 1
 }
 
