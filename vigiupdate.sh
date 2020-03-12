@@ -33,14 +33,6 @@ check() {
 trap abnormal EXIT
 
 check $BASEDIR vigiupdate.sh
-
-if [ $updated == "yes" ]
-then
- trace "Exiting"
- trap - EXIT
- exit 0
-fi
-
 check /etc/cron.d vigicron
 
 if [ $updated == "yes" ]
@@ -77,7 +69,7 @@ timedatectl status | fgrep "synchronized: yes" > /dev/null || {
 check $BASEDIR node_modules.tar.gz
 check $BASEDIR package.json
 
-if [ $updated == "yes" -o ! -d node_modules ]
+if [ $updated == "yes" ]
 then
  cd $BASEDIR
  rm -rf node_modules package-lock.json
