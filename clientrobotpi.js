@@ -483,10 +483,11 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     }, function(err) {
      if(err)
       trace("Error initializing PCA9685 at address " + hard.PCA9685ADDRESSES[i]);
-     else
+     else {
       trace("PCA9685 initialized at address " + hard.PCA9685ADDRESSES[i]);
-     initPca++;
-     setInit();
+      initPca++;
+      setInit();
+     }
     });
    }
 
@@ -525,38 +526,43 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    }, 100);
 
    if(!initUart) {
-    serial = new SP(hard.DEVROBOT, {
-     baudRate: hard.DEVDEBIT,
-     lock: false
-    });
-
-    serial.on("open", function() {
-     trace("Connecté sur " + hard.DEVROBOT);
-
-     if(hard.DEVTELEMETRIE) {
-      serial.on("data", function(data) {
-
-       rx.update(data, function() {
-        CONF.SERVEURS.forEach(function(serveur) {
-         if(serveurCourant && serveur != serveurCourant)
-          return;
-
-         setRxVals();
-         sockets[serveur].emit("serveurrobotrx", {
-          timestamp: Date.now(),
-          data: rx.arrayBuffer
-         });
-        });
-       }, function(err) {
-        trace(err);
-       });
-
-      });
-     }
-
+    if(!hard.DEVTELECOMMANDE) {
      initUart = true;
      setInit();
-    });
+    } else {
+     serial = new SP(hard.DEVROBOT, {
+      baudRate: hard.DEVDEBIT,
+      lock: false
+     });
+
+     serial.on("open", function() {
+      trace("Connecté sur " + hard.DEVROBOT);
+
+      if(hard.DEVTELEMETRIE) {
+       serial.on("data", function(data) {
+
+        rx.update(data, function() {
+         CONF.SERVEURS.forEach(function(serveur) {
+          if(serveurCourant && serveur != serveurCourant)
+           return;
+
+          setRxVals();
+          sockets[serveur].emit("serveurrobotrx", {
+           timestamp: Date.now(),
+           data: rx.arrayBuffer
+          });
+         });
+        }, function(err) {
+         trace(err);
+        });
+
+       });
+      }
+
+      initUart = true;
+      setInit();
+     });
+    }
    }
   });
  }
