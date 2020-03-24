@@ -107,8 +107,12 @@ let serveurCourant = "";
 
 let up = false;
 let upTimeout;
+
 let init = false;
 let initVideo = false;
+let initUart = false;
+let initPca = 0;
+
 let conf;
 let hard;
 let tx;
@@ -132,15 +136,14 @@ let oldTxInterrupteurs;
 let boostVideo = false;
 let oldBoostVideo = false;
 
-let gpioMoteurs = [];
-let gpioInterrupteurs = [];
-
 let serial;
 
 let i2c;
 let gaugeType;
 
 let pca9685Driver = [];
+let gpioMoteurs = [];
+let gpioInterrupteurs = [];
 
 let prevCpus = OS.cpus();
 let nbCpus = prevCpus.length;
@@ -190,6 +193,10 @@ setTimeout(function() {
  else
   trace("No I2C fuel gauge detected");
 }, 1000);
+
+function setInit() {
+ init = initUart && initVideo && initPca == hard.PCA9685ADDRESSES.length;
+}
 
 function map(n, inMin, inMax, outMin, outMax) {
  return Math.trunc((n - inMin) * (outMax - outMin) / (inMax - inMin) + outMin);
@@ -273,11 +280,6 @@ function debout(serveur) {
 
  if(!init) {
   trace("Ce robot n'est pas initialisé");
-  return;
- }
-
- if(!initVideo) {
-  trace("La vidéo n'est pas initialisée");
   return;
  }
 
@@ -483,6 +485,8 @@ CONF.SERVEURS.forEach(function(serveur, index) {
       trace("Error initializing PCA9685 at address " + hard.PCA9685ADDRESSES[i]);
      else
       trace("PCA9685 initialized at address " + hard.PCA9685ADDRESSES[i]);
+     initPca++;
+     setInit();
     });
    }
 
@@ -515,11 +519,12 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     } else {
      configurationVideo(function(code) {
       initVideo = true;
+      setInit();
      });
     }
    }, 100);
 
-   if(!init) {
+   if(!initUart) {
     serial = new SP(hard.DEVROBOT, {
      baudRate: hard.DEVDEBIT,
      lock: false
@@ -549,7 +554,8 @@ CONF.SERVEURS.forEach(function(serveur, index) {
       });
      }
 
-     init = true;
+     initUart = true;
+     setInit();
     });
    }
   });
@@ -764,7 +770,7 @@ function setMoteur(n) {
 
   switch(hard.MOTEURS[n].TYPE) {
    case PCASERVO:
-    pca9685Driver[hard.MOTEURS[n].PCA9685].setPulseLength(hard.MOTEURS[n].PIN, computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
+    pca9685Driver[hard.MOTEURS[n].PCA9685].setPulseLength(hard.MOTEURS[n].PINS[0], computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
     break;
    case SERVO:
     gpioMoteurs[n][0].servoWrite(computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
@@ -985,7 +991,7 @@ setInterval(function() {
 }, BEACONRATE);
 
 setInterval(function() {
- if(up || !init || !initVideo || !hard.CAPTURESENVEILLE)
+ if(up || !init || !hard.CAPTURESENVEILLE)
   return;
 
  let date = new Date();
