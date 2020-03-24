@@ -770,7 +770,7 @@ function setMoteur(n) {
 
   switch(hard.MOTEURS[n].TYPE) {
    case PCASERVO:
-    pca9685Driver[hard.MOTEURS[n].PCA9685].setPulseLength(hard.MOTEURS[n].PINS[0], computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
+    pca9685Driver[hard.MOTEURS[n].ADRESSE].setPulseLength(hard.MOTEURS[n].PINS[0], computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
     break;
    case SERVO:
     gpioMoteurs[n][0].servoWrite(computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
@@ -824,7 +824,7 @@ function l9110MotorDrive(n, consigne) {
 }
 
 function pca9685MotorDrive(n, consigne) {
- let pcaId = hard.MOTEURS[n].PCA9685;
+ let pcaId = hard.MOTEURS[n].ADRESSE;
  let chIn1 = hard.MOTEURS[n].PINS[1];
  let chIn2 = hard.MOTEURS[n].PINS[2];
  let pwm;
