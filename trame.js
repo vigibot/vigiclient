@@ -34,7 +34,7 @@ class Tx {
   for(let i = 0; i < conftx.SYNC.length; i++)
    this.sync[i] = conftx.SYNC[i].charCodeAt();
 
-  this.positions = new Uint16Array(this.arrayBuffer, p,  conftx.POSITIONS.length);
+  this.positions = new Uint16Array(this.arrayBuffer, p, conftx.POSITIONS.length);
   p += this.positions.byteLength;
   for(let i = 0; i < conftx.POSITIONS.length; i++)
    this.positions[i] = (conftx.POSITIONS[i] + 180) * 0x10000 / 360;
