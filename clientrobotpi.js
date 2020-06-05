@@ -57,7 +57,7 @@ const CMDDIFFAUDIO = [
  " tcp://127.0.0.1:PORTTCPAUDIO"
 ];
 
-const CMDTTS = "/usr/bin/espeak -v fr -f /tmp/tts.txt --stdout > /tmp/tts.wav";
+const CMDTTS = "/usr/bin/espeak -v fr -f /tmp/tts.txt --stdout";
 
 const FRAME0 = "$".charCodeAt();
 const FRAME1S = "S".charCodeAt();
@@ -589,9 +589,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   FS.writeFile("/tmp/tts.txt", data, function(err) {
    if(err)
     trace(err);
-   exec("eSpeak", CONF.CMDTTS, function(code) {
-    exec("Aplay", "/usr/bin/aplay -D plughw:" + hard.PLAYBACKDEVICE + " /tmp/tts.wav", function(code) {
-    });
+   exec("eSpeak", CONF.CMDTTS + " | /usr/bin/aplay -D plughw:" + hard.PLAYBACKDEVICE, function(code) {
    });
   });
  });
