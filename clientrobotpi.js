@@ -50,12 +50,14 @@ const CMDDIFFAUDIO = [
  " -loglevel fatal",
  " -f alsa",
  " -ac 1",
- " -i hw:1,0",
+ " -i hw:RECORDINGDEVICE,0",
  " -ar 16000",
  " -c:a pcm_s16le",
  " -f s16le",
  " tcp://127.0.0.1:PORTTCPAUDIO"
 ];
+
+const CMDTTS = "/usr/bin/espeak -v fr -f /tmp/tts.txt --stdout > /tmp/tts.wav";
 
 const FRAME0 = "$".charCodeAt();
 const FRAME1S = "S".charCodeAt();
@@ -160,6 +162,9 @@ if(typeof CONF.CMDDIFFUSION === "undefined")
 
 if(typeof CONF.CMDDIFFAUDIO === "undefined")
  CONF.CMDDIFFAUDIO = CMDDIFFAUDIO;
+
+if(typeof CONF.CMDTTS === "undefined")
+ CONF.CMDTTS = CMDTTS;
 
 CONF.SERVEURS.forEach(function(serveur) {
  sockets[serveur] = IO.connect(serveur, {"connect timeout": 1000, transports: ["websocket"], path: "/" + PORTROBOTS + "/socket.io"});
@@ -357,7 +362,8 @@ function configurationVideo(callback) {
                                                            ).replace(new RegExp("BITRATE", "g"), confVideo.BITRATE
                                                            ).replace("ROTATION", confVideo.ROTATION
                                                            ).replace("PORTTCPVIDEO", PORTTCPVIDEO);
- cmdDiffAudio = CONF.CMDDIFFAUDIO.join("").replace("PORTTCPAUDIO", PORTTCPAUDIO);
+ cmdDiffAudio = CONF.CMDDIFFAUDIO.join("").replace("RECORDINGDEVICE", hard.RECORDINGDEVICE
+                                         ).replace("PORTTCPAUDIO", PORTTCPAUDIO);
 
  trace("Initialisation de la configuration Video4Linux");
 
@@ -436,6 +442,9 @@ CONF.SERVEURS.forEach(function(serveur, index) {
          CMDINT.test(data.hard.CAMERAS[i].BOOSTVIDEOCONTRASTE)))
      return;
    }
+   if(!(CMDINT.test(data.hard.PLAYBACKDEVICE) &&
+        CMDINT.test(data.hard.RECORDINGDEVICE)))
+    return;
 
    conf = data.conf;
    hard = data.hard;
@@ -580,7 +589,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   FS.writeFile("/tmp/tts.txt", data, function(err) {
    if(err)
     trace(err);
-   exec("eSpeak", "/usr/bin/espeak -v fr -f /tmp/tts.txt --stdout > /tmp/tts.wav", function(code) {
+   exec("eSpeak", CONF.CMDTTS, function(code) {
     exec("Aplay", "/usr/bin/aplay -D plughw:" + hard.PLAYBACKDEVICE + " /tmp/tts.wav", function(code) {
     });
    });
