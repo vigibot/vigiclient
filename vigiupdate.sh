@@ -17,7 +17,7 @@ abnormal() {
 }
 
 check() {
- before=$(date -r $1/$2 +%s || echo 0)
+ before=$(date -r $1/$2 +%s 2> /dev/null || echo 0)
  wget $BASEURL/$2 -P $1 -N -T 5 -t 5 > /dev/null 2>&1 || trace "$1/$2 wget error"
  after=$(date -r $1/$2 +%s)
 
