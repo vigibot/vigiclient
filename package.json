@@ -4,6 +4,7 @@
   "description": "Raspberry PI robot client for Vigibot.com",
   "main": "clientrobotpi.js",
   "dependencies": {
+    "gps": "^0.5.3",
     "i2c-bus": "^5.1.0",
     "pca9685": "^4.0.3",
     "pigpio": "^3.0.0",

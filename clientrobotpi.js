@@ -99,6 +99,7 @@ const SP = require("serialport");
 const GPIO = require("pigpio").Gpio;
 const I2C = require("i2c-bus");
 const PCA9685 = require("pca9685");
+const GPS = require("gps");
 
 const VERSION = Math.trunc(FS.statSync(__filename).mtimeMs);
 const PROCESSTIME = Date.now();
@@ -139,6 +140,7 @@ let boostVideo = false;
 let oldBoostVideo = false;
 
 let serial;
+let gps;
 
 let i2c;
 let gaugeType;
@@ -536,6 +538,28 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
    if(!initUart) {
     if(!hard.DEVTELECOMMANDE) {
+
+     if(hard.GPS) {
+      serial = new SP(hard.DEVROBOT, {
+       baudRate: hard.DEVDEBIT,
+       lock: false
+      });
+
+      serial.on("open", function() {
+       trace("Connecté sur " + hard.DEVROBOT);
+
+       gps = new GPS;
+
+       serial.on("data", function(data) {
+        gps.updatePartial(data);
+       });
+
+       gps.on("data", function(data) {
+        trace(gps.state);
+       });
+      });
+     }
+
      initUart = true;
      setInit();
     } else {
