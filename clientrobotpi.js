@@ -539,7 +539,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    if(!initUart) {
     if(!hard.DEVTELECOMMANDE) {
 
-     if(hard.GPS) {
+     if(hard.DEVGPS) {
       serial = new SP(hard.DEVROBOT, {
        baudRate: hard.DEVDEBIT,
        lock: false
