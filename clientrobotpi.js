@@ -542,7 +542,8 @@ CONF.SERVEURS.forEach(function(serveur, index) {
      if(hard.DEVGPS) {
       serial = new SP(hard.DEVROBOT, {
        baudRate: hard.DEVDEBIT,
-       lock: false
+       lock: false,
+       parser: new SP.parsers.Readline("\r\n")
       });
 
       serial.on("open", function() {
