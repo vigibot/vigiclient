@@ -554,10 +554,6 @@ CONF.SERVEURS.forEach(function(serveur, index) {
        serial.on("data", function(data) {
         gps.updatePartial(data);
        });
-
-       gps.on("data", function(data) {
-        trace(gps.state);
-       });
       });
      }
 
@@ -1009,10 +1005,19 @@ switch(gaugeType) {
 function setRxVals() {
  rx.setValeur16(0, voltage);
  rx.setValeur16(1, battery);
+ if(hard.DEVGPS) {
+  rx.setValeur16(2, gps.state.lat);
+  rx.setValeur16(3, gps.state.lon);
+ }
  rx.setValeur8(0, cpuLoad);
  rx.setValeur8(1, socTemp);
  rx.setValeur8(2, link);
  rx.setValeur8(3, rssi);
+ if(hard.DEVGPS && gps.state.satsActive) {
+  rx.setValeur8(4, gps.state.satsActive.length);
+  rx.setValeur8(5, gps.state.speed);
+  rx.setValeur8(6, gps.state.track);
+ }
 }
 
 setInterval(function() {
