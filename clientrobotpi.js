@@ -1003,12 +1003,12 @@ switch(gaugeType) {
 }
 
 function setRxVals() {
+ if(hard.DEVGPS) {
+  rx.setValeur32(0, gps.state.lat);
+  rx.setValeur32(1, gps.state.lon);
+ }
  rx.setValeur16(0, voltage);
  rx.setValeur16(1, battery);
- if(hard.DEVGPS) {
-  rx.setValeur16(2, gps.state.lat);
-  rx.setValeur16(3, gps.state.lon);
- }
  rx.setValeur8(0, cpuLoad);
  rx.setValeur8(1, socTemp);
  rx.setValeur8(2, link);
