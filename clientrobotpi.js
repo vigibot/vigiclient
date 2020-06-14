@@ -659,12 +659,6 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   lastTimestamp = data.boucleVideoCommande;
   latence = now - data.boucleVideoCommande;
 
-  debout(serveur);
-  clearTimeout(upTimeout);
-  upTimeout = setTimeout(function() {
-   dodo();
-  }, UPTIMEOUT);
-
   if(data.data[1] == FRAME1T) {
    trace("Réception d'une trame texte");
    if(hard.DEVTELECOMMANDE)
@@ -718,6 +712,12 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    }
    oldBoostVideo = boostVideo;
   }
+
+  debout(serveur);
+  clearTimeout(upTimeout);
+  upTimeout = setTimeout(function() {
+   dodo();
+  }, UPTIMEOUT);
 
   if(!hard.DEVTELEMETRIE) {
    for(let i = 0; i < conf.TX.POSITIONS.length; i++)
