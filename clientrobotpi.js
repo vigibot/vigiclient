@@ -1003,7 +1003,7 @@ switch(gaugeType) {
 }
 
 function setRxVals() {
- if(hard.DEVGPS && gps.state.lat) {
+ if(hard.DEVGPS && gps.state.lat !== null) {
   rx.setValeur32(0, gps.state.lat);
   rx.setValeur32(1, gps.state.lon);
  }
@@ -1013,10 +1013,12 @@ function setRxVals() {
  rx.setValeur8(1, socTemp);
  rx.setValeur8(2, link);
  rx.setValeur8(3, rssi);
- if(hard.DEVGPS && gps.state.satsActive) {
-  rx.setValeur8(4, gps.state.satsActive.length);
+ if(hard.DEVGPS) {
+  if(typeof gps.state.satsActive !== "undefined")
+   rx.setValeur8(4, gps.state.satsActive.length);
   rx.setValeur8(5, gps.state.speed);
-  rx.setValeur8(6, gps.state.track);
+  if(gps.state.track !== null)
+   rx.setValeur8(6, gps.state.track);
  }
 }
 
