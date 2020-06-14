@@ -1003,7 +1003,7 @@ switch(gaugeType) {
 }
 
 function setRxVals() {
- if(hard.DEVGPS) {
+ if(hard.DEVGPS && gps.state.lat) {
   rx.setValeur32(0, gps.state.lat);
   rx.setValeur32(1, gps.state.lon);
  }
