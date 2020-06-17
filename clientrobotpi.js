@@ -675,18 +675,6 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   } else if(hard.DEVTELECOMMANDE)
    serial.write(data.data);
 
-  confVideo = hard.CAMERAS[tx.choixCameras[0]];
-  if(JSON.stringify(confVideo) != JSON.stringify(oldConfVideo)) {
-   sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
-    sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
-     configurationVideo(function(code) {
-      diffusion();
-     });
-    });
-   });
-   oldConfVideo = confVideo;
-  }
-
   for(let i = 0; i < hard.MOTEURS.length; i++)
    setMoteur(i);
 
@@ -711,6 +699,19 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     });
    }
    oldBoostVideo = boostVideo;
+  }
+
+  confVideo = hard.CAMERAS[tx.choixCameras[0]];
+  if(confVideo != oldConfVideo &&
+     JSON.stringify(confVideo) != JSON.stringify(oldConfVideo)) {
+   sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
+    sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
+     configurationVideo(function(code) {
+      diffusion();
+     });
+    });
+   });
+   oldConfVideo = confVideo;
   }
 
   debout(serveur);
