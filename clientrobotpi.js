@@ -704,13 +704,18 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   confVideo = hard.CAMERAS[tx.choixCameras[0]];
   if(confVideo != oldConfVideo &&
      JSON.stringify(confVideo) != JSON.stringify(oldConfVideo)) {
-   sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
-    sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
-     configurationVideo(function(code) {
-      diffusion();
+   if(up) {
+    sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
+     sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
+      configurationVideo(function(code) {
+       diffusion();
+      });
      });
     });
-   });
+   } else {
+    configurationVideo(function(code) {
+    });
+   }
    oldConfVideo = confVideo;
   }
 
