@@ -465,8 +465,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    for(let i = 0; i < hard.MOTEURS.length; i++) {
     oldMoteurs[i] = 0;
     rattrapages[i] = 0;
-    if(typeof rampes[i] !== "undefined")
-     rampes[i] = 0;
+    rampes[i] = 0;
    }
 
    oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
