@@ -132,8 +132,10 @@ let alarmeLatence = false;
 
 let oldPositions = [];
 let oldVitesses = [];
+let moteurs = [];
 let oldMoteurs = [];
-let rattrapage = [];
+let rattrapages = [];
+let rampes = [];
 let oldTxInterrupteurs;
 
 let boostVideo = false;
@@ -462,7 +464,9 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
    for(let i = 0; i < hard.MOTEURS.length; i++) {
     oldMoteurs[i] = 0;
-    rattrapage[i] = 0;
+    rattrapages[i] = 0;
+    if(typeof rampes[i] !== "undefined")
+     rampes[i] = 0;
    }
 
    oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
@@ -791,44 +795,65 @@ function setMotorFrequency(n) {
 }
 
 function setMoteur(n) {
- let moteur = 0;
+ moteurs[n] = 0;
 
  for(let i = 0; i < conf.TX.POSITIONS.length; i++)
-  moteur += (tx.positions[i] - 0x8000) * hard.MIXAGES[n].POSITIONS[i];
+  moteurs[n] += (tx.positions[i] - 0x8000) * hard.MIXAGES[n].POSITIONS[i];
 
  for(let i = 0; i < conf.TX.VITESSES.length; i++)
-  moteur += tx.vitesses[i] * hard.MIXAGES[n].VITESSES[i] * 0x100;
+  moteurs[n] += tx.vitesses[i] * hard.MIXAGES[n].VITESSES[i] * 0x100;
 
- if(moteur != oldMoteurs[n]) {
-  if(moteur < oldMoteurs[n])
-   rattrapage[n] = -hard.MOTEURS[n].RATTRAPAGE * 0x10000 / 360;
-  else if(moteur > oldMoteurs[n])
-   rattrapage[n] = hard.MOTEURS[n].RATTRAPAGE * 0x10000 / 360;
+ if(moteurs[n] != oldMoteurs[n]) {
+  if(moteurs[n] < oldMoteurs[n])
+   rattrapages[n] = -hard.MOTEURS[n].RATTRAPAGE * 0x10000 / 360;
+  else if(moteurs[n] > oldMoteurs[n])
+   rattrapages[n] = hard.MOTEURS[n].RATTRAPAGE * 0x10000 / 360;
+  oldMoteurs[n] = moteurs[n];
+ }
+}
 
-  let consigne = Math.trunc(constrain(moteur + rattrapage[n] + hard.MOTEURS[n].OFFSET * 0x10000 / 360, -hard.MOTEURS[n].COURSE * 0x8000 / 360,
-                                                                                                        hard.MOTEURS[n].COURSE * 0x8000 / 360));
+setInterval(function() {
+ if(!up || !init)
+  return;
 
-  switch(hard.MOTEURS[n].TYPE) {
+ for(let i = 0; i < hard.MOTEURS.length; i++) {
+  if(rampes[i] == moteurs[i])
+   continue;
+
+  let delta = hard.MOTEURS[i].RAMPE;
+
+  if(delta <= 0)
+   rampes[i] = moteurs[i];
+  else if(moteurs[i] - rampes[i] > delta)
+   rampes[i] += delta;
+  else if(moteurs[i] - rampes[i] < -delta)
+   rampes[i] -= delta;
+  else
+   rampes[i] = moteurs[i];
+
+  let consigne = Math.trunc(constrain(rampes[i] + rattrapages[i] + hard.MOTEURS[i].OFFSET * 0x10000 / 360, -hard.MOTEURS[i].COURSE * 0x8000 / 360,
+                                                                                                            hard.MOTEURS[i].COURSE * 0x8000 / 360));
+
+  switch(hard.MOTEURS[i].TYPE) {
    case PCASERVO:
-    pca9685Driver[hard.MOTEURS[n].ADRESSE].setPulseLength(hard.MOTEURS[n].PINS[0], computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
+    pca9685Driver[hard.MOTEURS[i].ADRESSE].setPulseLength(hard.MOTEURS[i].PINS[0], computePwm(i, consigne, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
     break;
    case SERVO:
-    gpioMoteurs[n][0].servoWrite(computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
+    gpioMoteurs[i][0].servoWrite(computePwm(i, consigne, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
     break;
    case L9110:
-    l9110MotorDrive(n, computePwm(n, consigne, -255, 255));
+    l9110MotorDrive(i, computePwm(i, consigne, -255, 255));
     break;
    case L298:
-    l298MotorDrive(n, computePwm(n, consigne, -255, 255));
+    l298MotorDrive(i, computePwm(i, consigne, -255, 255));
     break;
    case PCAL298:
-    pca9685MotorDrive(n, computePwm(n, consigne, -100, 100));
+    pca9685MotorDrive(i, computePwm(i, consigne, -100, 100));
     break;
   }
 
-  oldMoteurs[n] = moteur;
  }
-}
+}, TXRATE);
 
 function l298MotorDrive(n, consigne) {
  let pwm;
