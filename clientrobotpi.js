@@ -105,6 +105,8 @@ const VERSION = Math.trunc(FS.statSync(__filename).mtimeMs);
 const PROCESSTIME = Date.now();
 const OSTIME = PROCESSTIME - OS.uptime() * 1000;
 
+const MARGENEUTRE = 2;
+
 let sockets = {};
 let serveurCourant = "";
 
@@ -136,6 +138,7 @@ let moteurs = [];
 let oldMoteurs = [];
 let rattrapages = [];
 let rampes = [];
+let moteursInit = [];
 let oldTxInterrupteurs;
 
 let boostVideo = false;
@@ -466,6 +469,12 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     oldMoteurs[i] = 0;
     rattrapages[i] = 0;
     rampes[i] = 0;
+
+    moteursInit[i] = 0
+    for(let j = 0; j < conf.TX.POSITIONS.length; j++)
+     moteursInit[i] += conf.TX.POSITIONS[j] * hard.MIXAGES[i].POSITIONS[j] * 0x10000 / 360;
+    for(let j = 0; j < conf.TX.VITESSES.length; j++)
+     moteursInit[i] += conf.TX.VITESSES[j] * hard.MIXAGES[i].VITESSES[j] * 0x100;
    }
 
    oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
@@ -770,9 +779,9 @@ function computePwm(n, consigne, min, max) {
  let pwm;
  let pwmNeutre = (min + max) / 2 + hard.MOTEURS[n].OFFSET;
 
- if(consigne < -2)
+ if(consigne < -MARGENEUTRE)
   pwm = map(consigne, -hard.MOTEURS[n].COURSE * 0x8000 / 360, 0, min, pwmNeutre + hard.MOTEURS[n].NEUTREAR);
- else if(consigne > 2)
+ else if(consigne > MARGENEUTRE)
   pwm = map(consigne, 0, hard.MOTEURS[n].COURSE * 0x8000 / 360, pwmNeutre + hard.MOTEURS[n].NEUTREAV, max);
  else
   pwm = pwmNeutre;
@@ -794,10 +803,8 @@ function setMotorFrequency(n) {
 
 function setMoteur(n) {
  moteurs[n] = 0;
-
  for(let i = 0; i < conf.TX.POSITIONS.length; i++)
   moteurs[n] += (tx.positions[i] - 0x8000) * hard.MIXAGES[n].POSITIONS[i];
-
  for(let i = 0; i < conf.TX.VITESSES.length; i++)
   moteurs[n] += tx.vitesses[i] * hard.MIXAGES[n].VITESSES[i] * 0x100;
 
@@ -818,7 +825,11 @@ setInterval(function() {
   if(rampes[i] == moteurs[i])
    continue;
 
-  let delta = hard.MOTEURS[i].RAMPE;
+  let delta;
+  if(Math.abs(moteurs[i] - moteursInit[i]) < MARGENEUTRE)
+   delta = hard.MOTEURS[i].FREIN;
+  else
+   delta = hard.MOTEURS[i].RAMPE;
 
   if(delta <= 0)
    rampes[i] = moteurs[i];
