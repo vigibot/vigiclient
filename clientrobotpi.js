@@ -718,11 +718,11 @@ CONF.SERVEURS.forEach(function(serveur, index) {
      }
      oldConfVideo = confVideo;
     }
-   } else {
-    trace("Réception d'une trame texte");
-    if(hard.DEVTELECOMMANDE)
-     serial.write(data.data);
    }
+  } else {
+   trace("Réception d'une trame texte");
+   if(hard.DEVTELECOMMANDE)
+    serial.write(data.data);
   }
 
   debout(serveur);
