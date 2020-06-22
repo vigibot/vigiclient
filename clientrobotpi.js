@@ -670,7 +670,6 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    if(latence > LATENCEDEBUTALARME) {
     //trace("Réception d'une trame avec trop de latence");
     failSafe();
-    return;
    } else {
 
     if(hard.DEVTELECOMMANDE)
