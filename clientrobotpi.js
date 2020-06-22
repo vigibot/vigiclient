@@ -916,6 +916,9 @@ function failSafe() {
  for(let i = 0; i < conf.TX.VITESSES.length; i++)
   tx.vitesses[i] = conf.TX.VITESSES[i];
 
+ for(let i = 0; i < conf.TX.POSITIONS.length; i++)
+  tx.positions[i] = conf.TX.POSITIONS[i];
+
  for(let i = 0; i < hard.MOTEURS.length; i++)
   if(hard.MOTEURS[i].FAILSAFE)
    setMoteur(i);
