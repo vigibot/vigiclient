@@ -663,14 +663,17 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   lastTimestamp = data.boucleVideoCommande;
   latence = now - data.boucleVideoCommande;
 
+  if(latence > LATENCEDEBUTALARME) {
+   //trace("Réception d'une trame avec trop de latence");
+   failSafe();
+   return;
+  }
+
   if(data.data[1] == FRAME1S) {
    for(let i = 0; i < tx.byteLength; i++)
     tx.bytes[i] = data.data[i];
 
-   if(latence > LATENCEDEBUTALARME) {
-    //trace("Réception d'une trame avec trop de latence");
-    failSafe();
-   } else if(hard.DEVTELECOMMANDE)
+   if(hard.DEVTELECOMMANDE)
     serial.write(data.data);
 
    for(let i = 0; i < hard.MOTEURS.length; i++)
