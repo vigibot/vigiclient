@@ -913,6 +913,9 @@ function pca9685MotorDrive(n, consigne) {
 }
 
 function failSafe() {
+ for(let i = 0; i < conf.TX.POSITIONS.length; i++)
+  tx.positions[i] = (conf.TX.POSITIONS[i] + 180) * 0x10000 / 360;
+
  for(let i = 0; i < conf.TX.VITESSES.length; i++)
   tx.vitesses[i] = conf.TX.VITESSES[i];
 
