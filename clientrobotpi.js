@@ -132,8 +132,6 @@ let latence = 0;
 let lastTrame = Date.now();
 let alarmeLatence = false;
 
-let oldPositions = [];
-let oldVitesses = [];
 let moteurs = [];
 let oldMoteurs = [];
 let rattrapages = [];
@@ -458,12 +456,6 @@ CONF.SERVEURS.forEach(function(serveur, index) {
 
    tx = new TRAME.Tx(conf.TX);
    rx = new TRAME.Rx(conf.TX, conf.RX);
-
-   for(let i = 0; i < conf.TX.POSITIONS.length; i++)
-    oldPositions[i] = tx.positions[i] + 1;
-
-   for(let i = 0; i < conf.TX.VITESSES.length; i++)
-    oldVitesses[i] = tx.vitesses[i] + 1;
 
    for(let i = 0; i < hard.MOTEURS.length; i++) {
     oldMoteurs[i] = 0;
