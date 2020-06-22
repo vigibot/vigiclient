@@ -663,66 +663,67 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   lastTimestamp = data.boucleVideoCommande;
   latence = now - data.boucleVideoCommande;
 
-  if(latence > LATENCEDEBUTALARME) {
-   //trace("Réception d'une trame avec trop de latence");
-   failSafe();
-   return;
-  }
-
   if(data.data[1] == FRAME1S) {
    for(let i = 0; i < tx.byteLength; i++)
     tx.bytes[i] = data.data[i];
 
-   if(hard.DEVTELECOMMANDE)
-    serial.write(data.data);
+   if(latence > LATENCEDEBUTALARME) {
+    //trace("Réception d'une trame avec trop de latence");
+    failSafe();
+    return;
+   } else {
 
-   for(let i = 0; i < hard.MOTEURS.length; i++)
-    setMoteur(i);
+    if(hard.DEVTELECOMMANDE)
+     serial.write(data.data);
 
-   if(tx.interrupteurs[0] != oldTxInterrupteurs) {
-    for(let i = 0; i < 8; i++) {
-     let etat = tx.interrupteurs[0] >> i & 1;
-     setGpio(i, etat);
-     if(i == hard.INTERRUPTEURBOOSTVIDEO)
-      boostVideo = etat;
+    for(let i = 0; i < hard.MOTEURS.length; i++)
+     setMoteur(i);
+
+    if(tx.interrupteurs[0] != oldTxInterrupteurs) {
+     for(let i = 0; i < 8; i++) {
+      let etat = tx.interrupteurs[0] >> i & 1;
+      setGpio(i, etat);
+      if(i == hard.INTERRUPTEURBOOSTVIDEO)
+       boostVideo = etat;
+     }
+     oldTxInterrupteurs = tx.interrupteurs[0]
     }
-    oldTxInterrupteurs = tx.interrupteurs[0]
-   }
 
-   if(boostVideo != oldBoostVideo) {
-    if(boostVideo) {
-     exec("v4l2-ctl", V4L2 + " -c brightness=" + confVideo.BOOSTVIDEOLUMINOSITE +
-                                ",contrast=" + confVideo.BOOSTVIDEOCONTRASTE, function(code) {
-     });
-    } else {
-     exec("v4l2-ctl", V4L2 + " -c brightness=" + confVideo.LUMINOSITE +
-                                ",contrast=" + confVideo.CONTRASTE, function(code) {
-     });
+    if(boostVideo != oldBoostVideo) {
+     if(boostVideo) {
+      exec("v4l2-ctl", V4L2 + " -c brightness=" + confVideo.BOOSTVIDEOLUMINOSITE +
+                                 ",contrast=" + confVideo.BOOSTVIDEOCONTRASTE, function(code) {
+      });
+     } else {
+      exec("v4l2-ctl", V4L2 + " -c brightness=" + confVideo.LUMINOSITE +
+                                 ",contrast=" + confVideo.CONTRASTE, function(code) {
+      });
+     }
+     oldBoostVideo = boostVideo;
     }
-    oldBoostVideo = boostVideo;
-   }
 
-   confVideo = hard.CAMERAS[tx.choixCameras[0]];
-   if(confVideo != oldConfVideo &&
-      JSON.stringify(confVideo) != JSON.stringify(oldConfVideo)) {
-    if(up) {
-     sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
-      sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
-       configurationVideo(function(code) {
-        diffusion();
+    confVideo = hard.CAMERAS[tx.choixCameras[0]];
+    if(confVideo != oldConfVideo &&
+       JSON.stringify(confVideo) != JSON.stringify(oldConfVideo)) {
+     if(up) {
+      sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
+       sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
+        configurationVideo(function(code) {
+         diffusion();
+        });
        });
       });
-     });
-    } else {
-     configurationVideo(function(code) {
-     });
+     } else {
+      configurationVideo(function(code) {
+      });
+     }
+     oldConfVideo = confVideo;
     }
-    oldConfVideo = confVideo;
+   } else {
+    trace("Réception d'une trame texte");
+    if(hard.DEVTELECOMMANDE)
+     serial.write(data.data);
    }
-  } else {
-   trace("Réception d'une trame texte");
-   if(hard.DEVTELECOMMANDE)
-    serial.write(data.data);
   }
 
   debout(serveur);
