@@ -675,7 +675,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    for(let i = 0; i < tx.byteLength; i++)
     tx.bytes[i] = data.data[i];
 
-   if(latence > LATENCEDEBUTALARME) {
+   if(up && latence > LATENCEDEBUTALARME) {
     //trace("Réception d'une trame avec trop de latence");
     failSafe();
    } else {
