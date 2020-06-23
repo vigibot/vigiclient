@@ -220,19 +220,24 @@ function heure(date) {
 }
 
 function trace(message) {
- let trace = heure(new Date());
+ if(hard.DEBUG) {
+  let trace = heure(new Date()) + " | " + message;
+  FS.appendFile(FICHIERLOG, trace + "\n", function(err) {
+  });
+ }
 
- trace += " | " + message;
-
- FS.appendFile(FICHIERLOG, trace + "\n", function(err) {
- });
-
- CONF.SERVEURS.forEach(function(serveur) {
-  sockets[serveur].emit("serveurrobottrace", message);
- });
+ if(hard.TELEDEBUG) {
+  let trace = heure(new Date()) + " | " + message;
+  CONF.SERVEURS.forEach(function(serveur) {
+   sockets[serveur].emit("serveurrobottrace", message);
+  });
+ }
 }
 
 function traces(id, messages) {
+ if(!hard.DEBUG && !hard.TELEDEBUG)
+  return;
+
  let tableau = messages.split("\n");
  if(!tableau[tableau.length - 1])
   tableau.pop();
