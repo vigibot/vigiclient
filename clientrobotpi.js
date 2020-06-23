@@ -118,8 +118,8 @@ let initVideo = false;
 let initUart = false;
 let initPca = 0;
 
-let conf;
-let hard;
+let conf = {};
+let hard = {};
 let tx;
 let rx;
 let confVideo;
@@ -174,6 +174,9 @@ if(typeof CONF.CMDTTS === "undefined")
 CONF.SERVEURS.forEach(function(serveur) {
  sockets[serveur] = IO.connect(serveur, {"connect timeout": 1000, transports: ["websocket"], path: "/" + PORTROBOTS + "/socket.io"});
 });
+
+hard.DEBUG = true;
+hard.TELEDEBUG = false;
 
 trace("Démarrage du client");
 
