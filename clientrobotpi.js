@@ -105,7 +105,7 @@ const VERSION = Math.trunc(FS.statSync(__filename).mtimeMs);
 const PROCESSTIME = Date.now();
 const OSTIME = PROCESSTIME - OS.uptime() * 1000;
 
-const MARGENEUTRE = 2;
+const MARGENEUTRE = 0.5;
 
 let sockets = {};
 let serveurCourant = "";
@@ -131,6 +131,9 @@ let lastTimestamp = Date.now();
 let latence = 0;
 let lastTrame = Date.now();
 let alarmeLatence = false;
+
+let floatCommandes16 = [];
+let floatCommandes8 = [];
 
 let moteurs = [];
 let oldMoteurs = [];
@@ -332,11 +335,11 @@ function dodo() {
 
  trace("Mise en veille du robot");
 
- for(let i = 0; i < conf.TX.POSITIONS.length; i++)
-  tx.positions[i] = (conf.TX.POSITIONS[i] + 180) * 0x10000 / 360;
+ for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
+  floatCommandes16[i] = conf.TX.COMMANDES16[i].INIT;
 
- for(let i = 0; i < conf.TX.VITESSES.length; i++)
-  tx.vitesses[i] = conf.TX.VITESSES[i];
+ for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
+  floatCommandes8[i] = conf.TX.COMMANDES8[i].INIT;
 
  for(let i = 0; i < hard.MOTEURS.length; i++) {
   if(hard.MOTEURS[i].FAILSAFE)
@@ -465,16 +468,22 @@ CONF.SERVEURS.forEach(function(serveur, index) {
    tx = new TRAME.Tx(conf.TX);
    rx = new TRAME.Rx(conf.TX, conf.RX);
 
+   for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
+    floatCommandes16[i] = conf.TX.COMMANDES16[i].INIT;
+
+   for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
+    floatCommandes8[i] = conf.TX.COMMANDES8[i].INIT;
+
    for(let i = 0; i < hard.MOTEURS.length; i++) {
     oldMoteurs[i] = 0;
     rattrapages[i] = 0;
     rampes[i] = 0;
 
     moteursInit[i] = 0
-    for(let j = 0; j < conf.TX.POSITIONS.length; j++)
-     moteursInit[i] += conf.TX.POSITIONS[j] * hard.MIXAGES[i].POSITIONS[j] * 0x10000 / 360;
-    for(let j = 0; j < conf.TX.VITESSES.length; j++)
-     moteursInit[i] += conf.TX.VITESSES[j] * hard.MIXAGES[i].VITESSES[j] * 0x100;
+    for(let j = 0; j < conf.TX.COMMANDES16.length; j++)
+     moteursInit[i] += floatCommandes16[j] * hard.MIXAGES[i].POSITIONS[j];
+    for(let j = 0; j < conf.TX.COMMANDES8.length; j++)
+     moteursInit[i] += floatCommandes8[j] * hard.MIXAGES[i].VITESSES[j];
    }
 
    oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
@@ -683,6 +692,12 @@ CONF.SERVEURS.forEach(function(serveur, index) {
     if(hard.DEVTELECOMMANDE)
      serial.write(data.data);
 
+    for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
+     floatCommandes16[i] = tx.getFloatCommande16(i);
+
+    for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
+     floatCommandes8[i] = tx.getFloatCommande8(i);
+
     for(let i = 0; i < hard.MOTEURS.length; i++)
      setMoteur(i);
 
@@ -740,11 +755,11 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   }, UPTIMEOUT);
 
   if(!hard.DEVTELEMETRIE) {
-   for(let i = 0; i < conf.TX.POSITIONS.length; i++)
-    rx.positions[i] = tx.positions[i];
+   for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
+    rx.commandesInt16[i] = tx.commandesInt16[i];
    rx.choixCameras[0] = tx.choixCameras[0];
-   for(let i = 0; i < conf.TX.VITESSES.length; i++)
-    rx.vitesses[i] = tx.vitesses[i];
+   for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
+    rx.commandesInt8[i] = tx.commandesInt8[i];
    rx.interrupteurs[0] = tx.interrupteurs[0];
 
    setRxVals();
@@ -780,12 +795,12 @@ function setGpio(n, etat) {
 
 function computePwm(n, consigne, min, max) {
  let pwm;
- let pwmNeutre = (min + max) / 2 + hard.MOTEURS[n].OFFSET;
+ let pwmNeutre = (min + max) / 2;
 
  if(consigne < -MARGENEUTRE)
-  pwm = map(consigne, -hard.MOTEURS[n].COURSE * 0x8000 / 360, 0, min, pwmNeutre + hard.MOTEURS[n].NEUTREAR);
+  pwm = map(consigne, -hard.MOTEURS[n].COURSE / 2, 0, min, pwmNeutre + hard.MOTEURS[n].NEUTREAR);
  else if(consigne > MARGENEUTRE)
-  pwm = map(consigne, 0, hard.MOTEURS[n].COURSE * 0x8000 / 360, pwmNeutre + hard.MOTEURS[n].NEUTREAV, max);
+  pwm = map(consigne, 0, hard.MOTEURS[n].COURSE / 2, pwmNeutre + hard.MOTEURS[n].NEUTREAV, max);
  else
   pwm = pwmNeutre;
 
@@ -806,16 +821,16 @@ function setMotorFrequency(n) {
 
 function setMoteur(n) {
  moteurs[n] = 0;
- for(let i = 0; i < conf.TX.POSITIONS.length; i++)
-  moteurs[n] += (tx.positions[i] - 0x8000) * hard.MIXAGES[n].POSITIONS[i];
- for(let i = 0; i < conf.TX.VITESSES.length; i++)
-  moteurs[n] += tx.vitesses[i] * hard.MIXAGES[n].VITESSES[i] * 0x100;
+ for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
+  moteurs[n] += floatCommandes16[i] * hard.MIXAGES[n].POSITIONS[i];
+ for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
+  moteurs[n] += floatCommandes8[i] * hard.MIXAGES[n].VITESSES[i];
 
  if(moteurs[n] != oldMoteurs[n]) {
   if(moteurs[n] < oldMoteurs[n])
-   rattrapages[n] = -hard.MOTEURS[n].RATTRAPAGE * 0x10000 / 360;
+   rattrapages[n] = -hard.MOTEURS[n].RATTRAPAGE;
   else if(moteurs[n] > oldMoteurs[n])
-   rattrapages[n] = hard.MOTEURS[n].RATTRAPAGE * 0x10000 / 360;
+   rattrapages[n] = hard.MOTEURS[n].RATTRAPAGE;
   oldMoteurs[n] = moteurs[n];
  }
 }
@@ -843,8 +858,8 @@ setInterval(function() {
   else
    rampes[i] = moteurs[i];
 
-  let consigne = Math.trunc(constrain(rampes[i] + rattrapages[i] + hard.MOTEURS[i].OFFSET * 0x10000 / 360, -hard.MOTEURS[i].COURSE * 0x8000 / 360,
-                                                                                                            hard.MOTEURS[i].COURSE * 0x8000 / 360));
+  let consigne = Math.trunc(constrain(rampes[i] + rattrapages[i] + hard.MOTEURS[i].OFFSET, -hard.MOTEURS[i].COURSE / 2,
+                                                                                            hard.MOTEURS[i].COURSE / 2));
 
   switch(hard.MOTEURS[i].TYPE) {
    case PCASERVO:
@@ -924,11 +939,12 @@ function pca9685MotorDrive(n, consigne) {
 }
 
 function failSafe() {
- for(let i = 0; i < conf.TX.POSITIONS.length; i++)
-  tx.positions[i] = (conf.TX.POSITIONS[i] + 180) * 0x10000 / 360;
 
- for(let i = 0; i < conf.TX.VITESSES.length; i++)
-  tx.vitesses[i] = conf.TX.VITESSES[i];
+ for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
+  floatCommandes16[i] = conf.TX.COMMANDES16[i].INIT;
+
+ for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
+  floatCommandes8[i] = conf.TX.COMMANDES8[i].INIT;
 
  for(let i = 0; i < hard.MOTEURS.length; i++)
   if(hard.MOTEURS[i].FAILSAFE)
