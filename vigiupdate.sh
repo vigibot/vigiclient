@@ -78,6 +78,7 @@ then
 fi
 
 check $BASEDIR clientrobotpi.js
+check $BASEDIR sys.js
 check $BASEDIR trame.js
 
 if [ $updated == "yes" ]

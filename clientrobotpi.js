@@ -1,92 +1,9 @@
 "use strict";
 
 const USER = require("/boot/robot.json");
+const SYS = require("./sys.json");
 
 const TRAME = require("./trame.js");
-
-const PORTROBOTS = 8042;
-const PORTTCPVIDEO = 8043;
-const PORTTCPAUDIO = 8044;
-
-const FICHIERLOG = "/var/log/vigiclient.log";
-
-const INTERFACEWIFI = "wlan0";
-const FICHIERWIFI = "/proc/net/wireless";
-const FICHIERTEMPERATURE = "/sys/class/thermal/thermal_zone0/temp";
-const CPURATE = 250;
-const TEMPERATURERATE = 1000;
-const WIFIRATE = 250;
-
-const PROCESSDIFFUSION = "/usr/local/vigiclient/processdiffusion";
-const PROCESSDIFFVIDEO = "/usr/local/vigiclient/processdiffvideo";
-const PROCESSDIFFAUDIO = "/usr/local/vigiclient/processdiffaudio";
-
-const CMDINT = RegExp(/^-?\d{1,10}$/);
-
-const CMDDIFFUSION = [
- [
-  PROCESSDIFFUSION,
-  " /dev/video0",
-  " | /bin/nc 127.0.0.1 PORTTCPVIDEO",
-  " -w 2"
- ], [
-  PROCESSDIFFVIDEO,
-  " -loglevel fatal",
-  " -f fbdev",
-  " -r FPS",
-  " -i /dev/fb0",
-  " -c:v h264_omx",
-  " -profile:v baseline",
-  " -b:v BITRATE",
-  " -flags:v +global_header",
-  " -bsf:v dump_extra",
-  " -f rawvideo",
-  " tcp://127.0.0.1:PORTTCPVIDEO"
- ]
-];
-
-const CMDDIFFAUDIO = [
- PROCESSDIFFAUDIO,
- " -loglevel fatal",
- " -f alsa",
- " -ac 1",
- " -i hw:RECORDINGDEVICE,0",
- " -ar 16000",
- " -c:a pcm_s16le",
- " -f s16le",
- " tcp://127.0.0.1:PORTTCPAUDIO"
-];
-
-const CMDTTS = "/usr/bin/espeak -v fr -f /tmp/tts.txt --stdout | /usr/bin/aplay -D plughw:PLAYBACKDEVICE";
-
-const FRAME0 = "$".charCodeAt();
-const FRAME1S = "S".charCodeAt();
-const FRAME1T = "T".charCodeAt();
-
-const UPTIMEOUT = 5000;
-const V4L2 = "/usr/bin/v4l2-ctl";
-const LATENCEFINALARME = 250;
-const LATENCEDEBUTALARME = 500;
-const BITRATEVIDEOFAIBLE = 100000;
-const TXRATE = 50;
-const BEACONRATE = 10000;
-
-const SEPARATEURNALU = new Buffer.from([0, 0, 0, 1]);
-
-const CW2015ADDRESS = 0x62;
-const CW2015WAKEUP = new Buffer.from([0x0a, 0x00]);
-const MAX17043ADDRESS = 0x36;
-const BQ27441ADDRESS = 0x55;
-const GAUGERATE = 250;
-
-const PCA9685FREQUENCY = 50;
-
-const UNUSED = -1;
-const SERVO = 0;
-const PCASERVO = 1;
-const L9110 = 2;
-const L298 = 3;
-const PCAL298 = 4;
 
 const OS = require("os");
 const FS = require("fs");
@@ -101,11 +18,13 @@ const I2C = require("i2c-bus");
 const PCA9685 = require("pca9685");
 const GPS = require("gps");
 
+const FRAME0 = "$".charCodeAt();
+const FRAME1S = "S".charCodeAt();
+const FRAME1T = "T".charCodeAt();
+
 const VERSION = Math.trunc(FS.statSync(__filename).mtimeMs);
 const PROCESSTIME = Date.now();
 const OSTIME = PROCESSTIME - OS.uptime() * 1000;
-
-const MARGENEUTRE = 0.5;
 
 let sockets = {};
 let serveurCourant = "";
@@ -166,16 +85,16 @@ let link = 0;
 let rssi = 0;
 
 if(typeof USER.CMDDIFFUSION === "undefined")
- USER.CMDDIFFUSION = CMDDIFFUSION;
+ USER.CMDDIFFUSION = SYS.CMDDIFFUSION;
 
 if(typeof USER.CMDDIFFAUDIO === "undefined")
- USER.CMDDIFFAUDIO = CMDDIFFAUDIO;
+ USER.CMDDIFFAUDIO = SYS.CMDDIFFAUDIO;
 
 if(typeof USER.CMDTTS === "undefined")
- USER.CMDTTS = CMDTTS;
+ USER.CMDTTS = SYS.CMDTTS;
 
 USER.SERVEURS.forEach(function(serveur) {
- sockets[serveur] = IO.connect(serveur, {"connect timeout": 1000, transports: ["websocket"], path: "/" + PORTROBOTS + "/socket.io"});
+ sockets[serveur] = IO.connect(serveur, {"connect timeout": 1000, transports: ["websocket"], path: "/" + SYS.PORTROBOTS + "/socket.io"});
 });
 
 hard.DEBUG = true;
@@ -186,15 +105,16 @@ trace("Démarrage du client");
 i2c = I2C.openSync(1);
 
 try {
- i2c.i2cWriteSync(CW2015ADDRESS, 2, CW2015WAKEUP);
+ const CW2015WAKEUP = new Buffer.from([0x0a, 0x00]);
+ i2c.i2cWriteSync(SYS.CW2015ADDRESS, 2, CW2015WAKEUP);
  gaugeType = "CW2015";
 } catch(err) {
  try {
-  i2c.readWordSync(MAX17043ADDRESS, 0x02);
+  i2c.readWordSync(SYS.MAX17043ADDRESS, 0x02);
   gaugeType = "MAX17043";
  } catch(err) {
   try {
-   i2c.readWordSync(BQ27441ADDRESS, 0x04);
+   i2c.readWordSync(SYS.BQ27441ADDRESS, 0x04);
    gaugeType = "BQ27441";
   } catch(err) {
    i2c.closeSync();
@@ -228,7 +148,7 @@ function heure(date) {
 function trace(message) {
  if(hard.DEBUG) {
   let trace = heure(new Date()) + " | " + message;
-  FS.appendFile(FICHIERLOG, trace + "\n", function(err) {
+  FS.appendFile(SYS.FICHIERLOG, trace + "\n", function(err) {
   });
  }
 
@@ -356,15 +276,15 @@ function dodo() {
 
  rx.interrupteurs[0] = 0;
 
- sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
-  sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
+ sigterm("Diffusion", SYS.PROCESSDIFFUSION, function(code) {
+  sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function(code) {
   });
  });
 
- sigterm("DiffAudio", PROCESSDIFFAUDIO, function(code) {
+ sigterm("DiffAudio", SYS.PROCESSDIFFAUDIO, function(code) {
  });
 
- exec("v4l2-ctl", V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function(code) {
+ exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function(code) {
  });
 
  serveurCourant = "";
@@ -377,9 +297,9 @@ function configurationVideo(callback) {
                                                            ).replace(new RegExp("FPS", "g"), confVideo.FPS
                                                            ).replace(new RegExp("BITRATE", "g"), confVideo.BITRATE
                                                            ).replace("ROTATION", confVideo.ROTATION
-                                                           ).replace("PORTTCPVIDEO", PORTTCPVIDEO);
+                                                           ).replace("PORTTCPVIDEO", SYS.PORTTCPVIDEO);
  cmdDiffAudio = USER.CMDDIFFAUDIO.join("").replace("RECORDINGDEVICE", hard.RECORDINGDEVICE
-                                         ).replace("PORTTCPAUDIO", PORTTCPAUDIO);
+                                         ).replace("PORTTCPAUDIO", SYS.PORTTCPAUDIO);
 
  trace("Initialisation de la configuration Video4Linux");
 
@@ -393,16 +313,16 @@ function configurationVideo(callback) {
   contraste = confVideo.CONTRASTE;
  }
 
- exec("v4l2-ctl", V4L2 + " -v width=" + confVideo.WIDTH +
-                            ",height=" + confVideo.HEIGHT +
-                            ",pixelformat=4" +
-                         " -p " + confVideo.FPS +
-                         " -c h264_profile=0" +
-                            ",repeat_sequence_header=1" +
-                            ",rotate=" + confVideo.ROTATION +
-                            ",video_bitrate=" + confVideo.BITRATE +
-                            ",brightness=" + luminosite +
-                            ",contrast=" + contraste, function(code) {
+ exec("v4l2-ctl", SYS.V4L2 + " -v width=" + confVideo.WIDTH +
+                                ",height=" + confVideo.HEIGHT +
+                                ",pixelformat=4" +
+                             " -p " + confVideo.FPS +
+                             " -c h264_profile=0" +
+                                ",repeat_sequence_header=1" +
+                                ",rotate=" + confVideo.ROTATION +
+                                ",video_bitrate=" + confVideo.BITRATE +
+                                ",brightness=" + luminosite +
+                                ",contrast=" + contraste, function(code) {
   callback(code);
  });
 }
@@ -424,7 +344,7 @@ function diffAudio() {
 USER.SERVEURS.forEach(function(serveur, index) {
 
  sockets[serveur].on("connect", function() {
-  trace("Connecté sur " + serveur + "/" + PORTROBOTS);
+  trace("Connecté sur " + serveur + "/" + SYS.PORTROBOTS);
   EXEC("hostname -I").stdout.on("data", function(ipPriv) {
    EXEC("iwgetid -r || echo $?").stdout.on("data", function(ssid) {
     sockets[serveur].emit("serveurrobotlogin", {
@@ -445,6 +365,7 @@ USER.SERVEURS.forEach(function(serveur, index) {
 
    // Security hardening: even if already done on server side,
    // always filter values integrated in command lines
+   const CMDINT = RegExp(/^-?\d{1,10}$/);
    for(let i = 0; i < data.hard.CAMERAS.length; i++) {
     if(!(CMDINT.test(data.hard.CAMERAS[i].SOURCE) &&
          CMDINT.test(data.hard.CAMERAS[i].WIDTH) &&
@@ -511,7 +432,7 @@ USER.SERVEURS.forEach(function(serveur, index) {
     pca9685Driver[i] = new PCA9685.Pca9685Driver({
      i2c: i2c,
      address: hard.PCA9685ADDRESSES[i],
-     frequency: PCA9685FREQUENCY
+     frequency: SYS.PCA9685FREQUENCY
     }, function(err) {
      if(err)
       trace("Error initializing PCA9685 at address " + hard.PCA9685ADDRESSES[i]);
@@ -533,8 +454,8 @@ USER.SERVEURS.forEach(function(serveur, index) {
    }
 
    for(let i = 0; i < 8; i++) {
-    if(hard.INTERRUPTEURS[i].PIN != UNUSED) {
-     if(hard.INTERRUPTEURS[i].PCA9685 == UNUSED)
+    if(hard.INTERRUPTEURS[i].PIN != SYS.UNUSED) {
+     if(hard.INTERRUPTEURS[i].PCA9685 == SYS.UNUSED)
       gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
      setGpio(i, 0);
     }
@@ -542,8 +463,8 @@ USER.SERVEURS.forEach(function(serveur, index) {
 
    setTimeout(function() {
     if(up) {
-     sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
-      sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
+     sigterm("Diffusion", SYS.PROCESSDIFFUSION, function(code) {
+      sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function(code) {
        configurationVideo(function(code) {
         diffusion();
        });
@@ -619,12 +540,12 @@ USER.SERVEURS.forEach(function(serveur, index) {
  }
 
  sockets[serveur].on("disconnect", function() {
-  trace("Déconnecté de " + serveur + "/" + PORTROBOTS);
+  trace("Déconnecté de " + serveur + "/" + SYS.PORTROBOTS);
   dodo();
  });
 
  sockets[serveur].on("connect_error", function(err) {
-  //trace("Erreur de connexion au serveur " + serveur + "/" + PORTROBOTS);
+  //trace("Erreur de connexion au serveur " + serveur + "/" + SYS.PORTROBOTS);
  });
 
  sockets[serveur].on("clientsrobottts", function(data) {
@@ -673,7 +594,7 @@ USER.SERVEURS.forEach(function(serveur, index) {
 
   // Reject bursts
   let now = Date.now();
-  if(now - lastTrame < TXRATE / 2)
+  if(now - lastTrame < SYS.TXRATE / 2)
    return;
   lastTrame = now;
 
@@ -684,7 +605,7 @@ USER.SERVEURS.forEach(function(serveur, index) {
    for(let i = 0; i < tx.byteLength; i++)
     tx.bytes[i] = data.data[i];
 
-   if(up && latence > LATENCEDEBUTALARME) {
+   if(up && latence > SYS.LATENCEDEBUTALARME) {
     //trace("Réception d'une trame avec trop de latence");
     failSafe();
    } else {
@@ -713,12 +634,12 @@ USER.SERVEURS.forEach(function(serveur, index) {
 
     if(boostVideo != oldBoostVideo) {
      if(boostVideo) {
-      exec("v4l2-ctl", V4L2 + " -c brightness=" + confVideo.BOOSTVIDEOLUMINOSITE +
-                                 ",contrast=" + confVideo.BOOSTVIDEOCONTRASTE, function(code) {
+      exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.BOOSTVIDEOLUMINOSITE +
+                                     ",contrast=" + confVideo.BOOSTVIDEOCONTRASTE, function(code) {
       });
      } else {
-      exec("v4l2-ctl", V4L2 + " -c brightness=" + confVideo.LUMINOSITE +
-                                 ",contrast=" + confVideo.CONTRASTE, function(code) {
+      exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.LUMINOSITE +
+                                     ",contrast=" + confVideo.CONTRASTE, function(code) {
       });
      }
      oldBoostVideo = boostVideo;
@@ -728,8 +649,8 @@ USER.SERVEURS.forEach(function(serveur, index) {
     if(confVideo != oldConfVideo &&
        JSON.stringify(confVideo) != JSON.stringify(oldConfVideo)) {
      if(up) {
-      sigterm("Diffusion", PROCESSDIFFUSION, function(code) {
-       sigterm("DiffVideo", PROCESSDIFFVIDEO, function(code) {
+      sigterm("Diffusion", SYS.PROCESSDIFFUSION, function(code) {
+       sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function(code) {
         configurationVideo(function(code) {
          diffusion();
         });
@@ -752,7 +673,7 @@ USER.SERVEURS.forEach(function(serveur, index) {
   clearTimeout(upTimeout);
   upTimeout = setTimeout(function() {
    dodo();
-  }, UPTIMEOUT);
+  }, SYS.UPTIMEOUT);
 
   if(!hard.DEVTELEMETRIE) {
    for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
@@ -781,8 +702,8 @@ function setPca9685Gpio(pcaId, pin, etat) {
 
 function setGpio(n, etat) {
  etat ^= hard.INTERRUPTEURS[n].INV;
- if(hard.INTERRUPTEURS[n].PIN != UNUSED) {
-  if(hard.INTERRUPTEURS[n].PCA9685 == UNUSED) {
+ if(hard.INTERRUPTEURS[n].PIN != SYS.UNUSED) {
+  if(hard.INTERRUPTEURS[n].PCA9685 == SYS.UNUSED) {
    if(hard.INTERRUPTEURS[n].MODE == 1 && !etat || // Drain ouvert
       hard.INTERRUPTEURS[n].MODE == 2 && etat)    // Collecteur ouvert
     gpioInterrupteurs[n].mode(GPIO.INPUT);
@@ -797,9 +718,9 @@ function computePwm(n, consigne, min, max) {
  let pwm;
  let pwmNeutre = (min + max) / 2;
 
- if(consigne < -MARGENEUTRE)
+ if(consigne < -SYS.MARGENEUTRE)
   pwm = map(consigne, -hard.MOTEURS[n].COURSE / 2, 0, min, pwmNeutre + hard.MOTEURS[n].NEUTREAR);
- else if(consigne > MARGENEUTRE)
+ else if(consigne > SYS.MARGENEUTRE)
   pwm = map(consigne, 0, hard.MOTEURS[n].COURSE / 2, pwmNeutre + hard.MOTEURS[n].NEUTREAV, max);
  else
   pwm = pwmNeutre;
@@ -809,11 +730,11 @@ function computePwm(n, consigne, min, max) {
 
 function setMotorFrequency(n) {
  switch(hard.MOTEURS[n].TYPE) {
-  case L9110:
+  case SYS.L9110:
    gpioMoteurs[n][0].pwmFrequency(hard.FREQUENCEPWM);
    gpioMoteurs[n][1].pwmFrequency(hard.FREQUENCEPWM);
    break;
-  case L298:
+  case SYS.L298:
    gpioMoteurs[n][0].pwmFrequency(hard.FREQUENCEPWM);
    break;
  }
@@ -844,7 +765,7 @@ setInterval(function() {
    continue;
 
   let delta;
-  if(Math.abs(moteurs[i] - moteursInit[i]) < MARGENEUTRE)
+  if(Math.abs(moteurs[i] - moteursInit[i]) < SYS.MARGENEUTRE)
    delta = hard.MOTEURS[i].FREIN;
   else
    delta = hard.MOTEURS[i].RAMPE;
@@ -862,25 +783,25 @@ setInterval(function() {
                                                                                             hard.MOTEURS[i].COURSE / 2));
 
   switch(hard.MOTEURS[i].TYPE) {
-   case PCASERVO:
+   case SYS.PCASERVO:
     pca9685Driver[hard.MOTEURS[i].ADRESSE].setPulseLength(hard.MOTEURS[i].PINS[0], computePwm(i, consigne, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
     break;
-   case SERVO:
+   case SYS.SERVO:
     gpioMoteurs[i][0].servoWrite(computePwm(i, consigne, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
     break;
-   case L9110:
+   case SYS.L9110:
     l9110MotorDrive(i, computePwm(i, consigne, -255, 255));
     break;
-   case L298:
+   case SYS.L298:
     l298MotorDrive(i, computePwm(i, consigne, -255, 255));
     break;
-   case PCAL298:
+   case SYS.PCAL298:
     pca9685MotorDrive(i, computePwm(i, consigne, -100, 100));
     break;
   }
 
  }
-}, TXRATE);
+}, SYS.TXRATE);
 
 function l298MotorDrive(n, consigne) {
  let pwm;
@@ -957,19 +878,19 @@ setInterval(function() {
 
  let latencePredictive = Math.max(latence, Date.now() - lastTimestamp);
 
- if(latencePredictive < LATENCEFINALARME && alarmeLatence) {
+ if(latencePredictive < SYS.LATENCEFINALARME && alarmeLatence) {
   trace("Latence de " + latencePredictive + " ms, retour au débit vidéo configuré");
-  exec("v4l2-ctl", V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function(code) {
+  exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function(code) {
   });
   alarmeLatence = false;
- } else if(latencePredictive > LATENCEDEBUTALARME && !alarmeLatence) {
+ } else if(latencePredictive > SYS.LATENCEDEBUTALARME && !alarmeLatence) {
   trace("Latence de " + latencePredictive + " ms, arrêt des moteurs et passage en débit vidéo réduit");
   failSafe();
-  exec("v4l2-ctl", V4L2 + " -c video_bitrate=" + BITRATEVIDEOFAIBLE, function(code) {
+  exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + SYS.BITRATEVIDEOFAIBLE, function(code) {
   });
   alarmeLatence = true;
  }
-}, TXRATE);
+}, SYS.TXRATE);
 
 setInterval(function() {
  if(!init)
@@ -992,32 +913,32 @@ setInterval(function() {
  prevCpus = currCpus;
 
  cpuLoad = Math.trunc(100 * charges / (charges + idles));
-}, CPURATE);
+}, SYS.CPURATE);
 
 setInterval(function() {
  if(!init)
   return;
 
- FS.readFile(FICHIERTEMPERATURE, function(err, data) {
+ FS.readFile(SYS.FICHIERTEMPERATURE, function(err, data) {
   socTemp = data / 1000;
  });
-}, TEMPERATURERATE);
+}, SYS.TEMPERATURERATE);
 
 setInterval(function() {
  if(!init)
   return;
 
- const STATS = RL.createInterface(FS.createReadStream(FICHIERWIFI));
+ const STATS = RL.createInterface(FS.createReadStream(SYS.FICHIERWIFI));
 
  STATS.on("line", function(ligne) {
   ligne = ligne.split(/\s+/);
 
-  if(ligne[1] == INTERFACEWIFI + ":") {
+  if(ligne[1] == SYS.INTERFACEWIFI + ":") {
    link = ligne[3];
    rssi = ligne[4];
   }
  });
-}, WIFIRATE);
+}, SYS.WIFIRATE);
 
 function swapWord(word) {
  return (word & 0xff) << 8 | word >> 8;
@@ -1028,39 +949,39 @@ switch(gaugeType) {
   setInterval(function() {
    if(!init)
     return;
-   i2c.readWord(CW2015ADDRESS, 0x02, function(err, microVolts305) {
+   i2c.readWord(SYS.CW2015ADDRESS, 0x02, function(err, microVolts305) {
     voltage = swapWord(microVolts305) * 305 / 1000000;
-    i2c.readWord(CW2015ADDRESS, 0x04, function(err, pour25600) {
+    i2c.readWord(SYS.CW2015ADDRESS, 0x04, function(err, pour25600) {
      battery = swapWord(pour25600) / 256;
     });
    });
-  }, GAUGERATE);
+  }, SYS.GAUGERATE);
   break;
 
  case "MAX17043":
   setInterval(function() {
    if(!init)
     return;
-   i2c.readWord(MAX17043ADDRESS, 0x02, function(err, volts12800) {
+   i2c.readWord(SYS.MAX17043ADDRESS, 0x02, function(err, volts12800) {
     voltage = swapWord(volts12800) / 12800;
-    i2c.readWord(MAX17043ADDRESS, 0x04, function(err, pour25600) {
+    i2c.readWord(SYS.MAX17043ADDRESS, 0x04, function(err, pour25600) {
      battery = swapWord(pour25600) / 256;
     });
    });
-  }, GAUGERATE);
+  }, SYS.GAUGERATE);
   break;
 
  case "BQ27441":
   setInterval(function() {
    if(!init)
     return;
-   i2c.readWord(BQ27441ADDRESS, 0x04, function(err, milliVolts) {
+   i2c.readWord(SYS.BQ27441ADDRESS, 0x04, function(err, milliVolts) {
     voltage = milliVolts / 1000;
-    i2c.readByte(BQ27441ADDRESS, 0x1c, function(err, pourcents) {
+    i2c.readByte(SYS.BQ27441ADDRESS, 0x1c, function(err, pourcents) {
      battery = pourcents;
     });
    });
-  }, GAUGERATE);
+  }, SYS.GAUGERATE);
   break;
 }
 
@@ -1095,7 +1016,7 @@ setInterval(function() {
    data: rx.arrayBuffer
   });
  });
-}, BEACONRATE);
+}, SYS.BEACONRATE);
 
 setInterval(function() {
  if(up || !init || !hard.CAPTURESENVEILLE)
@@ -1159,9 +1080,10 @@ setInterval(function() {
 }, 60000);
 
 NET.createServer(function(socket) {
+ const SEPARATEURNALU = new Buffer.from([0, 0, 0, 1]);
  const SPLITTER = new SPLIT(SEPARATEURNALU);
 
- trace("Le processus de diffusion vidéo H.264 est connecté sur tcp://127.0.0.1:" + PORTTCPVIDEO);
+ trace("Le processus de diffusion vidéo H.264 est connecté sur tcp://127.0.0.1:" + SYS.PORTTCPVIDEO);
 
  SPLITTER.on("data", function(data) {
 
@@ -1179,14 +1101,14 @@ NET.createServer(function(socket) {
  socket.pipe(SPLITTER);
 
  socket.on("end", function() {
-  trace("Le processus de diffusion vidéo H.264 est déconnecté de tcp://127.0.0.1:" + PORTTCPVIDEO);
+  trace("Le processus de diffusion vidéo H.264 est déconnecté de tcp://127.0.0.1:" + SYS.PORTTCPVIDEO);
  });
 
-}).listen(PORTTCPVIDEO);
+}).listen(SYS.PORTTCPVIDEO);
 
 NET.createServer(function(socket) {
 
- trace("Le processus de diffusion audio est connecté sur tcp://127.0.0.1:" + PORTTCPAUDIO);
+ trace("Le processus de diffusion audio est connecté sur tcp://127.0.0.1:" + SYS.PORTTCPAUDIO);
 
  let array = [];
  let i = 0;
@@ -1209,10 +1131,10 @@ NET.createServer(function(socket) {
  })
 
  socket.on("end", function() {
-  trace("Le processus de diffusion audio est déconnecté de tcp://127.0.0.1:" + PORTTCPAUDIO);
+  trace("Le processus de diffusion audio est déconnecté de tcp://127.0.0.1:" + SYS.PORTTCPAUDIO);
  });
 
-}).listen(PORTTCPAUDIO);
+}).listen(SYS.PORTTCPAUDIO);
 
 process.on("uncaughtException", function(err) {
  let i = 0;

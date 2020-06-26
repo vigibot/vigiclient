@@ -1,0 +1,78 @@
+{
+ "PORTROBOTS": 8042,
+ "PORTTCPVIDEO": 8043,
+ "PORTTCPAUDIO": 8044,
+
+ "FICHIERLOG": "/var/log/vigiclient.log",
+
+ "INTERFACEWIFI": "wlan0",
+ "FICHIERWIFI": "/proc/net/wireless",
+ "FICHIERTEMPERATURE": "/sys/class/thermal/thermal_zone0/temp",
+ "CPURATE": 250,
+ "TEMPERATURERATE": 1000,
+ "WIFIRATE": 250,
+
+ "PROCESSDIFFUSION": "/usr/local/vigiclient/processdiffusion",
+ "PROCESSDIFFVIDEO": "/usr/local/vigiclient/processdiffvideo",
+ "PROCESSDIFFAUDIO": "/usr/local/vigiclient/processdiffaudio",
+
+ "CMDDIFFUSION": [
+  [
+   "/usr/local/vigiclient/processdiffusion",
+   " /dev/video0",
+   " | /bin/nc 127.0.0.1 PORTTCPVIDEO",
+   " -w 2"
+  ], [
+   "/usr/local/vigiclient/processdiffvideo",
+   " -loglevel fatal",
+   " -f fbdev",
+   " -r FPS",
+   " -i /dev/fb0",
+   " -c:v h264_omx",
+   " -profile:v baseline",
+   " -b:v BITRATE",
+   " -flags:v +global_header",
+   " -bsf:v dump_extra",
+   " -f rawvideo",
+   " tcp://127.0.0.1:PORTTCPVIDEO"
+  ]
+ ],
+
+ "CMDDIFFAUDIO": [
+  "/usr/local/vigiclient/processdiffaudio",
+  " -loglevel fatal",
+  " -f alsa",
+  " -ac 1",
+  " -i hw:RECORDINGDEVICE,0",
+  " -ar 16000",
+  " -c:a pcm_s16le",
+  " -f s16le",
+  " tcp://127.0.0.1:PORTTCPAUDIO"
+ ],
+
+ "CMDTTS": "/usr/bin/espeak -v fr -f /tmp/tts.txt --stdout | /usr/bin/aplay -D plughw:PLAYBACKDEVICE",
+
+ "UPTIMEOUT": 5000,
+ "V4L2": "/usr/bin/v4l2-ctl",
+ "LATENCEFINALARME": 250,
+ "LATENCEDEBUTALARME": 500,
+ "BITRATEVIDEOFAIBLE": 100000,
+ "TXRATE": 50,
+ "BEACONRATE": 10000,
+
+ "CW2015ADDRESS": 98,
+ "MAX17043ADDRESS": 54,
+ "BQ27441ADDRESS": 85,
+ "GAUGERATE": 250,
+
+ "PCA9685FREQUENCY": 50,
+
+ "UNUSED": -1,
+ "SERVO": 0,
+ "PCASERVO": 1,
+ "L9110": 2,
+ "L298": 3,
+ "PCAL298": 4,
+
+ "MARGENEUTRE": 2
+}
