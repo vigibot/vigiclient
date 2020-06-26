@@ -19,7 +19,7 @@ abnormal() {
 check() {
  before=$(date -r $1/$2 +%s 2> /dev/null || echo 0)
  wget $BASEURL/$2 -P $1 -N -T 20 -t 3 > /dev/null 2>&1 || trace "$1/$2 wget error"
- after=$(date -r $1/$2 +%s 2> /dev/null || echo 1)
+ after=$(date -r $1/$2 +%s)
 
  if [ $after -gt $before ]
  then
@@ -78,7 +78,7 @@ then
 fi
 
 check $BASEDIR clientrobotpi.js
-check $BASEDIR sys.js
+check $BASEDIR sys.json
 check $BASEDIR trame.js
 
 if [ $updated == "yes" ]
