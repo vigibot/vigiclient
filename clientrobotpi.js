@@ -1,6 +1,6 @@
 "use strict";
 
-const CONF = require("/boot/robot.json");
+const USER = require("/boot/robot.json");
 
 const TRAME = require("./trame.js");
 
@@ -165,16 +165,16 @@ let socTemp = 0;
 let link = 0;
 let rssi = 0;
 
-if(typeof CONF.CMDDIFFUSION === "undefined")
- CONF.CMDDIFFUSION = CMDDIFFUSION;
+if(typeof USER.CMDDIFFUSION === "undefined")
+ USER.CMDDIFFUSION = CMDDIFFUSION;
 
-if(typeof CONF.CMDDIFFAUDIO === "undefined")
- CONF.CMDDIFFAUDIO = CMDDIFFAUDIO;
+if(typeof USER.CMDDIFFAUDIO === "undefined")
+ USER.CMDDIFFAUDIO = CMDDIFFAUDIO;
 
-if(typeof CONF.CMDTTS === "undefined")
- CONF.CMDTTS = CMDTTS;
+if(typeof USER.CMDTTS === "undefined")
+ USER.CMDTTS = CMDTTS;
 
-CONF.SERVEURS.forEach(function(serveur) {
+USER.SERVEURS.forEach(function(serveur) {
  sockets[serveur] = IO.connect(serveur, {"connect timeout": 1000, transports: ["websocket"], path: "/" + PORTROBOTS + "/socket.io"});
 });
 
@@ -234,7 +234,7 @@ function trace(message) {
 
  if(hard.TELEDEBUG) {
   let trace = heure(new Date()) + " | " + message;
-  CONF.SERVEURS.forEach(function(serveur) {
+  USER.SERVEURS.forEach(function(serveur) {
    sockets[serveur].emit("serveurrobottrace", message);
   });
  }
@@ -372,13 +372,13 @@ function dodo() {
 }
 
 function configurationVideo(callback) {
- cmdDiffusion = CONF.CMDDIFFUSION[confVideo.SOURCE].join("").replace("WIDTH", confVideo.WIDTH
+ cmdDiffusion = USER.CMDDIFFUSION[confVideo.SOURCE].join("").replace("WIDTH", confVideo.WIDTH
                                                            ).replace("HEIGHT", confVideo.HEIGHT
                                                            ).replace(new RegExp("FPS", "g"), confVideo.FPS
                                                            ).replace(new RegExp("BITRATE", "g"), confVideo.BITRATE
                                                            ).replace("ROTATION", confVideo.ROTATION
                                                            ).replace("PORTTCPVIDEO", PORTTCPVIDEO);
- cmdDiffAudio = CONF.CMDDIFFAUDIO.join("").replace("RECORDINGDEVICE", hard.RECORDINGDEVICE
+ cmdDiffAudio = USER.CMDDIFFAUDIO.join("").replace("RECORDINGDEVICE", hard.RECORDINGDEVICE
                                          ).replace("PORTTCPAUDIO", PORTTCPAUDIO);
 
  trace("Initialisation de la configuration Video4Linux");
@@ -421,14 +421,14 @@ function diffAudio() {
  });
 }
 
-CONF.SERVEURS.forEach(function(serveur, index) {
+USER.SERVEURS.forEach(function(serveur, index) {
 
  sockets[serveur].on("connect", function() {
   trace("Connecté sur " + serveur + "/" + PORTROBOTS);
   EXEC("hostname -I").stdout.on("data", function(ipPriv) {
    EXEC("iwgetid -r || echo $?").stdout.on("data", function(ssid) {
     sockets[serveur].emit("serveurrobotlogin", {
-     conf: CONF,
+     conf: USER,
      version: VERSION,
      processTime: PROCESSTIME,
      osTime: OSTIME,
@@ -593,7 +593,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
        serial.on("data", function(data) {
 
         rx.update(data, function() {
-         CONF.SERVEURS.forEach(function(serveur) {
+         USER.SERVEURS.forEach(function(serveur) {
           if(serveurCourant && serveur != serveurCourant)
            return;
 
@@ -631,7 +631,7 @@ CONF.SERVEURS.forEach(function(serveur, index) {
   FS.writeFile("/tmp/tts.txt", data, function(err) {
    if(err)
     trace(err);
-   exec("eSpeak", CONF.CMDTTS.replace("PLAYBACKDEVICE", hard.PLAYBACKDEVICE), function(code) {
+   exec("eSpeak", USER.CMDTTS.replace("PLAYBACKDEVICE", hard.PLAYBACKDEVICE), function(code) {
    });
   });
  });
@@ -1089,7 +1089,7 @@ setInterval(function() {
   return;
 
  setRxVals();
- CONF.SERVEURS.forEach(function(serveur) {
+ USER.SERVEURS.forEach(function(serveur) {
   sockets[serveur].emit("serveurrobotrx", {
    timestamp: Date.now(),
    data: rx.arrayBuffer
@@ -1132,7 +1132,7 @@ setInterval(function() {
        trace("Erreur lors de la fusion des photos");
       else {
        FS.readFile("/tmp/out.jpg", function(err, data) {
-        CONF.SERVEURS.forEach(function(serveur) {
+        USER.SERVEURS.forEach(function(serveur) {
          trace("Envoi d'une photo sur le serveur " + serveur);
          sockets[serveur].emit("serveurrobotcapturesenveille", data);
         });
@@ -1148,7 +1148,7 @@ setInterval(function() {
     trace("Erreur lors de la capture de la photo");
    else {
     FS.readFile("/tmp/out.jpg", function(err, data) {
-     CONF.SERVEURS.forEach(function(serveur) {
+     USER.SERVEURS.forEach(function(serveur) {
       trace("Envoi d'une photo sur le serveur " + serveur);
       sockets[serveur].emit("serveurrobotcapturesenveille", data);
      });
