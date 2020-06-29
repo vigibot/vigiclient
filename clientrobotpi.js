@@ -601,6 +601,9 @@ USER.SERVEURS.forEach(function(serveur, index) {
   lastTimestamp = data.boucleVideoCommande;
   latence = now - data.boucleVideoCommande;
 
+  if(hard.DEVTELECOMMANDE)
+   serial.write(data.data);
+
   if(data.data[1] == FRAME1S) {
    for(let i = 0; i < tx.byteLength; i++)
     tx.bytes[i] = data.data[i];
@@ -609,10 +612,6 @@ USER.SERVEURS.forEach(function(serveur, index) {
     //trace("Réception d'une trame avec trop de latence");
     failSafe();
    } else {
-
-    if(hard.DEVTELECOMMANDE)
-     serial.write(data.data);
-
     for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
      floatCommandes16[i] = tx.getFloatCommande16(i);
 
@@ -621,53 +620,50 @@ USER.SERVEURS.forEach(function(serveur, index) {
 
     for(let i = 0; i < hard.MOTEURS.length; i++)
      setMoteur(i);
+   }
 
-    if(tx.interrupteurs[0] != oldTxInterrupteurs) {
-     for(let i = 0; i < 8; i++) {
-      let etat = tx.interrupteurs[0] >> i & 1;
-      setGpio(i, etat);
-      if(i == hard.INTERRUPTEURBOOSTVIDEO)
-       boostVideo = etat;
-     }
-     oldTxInterrupteurs = tx.interrupteurs[0]
+   if(tx.interrupteurs[0] != oldTxInterrupteurs) {
+    for(let i = 0; i < 8; i++) {
+     let etat = tx.interrupteurs[0] >> i & 1;
+     setGpio(i, etat);
+     if(i == hard.INTERRUPTEURBOOSTVIDEO)
+      boostVideo = etat;
     }
+    oldTxInterrupteurs = tx.interrupteurs[0]
+   }
 
-    if(boostVideo != oldBoostVideo) {
-     if(boostVideo) {
-      exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.BOOSTVIDEOLUMINOSITE +
-                                     ",contrast=" + confVideo.BOOSTVIDEOCONTRASTE, function(code) {
-      });
-     } else {
-      exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.LUMINOSITE +
-                                     ",contrast=" + confVideo.CONTRASTE, function(code) {
-      });
-     }
-     oldBoostVideo = boostVideo;
+   if(boostVideo != oldBoostVideo) {
+    if(boostVideo) {
+     exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.BOOSTVIDEOLUMINOSITE +
+                                    ",contrast=" + confVideo.BOOSTVIDEOCONTRASTE, function(code) {
+     });
+    } else {
+     exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.LUMINOSITE +
+                                    ",contrast=" + confVideo.CONTRASTE, function(code) {
+     });
     }
+    oldBoostVideo = boostVideo;
+   }
 
-    confVideo = hard.CAMERAS[tx.choixCameras[0]];
-    if(confVideo != oldConfVideo &&
-       JSON.stringify(confVideo) != JSON.stringify(oldConfVideo)) {
-     if(up) {
-      sigterm("Diffusion", SYS.PROCESSDIFFUSION, function(code) {
-       sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function(code) {
-        configurationVideo(function(code) {
-         diffusion();
-        });
+   confVideo = hard.CAMERAS[tx.choixCameras[0]];
+   if(confVideo != oldConfVideo &&
+      JSON.stringify(confVideo) != JSON.stringify(oldConfVideo)) {
+    if(up) {
+     sigterm("Diffusion", SYS.PROCESSDIFFUSION, function(code) {
+      sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function(code) {
+       configurationVideo(function(code) {
+        diffusion();
        });
       });
-     } else {
-      configurationVideo(function(code) {
-      });
-     }
-     oldConfVideo = confVideo;
+     });
+    } else {
+     configurationVideo(function(code) {
+     });
     }
+    oldConfVideo = confVideo;
    }
-  } else {
+  } else
    trace("Réception d'une trame texte");
-   if(hard.DEVTELECOMMANDE)
-    serial.write(data.data);
-  }
 
   debout(serveur);
   clearTimeout(upTimeout);
@@ -690,7 +686,6 @@ USER.SERVEURS.forEach(function(serveur, index) {
    });
   }
  });
-
 });
 
 function setPca9685Gpio(pcaId, pin, etat) {
@@ -860,7 +855,6 @@ function pca9685MotorDrive(n, consigne) {
 }
 
 function failSafe() {
-
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
   floatCommandes16[i] = conf.TX.COMMANDES16[i].INIT;
 
@@ -869,6 +863,16 @@ function failSafe() {
 
  for(let i = 0; i < hard.MOTEURS.length; i++)
   if(hard.MOTEURS[i].FAILSAFE)
+   setMoteur(i);
+
+ for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
+  floatCommandes16[i] = tx.getFloatCommande16(i);
+
+ for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
+  floatCommandes8[i] = tx.getFloatCommande8(i);
+
+ for(let i = 0; i < hard.MOTEURS.length; i++)
+  if(!hard.MOTEURS[i].FAILSAFE)
    setMoteur(i);
 }
 
