@@ -991,21 +991,21 @@ switch(gaugeType) {
 
 function setRxVals() {
  if(hard.DEVGPS && gps.state.lat !== null) {
-  rx.setValeur32(0, gps.state.lat);
-  rx.setValeur32(1, gps.state.lon);
+  rx.setFloatValeur32(0, gps.state.lat);
+  rx.setFloatValeur32(1, gps.state.lon);
  }
- rx.setValeur16(0, voltage);
- rx.setValeur16(1, battery);
- rx.setValeur8(0, cpuLoad);
- rx.setValeur8(1, socTemp);
- rx.setValeur8(2, link);
- rx.setValeur8(3, rssi);
+ rx.setFloatValeur16(0, voltage);
+ rx.setFloatValeur16(1, battery);
+ rx.setFloatValeur8(0, cpuLoad);
+ rx.setFloatValeur8(1, socTemp);
+ rx.setFloatValeur8(2, link);
+ rx.setFloatValeur8(3, rssi);
  if(hard.DEVGPS) {
   if(typeof gps.state.satsActive !== "undefined")
-   rx.setValeur8(4, gps.state.satsActive.length);
-  rx.setValeur8(5, gps.state.speed);
+   rx.setFloatValeur8(4, gps.state.satsActive.length);
+  rx.setFloatValeur8(5, gps.state.speed);
   if(gps.state.track !== null)
-   rx.setValeur8(6, gps.state.track);
+   rx.setFloatValeur8(6, gps.state.track);
  }
 }
 
