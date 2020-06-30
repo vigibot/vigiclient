@@ -41,13 +41,13 @@ class Tx {
   this.commandesInt32 = new Int32Array(this.arrayBuffer, p, conftx.COMMANDES32.length);
   p += this.commandesUint32.byteLength;
   for(let i = 0; i < conftx.COMMANDES32.length; i++)
-   this.setFloatCommande32(i, conftx.COMMANDES32[i].INIT);
+   this.setCommande32(i, conftx.COMMANDES32[i].INIT);
 
   this.commandesUint16 = new Uint16Array(this.arrayBuffer, p, conftx.COMMANDES16.length);
   this.commandesInt16 = new Int16Array(this.arrayBuffer, p, conftx.COMMANDES16.length);
   p += this.commandesUint16.byteLength;
   for(let i = 0; i < conftx.COMMANDES16.length; i++)
-   this.setFloatCommande16(i, conftx.COMMANDES16[i].INIT);
+   this.setCommande16(i, conftx.COMMANDES16[i].INIT);
 
   this.autoGoto = new Int16Array(this.arrayBuffer, p, conftx.AUTOGOTO.length);
   p += this.autoGoto.byteLength;
@@ -68,7 +68,7 @@ class Tx {
   this.commandesInt8 = new Int8Array(this.arrayBuffer, p, conftx.COMMANDES8.length);
   p += this.commandesUint8.byteLength;
   for(let i = 0; i < conftx.COMMANDES8.length; i++)
-   this.setFloatCommande8(i, conftx.COMMANDES8[i].INIT);
+   this.setCommande8(i, conftx.COMMANDES8[i].INIT);
 
   this.requetesMission = new Uint8Array(this.arrayBuffer, p, conftx.REQUETESMISSION.length);
   p += this.requetesMission.byteLength;
@@ -276,19 +276,19 @@ class Rx {
   this.commandesInt32 = new Int32Array(this.arrayBuffer, p, conftx.COMMANDES32.length);
   p += this.commandesUint32.byteLength;
   for(let i = 0; i < conftx.COMMANDES32.length; i++)
-   this.setFloatCommande32(i, conftx.COMMANDES32[i].INIT);
+   this.setCommande32(i, conftx.COMMANDES32[i].INIT);
 
   this.valeursUint32 = new Uint32Array(this.arrayBuffer, p, confrx.VALEURS32.length);
   this.valeursInt32 = new Int32Array(this.arrayBuffer, p, confrx.VALEURS32.length);
   p += this.valeursUint32.byteLength;
   for(let i = 0; i < confrx.VALEURS32.length; i++)
-   this.setFloatValeur32(i, confrx.VALEURS32[i].INIT);
+   this.setValeur32(i, confrx.VALEURS32[i].INIT);
 
   this.commandesUint16 = new Uint16Array(this.arrayBuffer, p, conftx.COMMANDES16.length);
   this.commandesInt16 = new Int16Array(this.arrayBuffer, p, conftx.COMMANDES16.length);
   p += this.commandesUint16.byteLength;
   for(let i = 0; i < conftx.COMMANDES16.length; i++)
-   this.setFloatCommande16(i, conftx.COMMANDES16[i].INIT);
+   this.setCommande16(i, conftx.COMMANDES16[i].INIT);
 
   this.autoGoto = new Int16Array(this.arrayBuffer, p, conftx.AUTOGOTO.length);
   p += this.autoGoto.byteLength;
@@ -339,7 +339,7 @@ class Rx {
   this.valeursInt16 = new Int16Array(this.arrayBuffer, p, confrx.VALEURS16.length);
   p += this.valeursUint16.byteLength;
   for(let i = 0; i < confrx.VALEURS16.length; i++)
-   this.setFloatValeur16(i, confrx.VALEURS16[i].INIT);
+   this.setValeur16(i, confrx.VALEURS16[i].INIT);
 
   this.choixCameras = new Uint8Array(this.arrayBuffer, p, conftx.CHOIXCAMERAS.length);
   p += this.choixCameras.byteLength;
@@ -350,7 +350,7 @@ class Rx {
   this.commandesInt8 = new Int8Array(this.arrayBuffer, p, conftx.COMMANDES8.length);
   p += this.commandesUint8.byteLength;
   for(let i = 0; i < conftx.COMMANDES8.length; i++)
-   this.setFloatCommande8(i, conftx.COMMANDES8[i].INIT);
+   this.setCommande8(i, conftx.COMMANDES8[i].INIT);
 
   this.requetesMission = new Uint8Array(this.arrayBuffer, p, conftx.REQUETESMISSION.length);
   p += this.requetesMission.byteLength;
@@ -380,7 +380,7 @@ class Rx {
   this.valeursInt8 = new Int8Array(this.arrayBuffer, p, confrx.VALEURS8.length);
   p += this.valeursUint8.byteLength;
   for(let i = 0; i < confrx.VALEURS8.length; i++)
-   this.setFloatValeur8(i, confrx.VALEURS8[i].INIT);
+   this.setValeur8(i, confrx.VALEURS8[i].INIT);
 
   this.fin = new Uint8Array(this.arrayBuffer, p, confrx.FIN.length);
   p += this.fin.byteLength;
