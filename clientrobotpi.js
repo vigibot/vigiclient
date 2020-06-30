@@ -57,7 +57,6 @@ let floatCommandes8 = [];
 let moteurs = [];
 let oldMoteurs = [];
 let rattrapages = [];
-let rampes = [];
 let moteursInit = [];
 let oldTxInterrupteurs;
 
@@ -262,9 +261,10 @@ function dodo() {
   floatCommandes8[i] = conf.TX.COMMANDES8[i].INIT;
 
  for(let i = 0; i < hard.MOTEURS.length; i++) {
-  if(hard.MOTEURS[i].FAILSAFE)
+  if(hard.MOTEURS[i].FAILSAFE) {
    setMoteur(i);
-  else {
+   writeMoteur(i);
+  } else {
    gpioMoteurs[i].forEach(function(gpio) {
     gpio.mode(GPIO.INPUT);
    });
@@ -398,7 +398,6 @@ USER.SERVEURS.forEach(function(serveur, index) {
    for(let i = 0; i < hard.MOTEURS.length; i++) {
     oldMoteurs[i] = 0;
     rattrapages[i] = 0;
-    rampes[i] = 0;
 
     moteursInit[i] = 0
     for(let j = 0; j < conf.TX.COMMANDES16.length; j++)
@@ -751,51 +750,36 @@ function setMoteur(n) {
  }
 }
 
+function writeMoteur(n) {
+ let consigne = Math.trunc(constrain(moteurs[n] + rattrapages[n] + hard.MOTEURS[n].OFFSET, -hard.MOTEURS[n].COURSE / 2,
+                                                                                            hard.MOTEURS[n].COURSE / 2));
+
+ switch(hard.MOTEURS[n].TYPE) {
+  case SYS.PCASERVO:
+   pca9685Driver[hard.MOTEURS[n].ADRESSE].setPulseLength(hard.MOTEURS[n].PINS[0], computePwm(n, consigne, hard.MOTEURS[n].PWMMIN,
+                                                                                                          hard.MOTEURS[n].PWMMAX));
+   break;
+  case SYS.SERVO:
+   gpioMoteurs[n][0].servoWrite(computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
+   break;
+  case SYS.L9110:
+   l9110MotorDrive(n, computePwm(n, consigne, -255, 255));
+   break;
+  case SYS.L298:
+   l298MotorDrive(n, computePwm(n, consigne, -255, 255));
+   break;
+  case SYS.PCAL298:
+   pca9685MotorDrive(n, computePwm(n, consigne, -100, 100));
+   break;
+ }
+}
+
 setInterval(function() {
  if(!up || !init)
   return;
 
- for(let i = 0; i < hard.MOTEURS.length; i++) {
-  if(rampes[i] == moteurs[i])
-   continue;
-
-  let delta;
-  if(Math.abs(moteurs[i] - moteursInit[i]) < SYS.MARGENEUTRE)
-   delta = hard.MOTEURS[i].FREIN;
-  else
-   delta = hard.MOTEURS[i].RAMPE;
-
-  if(delta <= 0)
-   rampes[i] = moteurs[i];
-  else if(moteurs[i] - rampes[i] > delta)
-   rampes[i] += delta;
-  else if(moteurs[i] - rampes[i] < -delta)
-   rampes[i] -= delta;
-  else
-   rampes[i] = moteurs[i];
-
-  let consigne = Math.trunc(constrain(rampes[i] + rattrapages[i] + hard.MOTEURS[i].OFFSET, -hard.MOTEURS[i].COURSE / 2,
-                                                                                            hard.MOTEURS[i].COURSE / 2));
-
-  switch(hard.MOTEURS[i].TYPE) {
-   case SYS.PCASERVO:
-    pca9685Driver[hard.MOTEURS[i].ADRESSE].setPulseLength(hard.MOTEURS[i].PINS[0], computePwm(i, consigne, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
-    break;
-   case SYS.SERVO:
-    gpioMoteurs[i][0].servoWrite(computePwm(i, consigne, hard.MOTEURS[i].PWMMIN, hard.MOTEURS[i].PWMMAX));
-    break;
-   case SYS.L9110:
-    l9110MotorDrive(i, computePwm(i, consigne, -255, 255));
-    break;
-   case SYS.L298:
-    l298MotorDrive(i, computePwm(i, consigne, -255, 255));
-    break;
-   case SYS.PCAL298:
-    pca9685MotorDrive(i, computePwm(i, consigne, -100, 100));
-    break;
-  }
-
- }
+ for(let i = 0; i < hard.MOTEURS.length; i++)
+  writeMoteur(i);
 }, SYS.TXRATE);
 
 function l298MotorDrive(n, consigne) {
@@ -861,9 +845,12 @@ function failSafe() {
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
   floatCommandes8[i] = conf.TX.COMMANDES8[i].INIT;
 
- for(let i = 0; i < hard.MOTEURS.length; i++)
-  if(hard.MOTEURS[i].FAILSAFE)
+ for(let i = 0; i < hard.MOTEURS.length; i++) {
+  if(hard.MOTEURS[i].FAILSAFE) {
    setMoteur(i);
+   writeMoteur(i);
+  }
+ }
 
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
   floatCommandes16[i] = tx.getFloatCommande16(i);
