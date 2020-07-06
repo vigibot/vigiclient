@@ -292,14 +292,14 @@ function dodo() {
 }
 
 function configurationVideo(callback) {
- cmdDiffusion = USER.CMDDIFFUSION[confVideo.SOURCE].join("").replace("WIDTH", confVideo.WIDTH
-                                                           ).replace("HEIGHT", confVideo.HEIGHT
+ cmdDiffusion = USER.CMDDIFFUSION[confVideo.SOURCE].join("").replace(new RegExp("WIDTH", "g"), confVideo.WIDTH
+                                                           ).replace(new RegExp("HEIGHT", "g"), confVideo.HEIGHT
                                                            ).replace(new RegExp("FPS", "g"), confVideo.FPS
                                                            ).replace(new RegExp("BITRATE", "g"), confVideo.BITRATE
-                                                           ).replace("ROTATION", confVideo.ROTATION
-                                                           ).replace("PORTTCPVIDEO", SYS.PORTTCPVIDEO);
- cmdDiffAudio = USER.CMDDIFFAUDIO.join("").replace("RECORDINGDEVICE", hard.RECORDINGDEVICE
-                                         ).replace("PORTTCPAUDIO", SYS.PORTTCPAUDIO);
+                                                           ).replace(new RegExp("ROTATION", "g"), confVideo.ROTATION
+                                                           ).replace(new RegExp("PORTTCPVIDEO", "g"), SYS.PORTTCPVIDEO);
+ cmdDiffAudio = USER.CMDDIFFAUDIO.join("").replace(new RegExp("RECORDINGDEVICE", "g"), hard.RECORDINGDEVICE
+                                         ).replace(new RegExp("PORTTCPAUDIO", "g"), SYS.PORTTCPAUDIO);
 
  trace("Initialisation de la configuration Video4Linux");
 
@@ -551,7 +551,7 @@ USER.SERVEURS.forEach(function(serveur, index) {
   FS.writeFile("/tmp/tts.txt", data, function(err) {
    if(err)
     trace(err);
-   exec("eSpeak", USER.CMDTTS.replace("PLAYBACKDEVICE", hard.PLAYBACKDEVICE), function(code) {
+   exec("eSpeak", USER.CMDTTS.replace(new RegExp("PLAYBACKDEVICE", "g"), hard.PLAYBACKDEVICE), function(code) {
    });
   });
  });
