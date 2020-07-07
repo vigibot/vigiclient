@@ -265,9 +265,11 @@ function dodo() {
    setMoteur(i);
    writeMoteur(i);
   } else {
-   gpioMoteurs[i].forEach(function(gpio) {
-    gpio.mode(GPIO.INPUT);
-   });
+   if(hard.MOTEURS[i].ADRESSE == SYS.UNUSED)) {
+    gpioMoteurs[i].forEach(function(gpio) {
+     gpio.mode(GPIO.INPUT);
+    });
+   }
   }
  }
 
@@ -444,7 +446,7 @@ USER.SERVEURS.forEach(function(serveur, index) {
    }
 
    for(let i = 0; i < hard.MOTEURS.length; i++) {
-    if(hard.MOTEURS[i].ADRESSE < 0) {
+    if(hard.MOTEURS[i].ADRESSE == SYS.UNUSED) {
      gpioMoteurs[i] = [];
      for(let j = 0; j < hard.MOTEURS[i].PINS.length; j++)
       gpioMoteurs[i][j] = new GPIO(hard.MOTEURS[i].PINS[j], {mode: GPIO.OUTPUT});
