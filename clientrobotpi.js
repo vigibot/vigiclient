@@ -265,7 +265,7 @@ function dodo() {
    setMoteur(i);
    writeMoteur(i);
   } else {
-   if(hard.MOTEURS[i].ADRESSE == SYS.UNUSED)) {
+   if(hard.MOTEURS[i].ADRESSE == SYS.UNUSED) {
     gpioMoteurs[i].forEach(function(gpio) {
      gpio.mode(GPIO.INPUT);
     });
