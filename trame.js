@@ -219,7 +219,6 @@ class Tx {
    valeur = mapFloat(this.commandesInt32[id], -2147483648, 2147483648, this.conftx.COMMANDES32[id].ECHELLEMIN, this.conftx.COMMANDES32[id].ECHELLEMAX);
   else
    valeur = mapFloat(this.commandesUint32[id], 0, 4294967295, this.conftx.COMMANDES32[id].ECHELLEMIN, this.conftx.COMMANDES32[id].ECHELLEMAX);
-  valeur = valeur.toFixed(this.conftx.COMMANDES32[id].NBCHIFFRES);
 
   return valeur;
  }
@@ -231,7 +230,6 @@ class Tx {
    valeur = mapFloat(this.commandesInt16[id], -32768, 32768, this.conftx.COMMANDES16[id].ECHELLEMIN, this.conftx.COMMANDES16[id].ECHELLEMAX);
   else
    valeur = mapFloat(this.commandesUint16[id], 0, 65535, this.conftx.COMMANDES16[id].ECHELLEMIN, this.conftx.COMMANDES16[id].ECHELLEMAX);
-  valeur = valeur.toFixed(this.conftx.COMMANDES16[id].NBCHIFFRES);
 
   return valeur;
  }
@@ -243,7 +241,6 @@ class Tx {
    valeur = mapFloat(this.commandesInt8[id], -128, 128, this.conftx.COMMANDES8[id].ECHELLEMIN, this.conftx.COMMANDES8[id].ECHELLEMAX);
   else
    valeur = mapFloat(this.commandesUint8[id], 0, 255, this.conftx.COMMANDES8[id].ECHELLEMIN, this.conftx.COMMANDES8[id].ECHELLEMAX);
-  valeur = valeur.toFixed(this.conftx.COMMANDES8[id].NBCHIFFRES);
 
   return valeur;
  }
@@ -551,7 +548,6 @@ class Rx {
    valeur = mapFloat(this.commandesInt32[id], -2147483648, 2147483648, this.conftx.COMMANDES32[id].ECHELLEMIN, this.conftx.COMMANDES32[id].ECHELLEMAX);
   else
    valeur = mapFloat(this.commandesUint32[id], 0, 4294967295, this.conftx.COMMANDES32[id].ECHELLEMIN, this.conftx.COMMANDES32[id].ECHELLEMAX);
-  valeur = valeur.toFixed(this.conftx.COMMANDES32[id].NBCHIFFRES);
 
   return valeur;
  }
@@ -563,7 +559,6 @@ class Rx {
    valeur = mapFloat(this.commandesInt16[id], -32768, 32768, this.conftx.COMMANDES16[id].ECHELLEMIN, this.conftx.COMMANDES16[id].ECHELLEMAX);
   else
    valeur = mapFloat(this.commandesUint16[id], 0, 65535, this.conftx.COMMANDES16[id].ECHELLEMIN, this.conftx.COMMANDES16[id].ECHELLEMAX);
-  valeur = valeur.toFixed(this.conftx.COMMANDES16[id].NBCHIFFRES);
 
   return valeur;
  }
@@ -575,21 +570,20 @@ class Rx {
    valeur = mapFloat(this.commandesInt8[id], -128, 128, this.conftx.COMMANDES8[id].ECHELLEMIN, this.conftx.COMMANDES8[id].ECHELLEMAX);
   else
    valeur = mapFloat(this.commandesUint8[id], 0, 255, this.conftx.COMMANDES8[id].ECHELLEMIN, this.conftx.COMMANDES8[id].ECHELLEMAX);
-  valeur = valeur.toFixed(this.conftx.COMMANDES8[id].NBCHIFFRES);
 
   return valeur;
  }
 
  getTexteCommande32(id) {
-  return this.getFloatCommande32(id) + this.conftx.COMMANDES32[id].UNITE;
+  return this.getFloatCommande32(id).toFixed(this.conftx.COMMANDES32[id].NBCHIFFRES) + this.conftx.COMMANDES32[id].UNITE;
  }
 
  getTexteCommande16(id) {
-  return this.getFloatCommande16(id) + this.conftx.COMMANDES16[id].UNITE;
+  return this.getFloatCommande16(id).toFixed(this.conftx.COMMANDES16[id].NBCHIFFRES) + this.conftx.COMMANDES16[id].UNITE;
  }
 
  getTexteCommande8(id) {
-  return this.getFloatCommande8(id) + this.conftx.COMMANDES8[id].UNITE;
+  return this.getFloatCommande8(id).toFixed(this.conftx.COMMANDES8[id].NBCHIFFRES) + this.conftx.COMMANDES8[id].UNITE;
  }
 
  setValeur32(id, valeur) {
@@ -719,7 +713,6 @@ class Rx {
    valeur = mapFloat(this.valeursInt32[id], -2147483648, 2147483648, this.confrx.VALEURS32[id].ECHELLEMIN, this.confrx.VALEURS32[id].ECHELLEMAX);
   else
    valeur = mapFloat(this.valeursUint32[id], 0, 4294967295, this.confrx.VALEURS32[id].ECHELLEMIN, this.confrx.VALEURS32[id].ECHELLEMAX);
-  valeur = valeur.toFixed(this.confrx.VALEURS32[id].NBCHIFFRES);
 
   return valeur;
  }
@@ -731,7 +724,6 @@ class Rx {
    valeur = mapFloat(this.valeursInt16[id], -32768, 32768, this.confrx.VALEURS16[id].ECHELLEMIN, this.confrx.VALEURS16[id].ECHELLEMAX);
   else
    valeur = mapFloat(this.valeursUint16[id], 0, 65535, this.confrx.VALEURS16[id].ECHELLEMIN, this.confrx.VALEURS16[id].ECHELLEMAX);
-  valeur = valeur.toFixed(this.confrx.VALEURS16[id].NBCHIFFRES);
 
   return valeur;
  }
@@ -743,21 +735,20 @@ class Rx {
    valeur = mapFloat(this.valeursInt8[id], -128, 128, this.confrx.VALEURS8[id].ECHELLEMIN, this.confrx.VALEURS8[id].ECHELLEMAX);
   else
    valeur = mapFloat(this.valeursUint8[id], 0, 255, this.confrx.VALEURS8[id].ECHELLEMIN, this.confrx.VALEURS8[id].ECHELLEMAX);
-  valeur = valeur.toFixed(this.confrx.VALEURS8[id].NBCHIFFRES);
 
   return valeur;
  }
 
  getTexteValeur32(id) {
-  return this.getFloatValeur32(id) + this.confrx.VALEURS32[id].UNITE;
+  return this.getFloatValeur32(id).toFixed(this.confrx.VALEURS32[id].NBCHIFFRES) + this.confrx.VALEURS32[id].UNITE;
  }
 
  getTexteValeur16(id) {
-  return this.getFloatValeur16(id) + this.confrx.VALEURS16[id].UNITE;
+  return this.getFloatValeur16(id).toFixed(this.confrx.VALEURS16[id].NBCHIFFRES) + this.confrx.VALEURS16[id].UNITE;
  }
 
  getTexteValeur8(id) {
-  return this.getFloatValeur8(id) + this.confrx.VALEURS8[id].UNITE;
+  return this.getFloatValeur8(id).toFixed(this.confrx.VALEURS8[id].NBCHIFFRES) + this.confrx.VALEURS8[id].UNITE;
  }
 }
 
