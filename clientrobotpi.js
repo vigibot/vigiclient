@@ -30,6 +30,7 @@ let sockets = {};
 let serveurCourant = "";
 
 let up = false;
+let run = false;
 let upTimeout;
 
 let init = false;
@@ -47,10 +48,11 @@ let cmdDiffusion;
 let cmdDiffAudio;
 
 let lastTimestamp = Date.now();
-let latence = 0;
 let lastTrame = Date.now();
 let alarmeLatence = false;
 
+let floatTargets16 = [];
+let floatTargets8 = [];
 let floatCommandes16 = [];
 let floatCommandes8 = [];
 
@@ -246,6 +248,7 @@ function debout(serveur) {
 
  serveurCourant = serveur;
  up = true;
+ run = true;
 }
 
 function dodo() {
@@ -255,23 +258,12 @@ function dodo() {
  trace("Mise en veille du robot");
 
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-  floatCommandes16[i] = conf.TX.COMMANDES16[i].INIT;
+  if(hard.MIXAGES16[i].FAILSAFE)
+   floatTargets16[i] = conf.TX.COMMANDES16[i].INIT;
 
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-  floatCommandes8[i] = conf.TX.COMMANDES8[i].INIT;
-
- for(let i = 0; i < hard.MOTEURS.length; i++) {
-  if(hard.MOTEURS[i].FAILSAFE) {
-   setMoteur(i);
-   writeMoteur(i);
-  } else {
-   if(hard.MOTEURS[i].ADRESSE == SYS.UNUSED) {
-    gpioMoteurs[i].forEach(function(gpio) {
-     gpio.mode(GPIO.INPUT);
-    });
-   }
-  }
- }
+  if(hard.MIXAGES8[i].FAILSAFE)
+   floatTargets8[i] = conf.TX.COMMANDES8[i].INIT;
 
  for(let i = 0; i < 8; i++)
   setGpio(i, 0);
@@ -403,9 +395,9 @@ USER.SERVEURS.forEach(function(serveur, index) {
 
     moteursInit[i] = 0
     for(let j = 0; j < conf.TX.COMMANDES16.length; j++)
-     moteursInit[i] += floatCommandes16[j] * hard.MIXAGES[i].POSITIONS[j];
+     moteursInit[i] += floatCommandes16[j] * hard.MIXAGES16[j].GAINS[i];
     for(let j = 0; j < conf.TX.COMMANDES8.length; j++)
-     moteursInit[i] += floatCommandes8[j] * hard.MIXAGES[i].VITESSES[j];
+     moteursInit[i] += floatCommandes8[j] * hard.MIXAGES8[j].GAINS[i];
    }
 
    oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
@@ -600,7 +592,6 @@ USER.SERVEURS.forEach(function(serveur, index) {
   lastTrame = now;
 
   lastTimestamp = data.boucleVideoCommande;
-  latence = now - data.boucleVideoCommande;
 
   if(hard.DEVTELECOMMANDE)
    serial.write(data.data);
@@ -609,19 +600,11 @@ USER.SERVEURS.forEach(function(serveur, index) {
    for(let i = 0; i < tx.byteLength; i++)
     tx.bytes[i] = data.data[i];
 
-   if(up && latence > SYS.LATENCEDEBUTALARME) {
-    //trace("Réception d'une trame avec trop de latence");
-    failSafe();
-   } else {
-    for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-     floatCommandes16[i] = tx.getFloatCommande16(i);
+   for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
+    floatTargets16[i] = tx.getFloatCommande16(i);
 
-    for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-     floatCommandes8[i] = tx.getFloatCommande8(i);
-
-    for(let i = 0; i < hard.MOTEURS.length; i++)
-     setMoteur(i);
-   }
+   for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
+    floatTargets8[i] = tx.getFloatCommande8(i);
 
    if(tx.interrupteurs[0] != oldTxInterrupteurs) {
     for(let i = 0; i < 8; i++) {
@@ -674,10 +657,10 @@ USER.SERVEURS.forEach(function(serveur, index) {
 
   if(!hard.DEVTELEMETRIE) {
    for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-    rx.commandesInt16[i] = tx.commandesInt16[i];
+    rx.commandesInt16[i] = tx.computeRawCommande16(i, floatCommandes16[i]);
    rx.choixCameras[0] = tx.choixCameras[0];
    for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-    rx.commandesInt8[i] = tx.commandesInt8[i];
+    rx.commandesInt8[i] = tx.computeRawCommande8(i, floatCommandes8[i]);
    rx.interrupteurs[0] = tx.interrupteurs[0];
 
    setRxVals();
@@ -739,9 +722,9 @@ function setMotorFrequency(n) {
 function setMoteur(n) {
  moteurs[n] = 0;
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-  moteurs[n] += floatCommandes16[i] * hard.MIXAGES[n].POSITIONS[i];
+  moteurs[n] += floatCommandes16[i] * hard.MIXAGES16[i].GAINS[n];
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-  moteurs[n] += floatCommandes8[i] * hard.MIXAGES[n].VITESSES[i];
+  moteurs[n] += floatCommandes8[i] * hard.MIXAGES8[i].GAINS[n];
 
  if(moteurs[n] != oldMoteurs[n]) {
   if(moteurs[n] < oldMoteurs[n])
@@ -775,14 +758,6 @@ function writeMoteur(n) {
    break;
  }
 }
-
-setInterval(function() {
- if(!up || !init)
-  return;
-
- for(let i = 0; i < hard.MOTEURS.length; i++)
-  writeMoteur(i);
-}, SYS.TXRATE);
 
 function l298MotorDrive(n, consigne) {
  let pwm;
@@ -840,36 +815,13 @@ function pca9685MotorDrive(n, consigne) {
  pca9685Driver[pcaId].setDutyCycle(hard.MOTEURS[n].PINS[0], pwm);
 }
 
-function failSafe() {
- for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-  floatCommandes16[i] = conf.TX.COMMANDES16[i].INIT;
-
- for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-  floatCommandes8[i] = conf.TX.COMMANDES8[i].INIT;
-
- for(let i = 0; i < hard.MOTEURS.length; i++) {
-  if(hard.MOTEURS[i].FAILSAFE) {
-   setMoteur(i);
-   writeMoteur(i);
-  }
- }
-
- for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-  floatCommandes16[i] = tx.getFloatCommande16(i);
-
- for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-  floatCommandes8[i] = tx.getFloatCommande8(i);
-
- for(let i = 0; i < hard.MOTEURS.length; i++)
-  if(!hard.MOTEURS[i].FAILSAFE)
-   setMoteur(i);
-}
-
 setInterval(function() {
- if(!up || !init)
+ if(!run)
   return;
 
- let latencePredictive = Math.max(latence, Date.now() - lastTimestamp);
+ let running = false;
+
+ let latencePredictive = Math.max(0, Date.now() - lastTimestamp);
 
  if(latencePredictive < SYS.LATENCEFINALARME && alarmeLatence) {
   trace("Latence de " + latencePredictive + " ms, retour au débit vidéo configuré");
@@ -878,12 +830,88 @@ setInterval(function() {
   alarmeLatence = false;
  } else if(latencePredictive > SYS.LATENCEDEBUTALARME && !alarmeLatence) {
   trace("Latence de " + latencePredictive + " ms, arrêt des moteurs et passage en débit vidéo réduit");
-  failSafe();
   exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + SYS.BITRATEVIDEOFAIBLE, function(code) {
   });
   alarmeLatence = true;
  }
-}, SYS.TXRATE);
+
+ if(alarmeLatence) {
+  for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
+   if(hard.MIXAGES16[i].FAILSAFE)
+    floatTargets16[i] = conf.TX.COMMANDES16[i].INIT;
+
+  for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
+   if(hard.MIXAGES8[i].FAILSAFE)
+    floatTargets8[i] = conf.TX.COMMANDES8[i].INIT;
+ }
+
+ for(let i = 0; i < conf.TX.COMMANDES16.length; i++) {
+  if(floatCommandes16[i] == floatTargets16[i])
+   continue;
+  running = true;
+
+  let delta;
+  if(Math.abs(floatTargets16[i] - conf.TX.COMMANDES16[i].INIT) < SYS.MARGENEUTRE)
+   delta = hard.MIXAGES16[i].FREIN;
+  else
+   delta = hard.MIXAGES16[i].RAMPE;
+
+  if(delta <= 0)
+   floatCommandes16[i] = floatTargets16[i];
+  else if(floatTargets16[i] - floatCommandes16[i] > delta)
+   floatCommandes16[i] += delta;
+  else if(floatTargets16[i] - floatCommandes16[i] < -delta)
+   floatCommandes16[i] -= delta;
+  else
+   floatCommandes16[i] = floatTargets16[i];
+ }
+
+ for(let i = 0; i < conf.TX.COMMANDES8.length; i++) {
+  if(floatCommandes8[i] == floatTargets8[i])
+   continue;
+  running = true;
+
+  let delta;
+  if(Math.abs(floatTargets8[i] - conf.TX.COMMANDES8[i].INIT) < SYS.MARGENEUTRE)
+   delta = hard.MIXAGES8[i].FREIN;
+  else
+   delta = hard.MIXAGES8[i].RAMPE;
+
+  if(delta <= 0)
+   floatCommandes8[i] = floatTargets8[i];
+  else if(floatTargets8[i] - floatCommandes8[i] > delta)
+   floatCommandes8[i] += delta;
+  else if(floatTargets8[i] - floatCommandes8[i] < -delta)
+   floatCommandes8[i] -= delta;
+  else
+   floatCommandes8[i] = floatTargets8[i];
+ }
+
+ if(running) {
+  for(let i = 0; i < hard.MOTEURS.length; i++) {
+   setMoteur(i);
+   writeMoteur(i);
+  }
+ } else {
+  if(!up) {
+   for(let i = 0; i < hard.MOTEURS.length; i++) {
+    if(hard.MOTEURS[i].VEILLE) {
+     if(hard.MOTEURS[i].ADRESSE == SYS.UNUSED) {
+      gpioMoteurs[i].forEach(function(gpio) {
+       gpio.mode(GPIO.INPUT);
+      });
+     } else {
+      for(let j = 0; j < hard.MOTEURS[i].PINS.length; j++) {
+       setPca9685Gpio(hard.MOTEURS[i].ADRESSE, hard.MOTEURS[i].PINS[j], false);
+      }
+     }
+    }
+   }
+   run = false;
+  }
+ }
+
+}, SYS.SERVORATE);
 
 setInterval(function() {
  if(!init)
