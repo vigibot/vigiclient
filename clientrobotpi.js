@@ -575,7 +575,7 @@ USER.SERVEURS.forEach(function(serveur, index) {
  });
 
  sockets[serveur].on("clientsrobottx", function(data) {
-  if(serveurCourant && serveur != serveurCourant)
+  if(serveurCourant && serveur != serveurCourant || !init)
    return;
 
   if(data.data[0] != FRAME0 ||
