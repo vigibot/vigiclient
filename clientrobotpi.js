@@ -51,8 +51,8 @@ let lastTimestamp = Date.now();
 let lastTrame = Date.now();
 let alarmeLatence = false;
 
-let floatTargets16 = [];
-let floatTargets8 = [];
+let floatCibles16 = [];
+let floatCibles8 = [];
 let floatCommandes16 = [];
 let floatCommandes8 = [];
 
@@ -259,11 +259,11 @@ function dodo() {
 
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
   if(hard.MIXAGES16[i].FAILSAFE)
-   floatTargets16[i] = conf.TX.COMMANDES16[i].INIT;
+   floatCibles16[i] = conf.TX.COMMANDES16[i].INIT;
 
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
   if(hard.MIXAGES8[i].FAILSAFE)
-   floatTargets8[i] = conf.TX.COMMANDES8[i].INIT;
+   floatCibles8[i] = conf.TX.COMMANDES8[i].INIT;
 
  for(let i = 0; i < 8; i++)
   setGpio(i, 0);
@@ -601,10 +601,10 @@ USER.SERVEURS.forEach(function(serveur, index) {
     tx.bytes[i] = data.data[i];
 
    for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-    floatTargets16[i] = tx.getFloatCommande16(i);
+    floatCibles16[i] = tx.getFloatCommande16(i);
 
    for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-    floatTargets8[i] = tx.getFloatCommande8(i);
+    floatCibles8[i] = tx.getFloatCommande8(i);
 
    if(tx.interrupteurs[0] != oldTxInterrupteurs) {
     for(let i = 0; i < 8; i++) {
@@ -838,53 +838,53 @@ setInterval(function() {
  if(alarmeLatence) {
   for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
    if(hard.MIXAGES16[i].FAILSAFE)
-    floatTargets16[i] = conf.TX.COMMANDES16[i].INIT;
+    floatCibles16[i] = conf.TX.COMMANDES16[i].INIT;
 
   for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
    if(hard.MIXAGES8[i].FAILSAFE)
-    floatTargets8[i] = conf.TX.COMMANDES8[i].INIT;
+    floatCibles8[i] = conf.TX.COMMANDES8[i].INIT;
  }
 
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++) {
-  if(floatCommandes16[i] == floatTargets16[i])
+  if(floatCommandes16[i] == floatCibles16[i])
    continue;
   running = true;
 
   let delta;
-  if(Math.abs(floatTargets16[i] - conf.TX.COMMANDES16[i].INIT) < SYS.MARGENEUTRE)
+  if(Math.abs(floatCibles16[i] - conf.TX.COMMANDES16[i].INIT) < SYS.MARGENEUTRE)
    delta = hard.MIXAGES16[i].FREIN;
   else
    delta = hard.MIXAGES16[i].RAMPE;
 
   if(delta <= 0)
-   floatCommandes16[i] = floatTargets16[i];
-  else if(floatTargets16[i] - floatCommandes16[i] > delta)
+   floatCommandes16[i] = floatCibles16[i];
+  else if(floatCommandes16[i] - floatCibles16[i] < delta)
    floatCommandes16[i] += delta;
-  else if(floatTargets16[i] - floatCommandes16[i] < -delta)
+  else if(floatCommandes16[i] - floatCibles16[i] > -delta)
    floatCommandes16[i] -= delta;
   else
-   floatCommandes16[i] = floatTargets16[i];
+   floatCommandes16[i] = floatCibles16[i];
  }
 
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++) {
-  if(floatCommandes8[i] == floatTargets8[i])
+  if(floatCommandes8[i] == floatCibles8[i])
    continue;
   running = true;
 
   let delta;
-  if(Math.abs(floatTargets8[i] - conf.TX.COMMANDES8[i].INIT) < SYS.MARGENEUTRE)
+  if(Math.abs(floatCibles8[i] - conf.TX.COMMANDES8[i].INIT) < SYS.MARGENEUTRE)
    delta = hard.MIXAGES8[i].FREIN;
   else
    delta = hard.MIXAGES8[i].RAMPE;
 
   if(delta <= 0)
-   floatCommandes8[i] = floatTargets8[i];
-  else if(floatTargets8[i] - floatCommandes8[i] > delta)
+   floatCommandes8[i] = floatCibles8[i];
+  else if(floatCibles8[i] - floatCommandes8[i] > delta)
    floatCommandes8[i] += delta;
-  else if(floatTargets8[i] - floatCommandes8[i] < -delta)
+  else if(floatCibles8[i] - floatCommandes8[i] < -delta)
    floatCommandes8[i] -= delta;
   else
-   floatCommandes8[i] = floatTargets8[i];
+   floatCommandes8[i] = floatCibles8[i];
  }
 
  if(running) {
