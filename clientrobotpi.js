@@ -858,9 +858,9 @@ setInterval(function() {
 
   if(delta <= 0)
    floatCommandes16[i] = floatCibles16[i];
-  else if(floatCommandes16[i] - floatCibles16[i] < delta)
+  else if(floatCommandes16[i] - floatCibles16[i] < -delta)
    floatCommandes16[i] += delta;
-  else if(floatCommandes16[i] - floatCibles16[i] > -delta)
+  else if(floatCommandes16[i] - floatCibles16[i] > delta)
    floatCommandes16[i] -= delta;
   else
    floatCommandes16[i] = floatCibles16[i];
