@@ -53,8 +53,10 @@ let alarmeLatence = false;
 
 let floatCibles16 = [];
 let floatCibles8 = [];
+let floatCibles1 = [];
 let floatCommandes16 = [];
 let floatCommandes8 = [];
+let floatCommandes1 = [];
 
 let moteurs = [];
 let oldMoteurs = [];
@@ -266,6 +268,10 @@ function dodo() {
    floatCibles8[i] = conf.TX.COMMANDES8[i].INIT;
 
  for(let i = 0; i < 8; i++)
+  if(hard.MIXAGES1[i].FAILSAFE)
+   floatCibles1[i] = tx.interrupteurs[0] >> i & 1;
+
+ for(let i = 0; i < 8; i++)
   setGpio(i, 0);
 
  rx.interrupteurs[0] = 0;
@@ -389,6 +395,9 @@ USER.SERVEURS.forEach(function(serveur, index) {
    for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
     floatCommandes8[i] = conf.TX.COMMANDES8[i].INIT;
 
+   for(let i = 0; i < 8; i++)
+    floatCommandes1[i] = conf.TX.INTERRUPTEURS[0] >> i & 1;
+
    for(let i = 0; i < hard.MOTEURS.length; i++) {
     oldMoteurs[i] = 0;
     rattrapages[i] = 0;
@@ -398,6 +407,8 @@ USER.SERVEURS.forEach(function(serveur, index) {
      moteursInit[i] += floatCommandes16[j] * hard.MIXAGES16[j].GAINS[i];
     for(let j = 0; j < conf.TX.COMMANDES8.length; j++)
      moteursInit[i] += floatCommandes8[j] * hard.MIXAGES8[j].GAINS[i];
+    for(let j = 0; j < 8; j++)
+     moteursInit[i] += floatCommandes1[j] * hard.MIXAGES1[j].GAINS[i];
    }
 
    oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
@@ -606,6 +617,9 @@ USER.SERVEURS.forEach(function(serveur, index) {
    for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
     floatCibles8[i] = tx.getFloatCommande8(i);
 
+   for(let i = 0; i < 8; i++)
+    floatCibles1[i] = tx.interrupteurs[0] >> i & 1;
+
    if(tx.interrupteurs[0] != oldTxInterrupteurs) {
     for(let i = 0; i < 8; i++) {
      let etat = tx.interrupteurs[0] >> i & 1;
@@ -725,6 +739,8 @@ function setMoteur(n) {
   moteurs[n] += floatCommandes16[i] * hard.MIXAGES16[i].GAINS[n];
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
   moteurs[n] += floatCommandes8[i] * hard.MIXAGES8[i].GAINS[n];
+ for(let i = 0; i < 8; i++)
+  moteurs[n] += floatCommandes1[i] * hard.MIXAGES1[i].GAINS[n];
 
  if(moteurs[n] != oldMoteurs[n]) {
   if(moteurs[n] < oldMoteurs[n])
@@ -843,6 +859,10 @@ setInterval(function() {
   for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
    if(hard.MIXAGES8[i].FAILSAFE)
     floatCibles8[i] = conf.TX.COMMANDES8[i].INIT;
+
+  for(let i = 0; i < 8; i++)
+   if(hard.MIXAGES1[i].FAILSAFE)
+    floatCibles1[i] = tx.interrupteurs[0] >> i & 1;
  }
 
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++) {
@@ -885,6 +905,27 @@ setInterval(function() {
    floatCommandes8[i] -= delta;
   else
    floatCommandes8[i] = floatCibles8[i];
+ }
+
+ for(let i = 0; i < 8; i++) {
+  if(floatCommandes1[i] == floatCibles1[i])
+   continue;
+  running = true;
+
+  let delta;
+  if(Math.abs(floatCibles1[i] - conf.TX.INTERRUPTEURS[0] >> i & 1) < SYS.MARGENEUTRE)
+   delta = hard.MIXAGES1[i].FREIN;
+  else
+   delta = hard.MIXAGES1[i].RAMPE;
+
+  if(delta <= 0)
+   floatCommandes1[i] = floatCibles1[i];
+  else if(floatCibles1[i] - floatCommandes1[i] > delta)
+   floatCommandes1[i] += delta;
+  else if(floatCibles1[i] - floatCommandes1[i] < -delta)
+   floatCommandes1[i] -= delta;
+  else
+   floatCommandes1[i] = floatCibles1[i];
  }
 
  if(running) {
