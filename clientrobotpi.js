@@ -1059,8 +1059,8 @@ function setRxVals() {
  rx.setFloatValeur8(2, link);
  rx.setFloatValeur8(3, rssi);
  if(hard.DEVGPS) {
-  if(typeof gps.state.satsActive !== "undefined")
-   rx.setFloatValeur8(4, gps.state.satsActive.length);
+  if(typeof gps.state.satsVisible !== "undefined")
+   rx.setFloatValeur8(4, gps.state.satsVisible.length);
   rx.setFloatValeur8(5, gps.state.speed);
   if(gps.state.track !== null)
    rx.setFloatValeur8(6, gps.state.track);
