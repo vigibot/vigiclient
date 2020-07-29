@@ -4,11 +4,11 @@
   "description": "Raspberry PI robot client for Vigibot.com",
   "main": "clientrobotpi.js",
   "dependencies": {
-    "gps": "^0.5.3",
-    "i2c-bus": "^5.1.0",
+    "gps": "^0.6.0",
+    "i2c-bus": "^5.2.0",
     "pca9685": "^4.0.3",
-    "pigpio": "^3.0.0",
-    "serialport": "^8.0.7",
+    "pigpio": "^3.2.3",
+    "serialport": "^8.0.8",
     "socket.io-client": "^2.3.0",
     "stream-split": "^1.1.0"
   },
