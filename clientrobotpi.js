@@ -61,7 +61,6 @@ let floatCommandes1 = [];
 let moteurs = [];
 let oldMoteurs = [];
 let rattrapages = [];
-let moteursInit = [];
 let oldTxInterrupteurs;
 
 let boostVideo = false;
@@ -401,14 +400,6 @@ USER.SERVEURS.forEach(function(serveur, index) {
    for(let i = 0; i < hard.MOTEURS.length; i++) {
     oldMoteurs[i] = 0;
     rattrapages[i] = 0;
-
-    moteursInit[i] = 0
-    for(let j = 0; j < conf.TX.COMMANDES16.length; j++)
-     moteursInit[i] += floatCommandes16[j] * hard.MIXAGES16[j].GAINS[i];
-    for(let j = 0; j < conf.TX.COMMANDES8.length; j++)
-     moteursInit[i] += floatCommandes8[j] * hard.MIXAGES8[j].GAINS[i];
-    for(let j = 0; j < 8; j++)
-     moteursInit[i] += floatCommandes1[j] * hard.MIXAGES1[j].GAINS[i];
    }
 
    oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
