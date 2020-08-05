@@ -863,9 +863,9 @@ setInterval(function() {
 
   let delta;
   if(Math.abs(floatCibles16[i] - conf.TX.COMMANDES16[i].INIT) < SYS.MARGENEUTRE)
-   delta = hard.MIXAGES16[i].FREIN;
+   delta = hard.MIXAGES16[i].RAMPINIT;
   else
-   delta = hard.MIXAGES16[i].RAMPE;
+   delta = hard.MIXAGES16[i].RAMPUP;
 
   if(delta <= 0)
    floatCommandes16[i] = floatCibles16[i];
@@ -884,9 +884,9 @@ setInterval(function() {
 
   let delta;
   if(Math.abs(floatCibles8[i] - conf.TX.COMMANDES8[i].INIT) < SYS.MARGENEUTRE)
-   delta = hard.MIXAGES8[i].FREIN;
+   delta = hard.MIXAGES8[i].RAMPINIT;
   else
-   delta = hard.MIXAGES8[i].RAMPE;
+   delta = hard.MIXAGES8[i].RAMPUP;
 
   if(delta <= 0)
    floatCommandes8[i] = floatCibles8[i];
@@ -905,9 +905,9 @@ setInterval(function() {
 
   let delta;
   if(Math.abs(floatCibles1[i] - conf.TX.INTERRUPTEURS[0] >> i & 1) < SYS.MARGENEUTRE)
-   delta = hard.MIXAGES1[i].FREIN;
+   delta = hard.MIXAGES1[i].RAMPINIT;
   else
-   delta = hard.MIXAGES1[i].RAMPE;
+   delta = hard.MIXAGES1[i].RAMPUP;
 
   if(delta <= 0)
    floatCommandes1[i] = floatCibles1[i];
