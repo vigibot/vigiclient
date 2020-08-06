@@ -20,18 +20,17 @@ function mapTrunc(n, inMin, inMax, outMin, outMax) {
 
 class Tx {
  constructor(conftx) {
-  let p = 0;
-  let nb32 = conftx.COMMANDES32.length;
-  let nb16 = conftx.COMMANDES16.length + conftx.AUTOGOTO.length + conftx.AUTOANGLES.length;
-  let nb8 = conftx.SYNC.length + conftx.CHOIXCAMERAS.length + conftx.COMMANDES8.length + conftx.REQUETESMISSION.length +
-            conftx.INTERRUPTEURS.length + conftx.FIN.length;
-
   this.conftx = conftx;
 
-  this.byteLength = nb32 * 4 + nb16 * 2 + nb8;
+  let nb32 = conftx.COMMANDES32.length;
+  let nb16 = conftx.COMMANDES16.length + conftx.AUTOGOTO.length + conftx.AUTOANGLES.length;
+  let nb8 = conftx.SYNC.length + conftx.CHOIXCAMERAS.length + conftx.COMMANDES8.length +
+            conftx.REQUETESMISSION.length + conftx.FIN.length;
 
+  this.byteLength = nb32 * 4 + nb16 * 2 + nb8 + Math.ceil(conftx.COMMANDES1.length / 8);
   this.arrayBuffer = new ArrayBuffer(this.byteLength);
 
+  let p = 0;
   this.sync = new Uint8Array(this.arrayBuffer, p, conftx.SYNC.length);
   p += this.sync.byteLength;
   for(let i = 0; i < conftx.SYNC.length; i++)
@@ -75,14 +74,10 @@ class Tx {
   for(let i = 0; i < conftx.REQUETESMISSION.length; i++)
    this.requetesMission[i] = conftx.REQUETESMISSION[i];
 
-  this.interrupteurs = new Uint8Array(this.arrayBuffer, p, conftx.INTERRUPTEURS.length);
-  p += this.interrupteurs.byteLength;
-  for(let i = 0; i < conftx.INTERRUPTEURS.length; i++) {
-   this.interrupteurs[i] = 0;
-   for(let j = 0; j < 8; j++)
-    if(conftx.INTERRUPTEURS[i].substring(j, j + 1) == "1")
-     this.interrupteurs[i] += 1 << j;
-  }
+  this.commandes1 = new Uint8Array(this.arrayBuffer, p, Math.ceil(conftx.COMMANDES1.length / 8));
+  p += this.commandes1.byteLength;
+  for(let i = 0; i < conftx.COMMANDES1.length; i++)
+   this.setCommande1(i, conftx.COMMANDES1[i].INIT);
 
   this.fin = new Uint8Array(this.arrayBuffer, p, conftx.FIN.length);
   p += this.fin.byteLength;
@@ -111,6 +106,15 @@ class Tx {
    this.commandesInt8[id] = valeur;
   else
    this.commandesUint8[id] = valeur;
+ }
+
+ setCommande1(id, valeur) {
+  let pos = Math.trunc(id / 8);
+
+  if(valeur)
+   this.commandes1[pos] |= 1 << id % 8;
+  else
+   this.commandes1[pos] &= ~(1 << id % 8);
  }
 
  getCommande32(id) {
@@ -144,6 +148,12 @@ class Tx {
    valeur = this.commandesUint8[id];
 
   return valeur;
+ }
+
+ getCommande1(id) {
+  let pos = Math.trunc(id / 8);
+
+  return this.commandes1[pos] >> id % 8 & 1;
  }
 
  computeRawCommande32(id, valeur) {
@@ -250,20 +260,19 @@ class Rx {
  constructor(conftx, confrx) {
   this.conftx = conftx;
   this.confrx = confrx;
+  this.pos = 0;
 
-  let p = 0;
   let nb32 = conftx.COMMANDES32.length + confrx.VALEURS32.length;
   let nb16 = conftx.COMMANDES16.length + conftx.AUTOGOTO.length + conftx.AUTOANGLES.length +
              confrx.ODOMETRIES.length + confrx.ANGLES.length + confrx.CIBLES.length + confrx.RESULTATSMISSION.length +
-            (confrx.NBCORRECTEURS + confrx.NBCLUSTERS) * 4 + confrx.NBPOINTSLIDAR2D * 2 + confrx.VALEURS16.length;
+             (confrx.NBCORRECTEURS + confrx.NBCLUSTERS) * 4 + confrx.NBPOINTSLIDAR2D * 2 + confrx.VALEURS16.length;
   let nb8 = confrx.SYNC.length + conftx.CHOIXCAMERAS.length + conftx.COMMANDES8.length + conftx.REQUETESMISSION.length +
-            conftx.INTERRUPTEURS.length + confrx.NBCORRECTEURS + confrx.NBCLUSTERS + confrx.VALEURS8.length + confrx.FIN.length;
+            confrx.NBCORRECTEURS + confrx.NBCLUSTERS + confrx.VALEURS8.length + confrx.FIN.length;
 
-  this.pos = 0;
-  this.byteLength = nb32 * 4 + nb16 * 2 + nb8;
-
+  this.byteLength = nb32 * 4 + nb16 * 2 + nb8 + Math.ceil(conftx.COMMANDES1.length / 8);
   this.arrayBuffer = new ArrayBuffer(this.byteLength);
 
+  let p = 0;
   this.sync = new Uint8Array(this.arrayBuffer, p, confrx.SYNC.length);
   p += this.sync.byteLength;
   for(let i = 0; i < confrx.SYNC.length; i++)
@@ -354,14 +363,10 @@ class Rx {
   for(let i = 0; i < conftx.REQUETESMISSION.length; i++)
    this.requetesMission[i] = conftx.REQUETESMISSION[i];
 
-  this.interrupteurs = new Uint8Array(this.arrayBuffer, p, conftx.INTERRUPTEURS.length);
-  p += this.interrupteurs.byteLength;
-  for(let i = 0; i < conftx.INTERRUPTEURS.length; i++) {
-   this.interrupteurs[i] = 0;
-   for(let j = 0; j < 8; j++)
-    if(conftx.INTERRUPTEURS[i].substring(j, j + 1) == "1")
-     this.interrupteurs[i] += 1 << j;
-  }
+  this.commandes1 = new Uint8Array(this.arrayBuffer, p, Math.ceil(conftx.COMMANDES1.length / 8));
+  p += this.commandes1.byteLength;
+  for(let i = 0; i < conftx.COMMANDES1.length; i++)
+   this.setCommande1(i, conftx.COMMANDES1[i].INIT);
 
   this.idCorrecteurs = new Uint8Array(this.arrayBuffer, p, confrx.NBCORRECTEURS);
   p += this.idCorrecteurs.byteLength;
@@ -442,6 +447,15 @@ class Rx {
    this.commandesUint8[id] = valeur;
  }
 
+ setCommande1(id, valeur) {
+  let pos = Math.trunc(id / 8);
+
+  if(valeur)
+   this.commandes1[pos] |= 1 << id % 8;
+  else
+   this.commandes1[pos] &= ~(1 << id % 8);
+ }
+
  getCommande32(id) {
   let valeur;
 
@@ -473,6 +487,12 @@ class Rx {
    valeur = this.commandesUint8[id];
 
   return valeur;
+ }
+
+ getCommande1(id) {
+  let pos = Math.trunc(id / 8);
+
+  return this.commandes1[pos] >> id % 8 & 1;
  }
 
  computeRawCommande32(id, valeur) {
@@ -584,6 +604,13 @@ class Rx {
 
  getTexteCommande8(id) {
   return this.getFloatCommande8(id).toFixed(this.conftx.COMMANDES8[id].NBCHIFFRES) + this.conftx.COMMANDES8[id].UNITE;
+ }
+
+ getTexteCommande1(id) {
+  if(this.getCommande1(id))
+   return "On";
+  else
+   return "Off";
  }
 
  setValeur32(id, valeur) {
