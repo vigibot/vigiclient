@@ -237,7 +237,7 @@ function debout(serveur) {
   oldMoteurs[i]++;
 
  for(let i = 0; i < 8; i++)
-  setGpio(i, tx.interrupteurs[0] >> i & 1);
+  setGpio(i, tx.commandes1[0] >> i & 1);
 
  if(hard.CAPTURESENVEILLE) {
   sigterm("Raspistill", "raspistill", function(code) {
@@ -268,12 +268,12 @@ function dodo() {
 
  for(let i = 0; i < 8; i++)
   if(hard.MIXAGES1[i].FAILSAFE)
-   floatCibles1[i] = tx.interrupteurs[0] >> i & 1;
+   floatCibles1[i] = tx.commandes1[0] >> i & 1;
 
  for(let i = 0; i < 8; i++)
   setGpio(i, 0);
 
- rx.interrupteurs[0] = 0;
+ rx.commandes1[0] = 0;
 
  sigterm("Diffusion", SYS.PROCESSDIFFUSION, function(code) {
   sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function(code) {
@@ -395,14 +395,14 @@ USER.SERVEURS.forEach(function(serveur, index) {
     floatCommandes8[i] = conf.TX.COMMANDES8[i].INIT;
 
    for(let i = 0; i < 8; i++)
-    floatCommandes1[i] = conf.TX.INTERRUPTEURS[0] >> i & 1;
+    floatCommandes1[i] = conf.TX.COMMANDES1[i].INIT;
 
    for(let i = 0; i < hard.MOTEURS.length; i++) {
     oldMoteurs[i] = 0;
     rattrapages[i] = 0;
    }
 
-   oldTxInterrupteurs = conf.TX.INTERRUPTEURS[0];
+   oldTxInterrupteurs = conf.TX.COMMANDES1[0];
 
    confVideo = hard.CAMERAS[conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA];
    oldConfVideo = confVideo;
@@ -609,16 +609,16 @@ USER.SERVEURS.forEach(function(serveur, index) {
     floatCibles8[i] = tx.getFloatCommande8(i);
 
    for(let i = 0; i < 8; i++)
-    floatCibles1[i] = tx.interrupteurs[0] >> i & 1;
+    floatCibles1[i] = tx.commandes1[0] >> i & 1;
 
-   if(tx.interrupteurs[0] != oldTxInterrupteurs) {
+   if(tx.commandes1[0] != oldTxInterrupteurs) {
     for(let i = 0; i < 8; i++) {
-     let etat = tx.interrupteurs[0] >> i & 1;
+     let etat = tx.commandes1[0] >> i & 1;
      setGpio(i, etat);
      if(i == hard.INTERRUPTEURBOOSTVIDEO)
       boostVideo = etat;
     }
-    oldTxInterrupteurs = tx.interrupteurs[0]
+    oldTxInterrupteurs = tx.commandes1[0]
    }
 
    if(boostVideo != oldBoostVideo) {
@@ -666,7 +666,7 @@ USER.SERVEURS.forEach(function(serveur, index) {
    rx.choixCameras[0] = tx.choixCameras[0];
    for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
     rx.commandesInt8[i] = tx.computeRawCommande8(i, floatCommandes8[i]);
-   rx.interrupteurs[0] = tx.interrupteurs[0];
+   rx.commandes1[0] = tx.commandes1[0];
 
    setRxVals();
    sockets[serveur].emit("serveurrobotrx", {
@@ -853,7 +853,7 @@ setInterval(function() {
 
   for(let i = 0; i < 8; i++)
    if(hard.MIXAGES1[i].FAILSAFE)
-    floatCibles1[i] = tx.interrupteurs[0] >> i & 1;
+    floatCibles1[i] = tx.commandes1[0] >> i & 1;
  }
 
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++) {
@@ -904,7 +904,7 @@ setInterval(function() {
   running = true;
 
   let delta;
-  if(Math.abs(floatCibles1[i] - conf.TX.INTERRUPTEURS[0] >> i & 1) < SYS.MARGENEUTRE)
+  if(Math.abs(floatCibles1[i] - conf.TX.COMMANDES1[0] >> i & 1) < SYS.MARGENEUTRE)
    delta = hard.MIXAGES1[i].RAMPINIT;
   else
    delta = hard.MIXAGES1[i].RAMPUP;
