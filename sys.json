@@ -68,6 +68,12 @@
 
  "PCA9685FREQUENCY": 50,
 
- "INPUT": 2,
- "UNUSED": -1
+ "UNUSED": -1,
+ "SERVO": 0,
+ "PCASERVO": 1,
+ "L9110": 2,
+ "L298": 3,
+ "PCAL298": 4,
+
+ "MARGENEUTRE": 2
 }

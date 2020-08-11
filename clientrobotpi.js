@@ -57,12 +57,11 @@ let floatCibles1 = [];
 let floatCommandes16 = [];
 let floatCommandes8 = [];
 let floatCommandes1 = [];
-let marges16 = [];
-let marges8 = [];
 
-let outputs = [];
-let oldOutputs = [];
-let backslashs = [];
+let moteurs = [];
+let oldMoteurs = [];
+let rattrapages = [];
+let oldTxInterrupteurs;
 
 let boostVideo = false;
 let oldBoostVideo = false;
@@ -74,7 +73,8 @@ let i2c;
 let gaugeType;
 
 let pca9685Driver = [];
-let gpioOutputs = [];
+let gpioMoteurs = [];
+let gpioInterrupteurs = [];
 
 let prevCpus = OS.cpus();
 let nbCpus = prevCpus.length;
@@ -233,8 +233,11 @@ function debout(serveur) {
 
  trace("Sortie de veille du robot");
 
- for(let i = 0; i < hard.OUTPUTS.length; i++)
-  oldOutputs[i]++;
+ for(let i = 0; i < hard.MOTEURS.length; i++)
+  oldMoteurs[i]++;
+
+ for(let i = 0; i < 8; i++)
+  setGpio(i, tx.commandes1[0] >> i & 1);
 
  if(hard.CAPTURESENVEILLE) {
   sigterm("Raspistill", "raspistill", function(code) {
@@ -257,15 +260,20 @@ function dodo() {
 
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
   if(hard.MIXAGES16[i].FAILSAFE)
-   floatCibles16[i] = hard.MIXAGES16[i].SLEEPVALUE;
+   floatCibles16[i] = conf.TX.COMMANDES16[i].INIT;
 
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
   if(hard.MIXAGES8[i].FAILSAFE)
-   floatCibles8[i] = hard.MIXAGES8[i].SLEEPVALUE;
+   floatCibles8[i] = conf.TX.COMMANDES8[i].INIT;
 
- for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
+ for(let i = 0; i < 8; i++)
   if(hard.MIXAGES1[i].FAILSAFE)
-   floatCibles1[i] = hard.MIXAGES1[i].SLEEPVALUE;
+   floatCibles1[i] = tx.commandes1[0] >> i & 1;
+
+ for(let i = 0; i < 8; i++)
+  setGpio(i, 0);
+
+ rx.commandes1[0] = 0;
 
  sigterm("Diffusion", SYS.PROCESSDIFFUSION, function(code) {
   sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function(code) {
@@ -380,37 +388,40 @@ USER.SERVEURS.forEach(function(serveur, index) {
    tx = new TRAME.Tx(conf.TX);
    rx = new TRAME.Rx(conf.TX, conf.RX);
 
-   for(let i = 0; i < conf.TX.COMMANDES16.length; i++) {
+   for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
     floatCommandes16[i] = conf.TX.COMMANDES16[i].INIT;
-    marges16[i] = (conf.TX.COMMANDES16[i].ECHELLEMAX - conf.TX.COMMANDES16[i].ECHELLEMIN) / 65535;
-   }
 
-   for(let i = 0; i < conf.TX.COMMANDES8.length; i++) {
+   for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
     floatCommandes8[i] = conf.TX.COMMANDES8[i].INIT;
-    marges8[i] = (conf.TX.COMMANDES8[i].ECHELLEMAX - conf.TX.COMMANDES8[i].ECHELLEMIN) / 255;
-   }
 
-   for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
+   for(let i = 0; i < 8; i++)
     floatCommandes1[i] = conf.TX.COMMANDES1[i].INIT;
 
-   for(let i = 0; i < hard.OUTPUTS.length; i++) {
-    oldOutputs[i] = 0;
-    backslashs[i] = 0;
+   for(let i = 0; i < hard.MOTEURS.length; i++) {
+    oldMoteurs[i] = 0;
+    rattrapages[i] = 0;
    }
+
+   oldTxInterrupteurs = conf.TX.COMMANDES1[0];
 
    confVideo = hard.CAMERAS[conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA];
    oldConfVideo = confVideo;
    boostVideo = false;
    oldBoostVideo = false;
 
-   gpioOutputs.forEach(function(gpios) {
+   gpioMoteurs.forEach(function(gpios) {
     gpios.forEach(function(gpio) {
      gpio.mode(GPIO.INPUT);
     });
    });
 
+   gpioInterrupteurs.forEach(function(gpio) {
+    gpio.mode(GPIO.INPUT);
+   });
+
    pca9685Driver = [];
-   gpioOutputs = [];
+   gpioMoteurs = [];
+   gpioInterrupteurs = [];
 
    for(let i = 0; i < hard.PCA9685ADDRESSES.length; i++) {
     pca9685Driver[i] = new PCA9685.Pca9685Driver({
@@ -428,12 +439,20 @@ USER.SERVEURS.forEach(function(serveur, index) {
     });
    }
 
-   for(let i = 0; i < hard.OUTPUTS.length; i++) {
-    if(hard.OUTPUTS[i].ADRESSE == SYS.UNUSED) {
-     gpioOutputs[i] = [];
-     for(let j = 0; j < hard.OUTPUTS[i].GPIOS.length; j++)
-      gpioOutputs[i][j] = new GPIO(hard.OUTPUTS[i].GPIOS[j], {mode: GPIO.OUTPUT});
+   for(let i = 0; i < hard.MOTEURS.length; i++) {
+    if(hard.MOTEURS[i].ADRESSE == SYS.UNUSED) {
+     gpioMoteurs[i] = [];
+     for(let j = 0; j < hard.MOTEURS[i].PINS.length; j++)
+      gpioMoteurs[i][j] = new GPIO(hard.MOTEURS[i].PINS[j], {mode: GPIO.OUTPUT});
      setMotorFrequency(i);
+    }
+   }
+
+   for(let i = 0; i < 8; i++) {
+    if(hard.INTERRUPTEURS[i].PIN != SYS.UNUSED) {
+     if(hard.INTERRUPTEURS[i].PCA9685 == SYS.UNUSED)
+      gpioInterrupteurs[i] = new GPIO(hard.INTERRUPTEURS[i].PIN, {mode: GPIO.OUTPUT});
+     setGpio(i, 0);
     }
    }
 
@@ -589,10 +608,19 @@ USER.SERVEURS.forEach(function(serveur, index) {
    for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
     floatCibles8[i] = tx.getFloatCommande8(i);
 
-   for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
-    floatCibles1[i] = tx.getCommande1(i);
+   for(let i = 0; i < 8; i++)
+    floatCibles1[i] = tx.commandes1[0] >> i & 1;
 
-   boostVideo = tx.getCommande1(hard.INTERRUPTEURBOOSTVIDEO);
+   if(tx.commandes1[0] != oldTxInterrupteurs) {
+    for(let i = 0; i < 8; i++) {
+     let etat = tx.commandes1[0] >> i & 1;
+     setGpio(i, etat);
+     if(i == hard.INTERRUPTEURBOOSTVIDEO)
+      boostVideo = etat;
+    }
+    oldTxInterrupteurs = tx.commandes1[0]
+   }
+
    if(boostVideo != oldBoostVideo) {
     if(boostVideo) {
      exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.BOOSTVIDEOLUMINOSITE +
@@ -638,8 +666,8 @@ USER.SERVEURS.forEach(function(serveur, index) {
    rx.choixCameras[0] = tx.choixCameras[0];
    for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
     rx.commandesInt8[i] = tx.computeRawCommande8(i, floatCommandes8[i]);
-   for(let i = 0; i < conf.TX.COMMANDES1.length / 8; i++)
-    rx.commandes1[i] = tx.commandes1[i];
+   rx.commandes1[0] = tx.commandes1[0];
+
    setRxVals();
    sockets[serveur].emit("serveurrobotrx", {
     timestamp: now,
@@ -649,182 +677,149 @@ USER.SERVEURS.forEach(function(serveur, index) {
  });
 });
 
-function computeOut(n, consigne) {
- let out;
- let nbInMax = hard.OUTPUTS[n].INS.length - 1;
+function setPca9685Gpio(pcaId, pin, etat) {
+ if(etat)
+  pca9685Driver[pcaId].channelOn(pin);
+ else
+  pca9685Driver[pcaId].channelOff(pin);
+}
 
- if(consigne <= hard.OUTPUTS[n].INS[0])
-  out = hard.OUTPUTS[n].OUTS[0];
- else if(consigne > hard.OUTPUTS[n].INS[nbInMax])
-  out = hard.OUTPUTS[n].OUTS[nbInMax];
- else {
-  for(let i = 0; i < nbInMax; i++) {
-   if(consigne <= hard.OUTPUTS[n].INS[i + 1]) {
-    out = map(consigne, hard.OUTPUTS[n].INS[i], hard.OUTPUTS[n].INS[i + 1], hard.OUTPUTS[n].OUTS[i], hard.OUTPUTS[n].OUTS[i + 1]);
-    break;
-   }
-  }
+function setGpio(n, etat) {
+ etat ^= hard.INTERRUPTEURS[n].INV;
+ if(hard.INTERRUPTEURS[n].PIN != SYS.UNUSED) {
+  if(hard.INTERRUPTEURS[n].PCA9685 == SYS.UNUSED) {
+   if(hard.INTERRUPTEURS[n].MODE == 1 && !etat || // Drain ouvert
+      hard.INTERRUPTEURS[n].MODE == 2 && etat)    // Collecteur ouvert
+    gpioInterrupteurs[n].mode(GPIO.INPUT);
+   else
+    gpioInterrupteurs[n].digitalWrite(etat);
+  } else
+   setPca9685Gpio(hard.INTERRUPTEURS[n].PCA9685, hard.INTERRUPTEURS[n].PIN, etat);
  }
+}
 
- return out;
+function computePwm(n, consigne, min, max) {
+ let pwm;
+ let pwmNeutre = (min + max) / 2;
+
+ if(consigne < -SYS.MARGENEUTRE)
+  pwm = map(consigne, -hard.MOTEURS[n].COURSE / 2, 0, min, pwmNeutre + hard.MOTEURS[n].NEUTREAR);
+ else if(consigne > SYS.MARGENEUTRE)
+  pwm = map(consigne, 0, hard.MOTEURS[n].COURSE / 2, pwmNeutre + hard.MOTEURS[n].NEUTREAV, max);
+ else
+  pwm = pwmNeutre;
+
+ return pwm;
 }
 
 function setMotorFrequency(n) {
- if(hard.OUTPUTS[n].ADRESSE != SYS.UNUSED) {
-  switch(hard.OUTPUTS[n].TYPE) {
-   case "Pwms":
-    gpioOutputs[n][0].pwmFrequency(hard.FREQUENCEPWM);
-    break;
-   case "PwmPwm":
-    gpioOutputs[n][0].pwmFrequency(hard.FREQUENCEPWM);
-    gpioOutputs[n][1].pwmFrequency(hard.FREQUENCEPWM);
-    break;
-   case "PwmDir":
-    gpioOutputs[n][0].pwmFrequency(hard.FREQUENCEPWM);
-    break;
-   case "PwmDirDir":
-    gpioOutputs[n][0].pwmFrequency(hard.FREQUENCEPWM);
-    break;
-  }
+ switch(hard.MOTEURS[n].TYPE) {
+  case SYS.L9110:
+   gpioMoteurs[n][0].pwmFrequency(hard.FREQUENCEPWM);
+   gpioMoteurs[n][1].pwmFrequency(hard.FREQUENCEPWM);
+   break;
+  case SYS.L298:
+   gpioMoteurs[n][0].pwmFrequency(hard.FREQUENCEPWM);
+   break;
  }
 }
 
-function setOutput(n) {
- outputs[n] = 0;
+function setMoteur(n) {
+ moteurs[n] = 0;
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-  outputs[n] += floatCommandes16[i] * hard.MIXAGES16[i].GAINS[n];
+  moteurs[n] += floatCommandes16[i] * hard.MIXAGES16[i].GAINS[n];
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-  outputs[n] += floatCommandes8[i] * hard.MIXAGES8[i].GAINS[n];
- for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
-  outputs[n] += floatCommandes1[i] * hard.MIXAGES1[i].GAINS[n];
+  moteurs[n] += floatCommandes8[i] * hard.MIXAGES8[i].GAINS[n];
+ for(let i = 0; i < 8; i++)
+  moteurs[n] += floatCommandes1[i] * hard.MIXAGES1[i].GAINS[n];
 
- if(outputs[n] != oldOutputs[n]) {
-  if(outputs[n] < oldOutputs[n])
-   backslashs[n] = -hard.OUTPUTS[n].BACKSLASH;
-  else if(outputs[n] > oldOutputs[n])
-   backslashs[n] = hard.OUTPUTS[n].BACKSLASH;
-  oldOutputs[n] = outputs[n];
+ if(moteurs[n] != oldMoteurs[n]) {
+  if(moteurs[n] < oldMoteurs[n])
+   rattrapages[n] = -hard.MOTEURS[n].RATTRAPAGE;
+  else if(moteurs[n] > oldMoteurs[n])
+   rattrapages[n] = hard.MOTEURS[n].RATTRAPAGE;
+  oldMoteurs[n] = moteurs[n];
  }
 }
 
-function writeOutput(n) {
- let consigne = outputs[n] + backslashs[n];
+function writeMoteur(n) {
+ let consigne = Math.trunc(constrain(moteurs[n] + rattrapages[n] + hard.MOTEURS[n].OFFSET, -hard.MOTEURS[n].COURSE / 2,
+                                                                                            hard.MOTEURS[n].COURSE / 2));
 
- switch(hard.OUTPUTS[n].TYPE) {
-  case "Gpios":
-   setGpios(n, consigne);
+ switch(hard.MOTEURS[n].TYPE) {
+  case SYS.PCASERVO:
+   pca9685Driver[hard.MOTEURS[n].ADRESSE].setPulseLength(hard.MOTEURS[n].PINS[0], computePwm(n, consigne, hard.MOTEURS[n].PWMMIN,
+                                                                                                          hard.MOTEURS[n].PWMMAX));
    break;
-  case "Servos":
-   setServos(n, consigne);
+  case SYS.SERVO:
+   gpioMoteurs[n][0].servoWrite(computePwm(n, consigne, hard.MOTEURS[n].PWMMIN, hard.MOTEURS[n].PWMMAX));
    break;
-  case "Pwms":
-   setPwms(n, consigne);
+  case SYS.L9110:
+   l9110MotorDrive(n, computePwm(n, consigne, -255, 255));
    break;
-  case "PwmPwm":
-   setPwmPwm(n, consigne);
+  case SYS.L298:
+   l298MotorDrive(n, computePwm(n, consigne, -255, 255));
    break;
-  case "PwmDir":
-   setPwmDir(n, consigne);
-   break;
-  case "PwmDirDir":
-   setPwmDirDir(n, consigne);
+  case SYS.PCAL298:
+   pca9685MotorDrive(n, computePwm(n, consigne, -100, 100));
    break;
  }
 }
 
-function setGpio(n, pin, etat) {
- let pcaId = hard.OUTPUTS[n].ADRESSE;
- let gpio;
+function l298MotorDrive(n, consigne) {
+ let pwm;
 
- if(pcaId == SYS.UNUSED) {
-  gpio = gpioOutputs[n][pin];
-  if(etat == SYS.INPUT)
-   gpio.mode(GPIO.INPUT);
-  else
-   gpio.digitalWrite(etat);
+ if(consigne < 0) {
+  gpioMoteurs[n][1].digitalWrite(false);
+  gpioMoteurs[n][2].digitalWrite(true);
+  pwm = -consigne;
+ } else if(consigne > 0) {
+  gpioMoteurs[n][1].digitalWrite(true);
+  gpioMoteurs[n][2].digitalWrite(false);
+  pwm = consigne;
  } else {
-  gpio = hard.OUTPUTS[n].GPIOS[pin];
-  if(etat)
-   pca9685Driver[pcaId].channelOn(gpio);
-  else
-   pca9685Driver[pcaId].channelOff(gpio);
+  gpioMoteurs[n][1].digitalWrite(true);
+  gpioMoteurs[n][2].digitalWrite(true);
+  pwm = 0;
  }
+
+ gpioMoteurs[n][0].pwmWrite(pwm);
 }
 
-function setGpios(n, consigne) {
- let etat = computeOut(n, consigne);
-
- for(let i = 0; i < hard.OUTPUTS[n].GPIOS.length; i++)
-  setGpio(n, i, etat);
-}
-
-function setServos(n, consigne) {
- let pulseLength = computeOut(n, consigne);
- let pcaId = hard.OUTPUTS[n].ADRESSE;
-
- if(pcaId == SYS.UNUSED)
-  for(let i = 0; i < hard.OUTPUTS[n].GPIOS.length; i++)
-   gpioOutputs[n][i].servoWrite(pulseLength);
- else
-  for(let i = 0; i < hard.OUTPUTS[n].GPIOS.length; i++)
-   pca9685Driver[hard.OUTPUTS[n].ADRESSE].setPulseLength(hard.OUTPUTS[n].GPIOS[i], pwm);
-}
-
-function setPwm(n, gpio, pwm) {
- let pcaId = hard.OUTPUTS[n].ADRESSE;
-
- if(pcaId == SYS.UNUSED)
-  gpioOutputs[n][gpio].pwmWrite(Math.abs(map(pwm, -100, 100, -255, 255)));
- else
-  pca9685Driver[pcaId].setDutyCycle(hard.OUTPUTS[n].GPIOS[gpio], Math.abs(pwm / 100));
-}
-
-function setPwms(n, consigne) {
- let pwm = computeOut(n, consigne);
-
- for(let i = 0; i < hard.OUTPUTS[n].GPIOS.length; i++)
-  setPwm(n, i, pwm);
-}
-
-function setPwmPwm(n, consigne) {
- let pwm = computeOut(n, consigne);
-
- if(pwm > 0) {
-  setPwm(n, 0, pwm);
-  setGpio(n, 1, 0);
- } else if(pwm < 0) {
-  setGpio(n, 0, 0);
-  setPwm(n, 1, pwm);
+function l9110MotorDrive(n, consigne) {
+ if(consigne < 0) {
+  gpioMoteurs[n][0].digitalWrite(false);
+  gpioMoteurs[n][1].pwmWrite(-consigne);
+ } else if(consigne > 0) {
+  gpioMoteurs[n][0].pwmWrite(consigne);
+  gpioMoteurs[n][1].digitalWrite(false);
  } else {
-  setGpio(n, 0, 1);
-  setGpio(n, 1, 1);
+  gpioMoteurs[n][0].digitalWrite(true);
+  gpioMoteurs[n][1].digitalWrite(true);
  }
 }
 
-function setPwmDir(n, consigne) {
- let pwm = computeOut(n, consigne);
+function pca9685MotorDrive(n, consigne) {
+ let pcaId = hard.MOTEURS[n].ADRESSE;
+ let chIn1 = hard.MOTEURS[n].PINS[1];
+ let chIn2 = hard.MOTEURS[n].PINS[2];
+ let pwm;
 
- if(pwm > 0)
-  setGpio(n, 1, 1);
- else
-  setGpio(n, 1, 0);
- setPwm(n, 0, pwm);
-}
-
-function setPwmDirDir(n, consigne) {
- let pwm = computeOut(n, consigne);
-
- if(pwm > 0) {
-  setGpio(n, 0, 1);
-  setGpio(n, 1, 0);
- } else if(pwm < 0) {
-  setGpio(n, 0, 0);
-  setGpio(n, 1, 1);
+ if(consigne < 0) {
+  pca9685Driver[pcaId].channelOff(chIn1);
+  pca9685Driver[pcaId].channelOn(chIn2);
+  pwm = -consigne / 100;
+ } else if(consigne > 0) {
+  pca9685Driver[pcaId].channelOn(chIn1);
+  pca9685Driver[pcaId].channelOff(chIn2);
+  pwm = consigne / 100;
  } else {
-  setGpio(n, 0, 1);
-  setGpio(n, 1, 1);
+  pca9685Driver[pcaId].channelOn(chIn1);
+  pca9685Driver[pcaId].channelOn(chIn2);
+  pwm = 0;
  }
- setPwm(n, 0, pwm);
+
+ pca9685Driver[pcaId].setDutyCycle(hard.MOTEURS[n].PINS[0], pwm);
 }
 
 setInterval(function() {
@@ -832,7 +827,8 @@ setInterval(function() {
   return;
 
  let running = false;
- let latencePredictive = Date.now() - lastTimestamp;
+
+ let latencePredictive = Math.max(0, Date.now() - lastTimestamp);
 
  if(latencePredictive < SYS.LATENCEFINALARME && alarmeLatence) {
   trace("Latence de " + latencePredictive + " ms, retour au débit vidéo configuré");
@@ -849,15 +845,15 @@ setInterval(function() {
  if(alarmeLatence) {
   for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
    if(hard.MIXAGES16[i].FAILSAFE)
-    floatCibles16[i] = hard.MIXAGES16[i].SLEEPVALUE;
+    floatCibles16[i] = conf.TX.COMMANDES16[i].INIT;
 
   for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
    if(hard.MIXAGES8[i].FAILSAFE)
-    floatCibles8[i] = hard.MIXAGES8[i].SLEEPVALUE;
+    floatCibles8[i] = conf.TX.COMMANDES8[i].INIT;
 
-  for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
+  for(let i = 0; i < 8; i++)
    if(hard.MIXAGES1[i].FAILSAFE)
-    floatCibles1[i] = hard.MIXAGES1[i].SLEEPVALUE;
+    floatCibles1[i] = tx.commandes1[0] >> i & 1;
  }
 
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++) {
@@ -866,7 +862,7 @@ setInterval(function() {
   running = true;
 
   let delta;
-  if(Math.abs(floatCibles16[i] - conf.TX.COMMANDES16[i].INIT) <= marges16[i])
+  if(Math.abs(floatCibles16[i] - conf.TX.COMMANDES16[i].INIT) < SYS.MARGENEUTRE)
    delta = hard.MIXAGES16[i].RAMPINIT;
   else
    delta = hard.MIXAGES16[i].RAMPUP;
@@ -887,7 +883,7 @@ setInterval(function() {
   running = true;
 
   let delta;
-  if(Math.abs(floatCibles8[i] - conf.TX.COMMANDES8[i].INIT) <= marges8[i])
+  if(Math.abs(floatCibles8[i] - conf.TX.COMMANDES8[i].INIT) < SYS.MARGENEUTRE)
    delta = hard.MIXAGES8[i].RAMPINIT;
   else
    delta = hard.MIXAGES8[i].RAMPUP;
@@ -902,16 +898,16 @@ setInterval(function() {
    floatCommandes8[i] = floatCibles8[i];
  }
 
- for(let i = 0; i < conf.TX.COMMANDES1.length; i++) {
+ for(let i = 0; i < 8; i++) {
   if(floatCommandes1[i] == floatCibles1[i])
    continue;
   running = true;
 
   let delta;
-  if(Math.abs(floatCibles1[i] - conf.TX.COMMANDES1[i].INIT) < 1)
-   delta = hard.MIXAGES1[i].FREIN;
+  if(Math.abs(floatCibles1[i] - conf.TX.COMMANDES1[0] >> i & 1) < SYS.MARGENEUTRE)
+   delta = hard.MIXAGES1[i].RAMPINIT;
   else
-   delta = hard.MIXAGES1[i].RAMPE;
+   delta = hard.MIXAGES1[i].RAMPUP;
 
   if(delta <= 0)
    floatCommandes1[i] = floatCibles1[i];
@@ -924,33 +920,29 @@ setInterval(function() {
  }
 
  if(running) {
-  for(let i = 0; i < hard.OUTPUTS.length; i++) {
-   setOutput(i);
-   writeOutput(i);
+  for(let i = 0; i < hard.MOTEURS.length; i++) {
+   setMoteur(i);
+   writeMoteur(i);
   }
  } else {
-  if(up)
-   return;
-
-  for(let i = 0; i < hard.OUTPUTS.length; i++) {
-   let pcaId = hard.OUTPUTS[i].ADRESSE;
-   let etat;
-   for(let j = 0; j < gpioOutputs[i].length; j++) {
-    let sleepMode = hard.OUTPUTS[i].SLEEPMODES[j];
-    if(sleepMode == "None")
-     continue;
-    if(sleepMode == "High")
-     etat = 1;
-    else if(sleepMode == "Low")
-     etat = 0;
-    else
-     etat = 2;
-    setGpio(i, j, etat);
+  if(!up) {
+   for(let i = 0; i < hard.MOTEURS.length; i++) {
+    if(hard.MOTEURS[i].VEILLE) {
+     if(hard.MOTEURS[i].ADRESSE == SYS.UNUSED) {
+      gpioMoteurs[i].forEach(function(gpio) {
+       gpio.mode(GPIO.INPUT);
+      });
+     } else {
+      for(let j = 0; j < hard.MOTEURS[i].PINS.length; j++) {
+       setPca9685Gpio(hard.MOTEURS[i].ADRESSE, hard.MOTEURS[i].PINS[j], false);
+      }
+     }
+    }
    }
+   run = false;
   }
-
-  run = false;
  }
+
 }, SYS.SERVORATE);
 
 setInterval(function() {
@@ -1058,8 +1050,8 @@ function setRxVals() {
  rx.setFloatValeur8(2, link);
  rx.setFloatValeur8(3, rssi);
  if(hard.DEVGPS) {
-  if(typeof gps.state.satsVisible !== "undefined")
-   rx.setFloatValeur8(4, gps.state.satsVisible.length);
+  if(typeof gps.state.satsActive !== "undefined")
+   rx.setFloatValeur8(4, gps.state.satsActive.length);
   rx.setFloatValeur8(5, gps.state.speed);
   if(gps.state.track !== null)
    rx.setFloatValeur8(6, gps.state.track);
