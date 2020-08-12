@@ -948,7 +948,7 @@ setInterval(function() {
   for(let i = 0; i < hard.OUTPUTS.length; i++) {
    let pcaId = hard.OUTPUTS[i].ADRESSE;
    let etat;
-   for(let j = 0; j < gpioOutputs[i].length; j++) {
+   for(let j = 0; j < hard.OUTPUTS[i].SLEEPMODES.length; j++) {
     let sleepMode = hard.OUTPUTS[i].SLEEPMODES[j];
     if(sleepMode == "None")
      continue;
