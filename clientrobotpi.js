@@ -678,10 +678,11 @@ function computeOut(n, consigne) {
 }
 
 function setMotorFrequency(n) {
- if(hard.OUTPUTS[n].ADRESSE != SYS.UNUSED) {
+ if(hard.OUTPUTS[n].ADRESSE == SYS.UNUSED) {
   switch(hard.OUTPUTS[n].TYPE) {
    case "Pwms":
-    gpioOutputs[n][0].pwmFrequency(hard.FREQUENCEPWM);
+    for(let i = 0; i < gpioOutputs[n].length; i++)
+     gpioOutputs[n][i].pwmFrequency(hard.FREQUENCEPWM);
     break;
    case "PwmPwm":
     gpioOutputs[n][0].pwmFrequency(hard.FREQUENCEPWM);
