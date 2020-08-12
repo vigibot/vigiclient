@@ -774,12 +774,12 @@ function setGpios(n, consigne) {
 }
 
 function setServos(n, consigne) {
- let pulseLength = computeOut(n, consigne);
+ let pwm = computeOut(n, consigne);
  let pcaId = hard.OUTPUTS[n].ADRESSE;
 
  if(pcaId == SYS.UNUSED)
   for(let i = 0; i < hard.OUTPUTS[n].GPIOS.length; i++)
-   gpioOutputs[n][i].servoWrite(pulseLength);
+   gpioOutputs[n][i].servoWrite(pwm);
  else
   for(let i = 0; i < hard.OUTPUTS[n].GPIOS.length; i++)
    pca9685Driver[hard.OUTPUTS[n].ADRESSE].setPulseLength(hard.OUTPUTS[n].GPIOS[i], pwm);
