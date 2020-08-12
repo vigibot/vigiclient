@@ -341,6 +341,62 @@ function diffAudio() {
  });
 }
 
+
+function initOutputs() {
+ gpioOutputs.forEach(function(gpios) {
+  gpios.forEach(function(gpio) {
+   gpio.mode(GPIO.INPUT);
+  });
+ });
+
+ pca9685Driver = [];
+ gpioOutputs = [];
+
+ for(let i = 0; i < hard.PCA9685ADDRESSES.length; i++) {
+  pca9685Driver[i] = new PCA9685.Pca9685Driver({
+   i2c: i2c,
+   address: hard.PCA9685ADDRESSES[i],
+   frequency: SYS.PCA9685FREQUENCY
+  }, function(err) {
+   if(err)
+    trace("Error initializing PCA9685 at address " + hard.PCA9685ADDRESSES[i]);
+   else {
+    trace("PCA9685 initialized at address " + hard.PCA9685ADDRESSES[i]);
+    initPca++;
+    setInit();
+   }
+  });
+ }
+
+ for(let i = 0; i < hard.OUTPUTS.length; i++) {
+  if(hard.OUTPUTS[i].ADRESSE == SYS.UNUSED) {
+   gpioOutputs[i] = [];
+   for(let j = 0; j < hard.OUTPUTS[i].GPIOS.length; j++)
+    gpioOutputs[i][j] = new GPIO(hard.OUTPUTS[i].GPIOS[j], {mode: GPIO.OUTPUT});
+   setMotorFrequency(i);
+  }
+ }
+
+ for(let i = 0; i < conf.TX.COMMANDES16.length; i++) {
+  floatCommandes16[i] = conf.TX.COMMANDES16[i].INIT;
+  marges16[i] = (conf.TX.COMMANDES16[i].ECHELLEMAX - conf.TX.COMMANDES16[i].ECHELLEMIN) / 65535;
+ }
+
+ for(let i = 0; i < conf.TX.COMMANDES8.length; i++) {
+  floatCommandes8[i] = conf.TX.COMMANDES8[i].INIT;
+  marges8[i] = (conf.TX.COMMANDES8[i].ECHELLEMAX - conf.TX.COMMANDES8[i].ECHELLEMIN) / 255;
+ }
+
+ for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
+  floatCommandes1[i] = conf.TX.COMMANDES1[i].INIT;
+
+ for(let i = 0; i < hard.OUTPUTS.length; i++) {
+  backslashs[i] = 0;
+  computeOutput(i);
+  writeOutput(i);
+ }
+}
+
 USER.SERVEURS.forEach(function(serveur, index) {
 
  sockets[serveur].on("connect", function() {
@@ -389,62 +445,12 @@ USER.SERVEURS.forEach(function(serveur, index) {
    tx = new TRAME.Tx(conf.TX);
    rx = new TRAME.Rx(conf.TX, conf.RX);
 
-   for(let i = 0; i < conf.TX.COMMANDES16.length; i++) {
-    floatCommandes16[i] = conf.TX.COMMANDES16[i].INIT;
-    marges16[i] = (conf.TX.COMMANDES16[i].ECHELLEMAX - conf.TX.COMMANDES16[i].ECHELLEMIN) / 65535;
-   }
-
-   for(let i = 0; i < conf.TX.COMMANDES8.length; i++) {
-    floatCommandes8[i] = conf.TX.COMMANDES8[i].INIT;
-    marges8[i] = (conf.TX.COMMANDES8[i].ECHELLEMAX - conf.TX.COMMANDES8[i].ECHELLEMIN) / 255;
-   }
-
-   for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
-    floatCommandes1[i] = conf.TX.COMMANDES1[i].INIT;
-
-   for(let i = 0; i < hard.OUTPUTS.length; i++) {
-    oldOutputs[i] = 0;
-    backslashs[i] = 0;
-   }
-
    confVideo = hard.CAMERAS[conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA];
    oldConfVideo = confVideo;
    boostVideo = false;
    oldBoostVideo = false;
 
-   gpioOutputs.forEach(function(gpios) {
-    gpios.forEach(function(gpio) {
-     gpio.mode(GPIO.INPUT);
-    });
-   });
-
-   pca9685Driver = [];
-   gpioOutputs = [];
-
-   for(let i = 0; i < hard.PCA9685ADDRESSES.length; i++) {
-    pca9685Driver[i] = new PCA9685.Pca9685Driver({
-     i2c: i2c,
-     address: hard.PCA9685ADDRESSES[i],
-     frequency: SYS.PCA9685FREQUENCY
-    }, function(err) {
-     if(err)
-      trace("Error initializing PCA9685 at address " + hard.PCA9685ADDRESSES[i]);
-     else {
-      trace("PCA9685 initialized at address " + hard.PCA9685ADDRESSES[i]);
-      initPca++;
-      setInit();
-     }
-    });
-   }
-
-   for(let i = 0; i < hard.OUTPUTS.length; i++) {
-    if(hard.OUTPUTS[i].ADRESSE == SYS.UNUSED) {
-     gpioOutputs[i] = [];
-     for(let j = 0; j < hard.OUTPUTS[i].GPIOS.length; j++)
-      gpioOutputs[i][j] = new GPIO(hard.OUTPUTS[i].GPIOS[j], {mode: GPIO.OUTPUT});
-     setMotorFrequency(i);
-    }
-   }
+   initOutputs();
 
    setTimeout(function() {
     if(up) {
@@ -692,16 +698,8 @@ function setMotorFrequency(n) {
  }
 }
 
-function writeOutput(n) {
-
- outputs[n] = 0;
- for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-  outputs[n] += floatCommandes16[i] * hard.MIXAGES16[i].GAINS[n];
- for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-  outputs[n] += floatCommandes8[i] * hard.MIXAGES8[i].GAINS[n];
- for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
-  outputs[n] += floatCommandes1[i] * hard.MIXAGES1[i].GAINS[n];
-
+function setOutput(n) {
+ computeOutput(n);
  if(outputs[n] == oldOutputs[n])
   return;
 
@@ -709,8 +707,21 @@ function writeOutput(n) {
   backslashs[n] = -hard.OUTPUTS[n].BACKSLASH;
  else if(outputs[n] > oldOutputs[n])
   backslashs[n] = hard.OUTPUTS[n].BACKSLASH;
- oldOutputs[n] = outputs[n];
 
+ writeOutput(n);
+}
+
+function computeOutput(n) {
+ outputs[n] = 0;
+ for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
+  outputs[n] += floatCommandes16[i] * hard.MIXAGES16[i].GAINS[n];
+ for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
+  outputs[n] += floatCommandes8[i] * hard.MIXAGES8[i].GAINS[n];
+ for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
+  outputs[n] += floatCommandes1[i] * hard.MIXAGES1[i].GAINS[n];
+}
+
+function writeOutput(n) {
  let consigne = outputs[n] + backslashs[n];
 
  switch(hard.OUTPUTS[n].TYPE) {
@@ -733,6 +744,8 @@ function writeOutput(n) {
    setPwmDirDir(n, consigne);
    break;
  }
+
+ oldOutputs[n] = outputs[n];
 }
 
 function setGpio(n, pin, etat) {
@@ -777,7 +790,7 @@ function setPwm(n, gpio, pwm) {
  let pcaId = hard.OUTPUTS[n].ADRESSE;
 
  if(pcaId == SYS.UNUSED)
-  gpioOutputs[n][gpio].pwmWrite(constrain(Math.abs(map(pwm, -100, 100, -255, 255))), 0, 255);
+  gpioOutputs[n][gpio].pwmWrite(Math.abs(map(pwm, -100, 100, -255, 255)));
  else
   pca9685Driver[pcaId].setDutyCycle(hard.OUTPUTS[n].GPIOS[gpio], Math.abs(pwm / 100));
 }
@@ -928,7 +941,7 @@ setInterval(function() {
 
  if(running) {
   for(let i = 0; i < hard.OUTPUTS.length; i++)
-   writeOutput(i);
+   setOutput(i);
  } else {
   if(up)
    return;
