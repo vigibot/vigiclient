@@ -341,7 +341,6 @@ function diffAudio() {
  });
 }
 
-
 function initOutputs() {
  gpioOutputs.forEach(function(gpios) {
   gpios.forEach(function(gpio) {
@@ -925,9 +924,9 @@ setInterval(function() {
 
   let delta;
   if(Math.abs(floatCibles1[i] - conf.TX.COMMANDES1[i].INIT) < 1)
-   delta = hard.MIXAGES1[i].FREIN;
+   delta = hard.MIXAGES1[i].RAMPINIT;
   else
-   delta = hard.MIXAGES1[i].RAMPE;
+   delta = hard.MIXAGES1[i].RAMPUP;
 
   if(delta <= 0)
    floatCommandes1[i] = floatCibles1[i];
