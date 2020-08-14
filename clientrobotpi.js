@@ -233,18 +233,6 @@ function debout(serveur) {
 
  trace("Sortie de veille du robot");
 
- for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-  if(hard.MIXAGES16[i].SLEEP)
-   floatCibles16[i] = conf.TX.COMMANDES16[i].INIT;
-
- for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-  if(hard.MIXAGES8[i].SLEEP)
-   floatCibles8[i] = conf.TX.COMMANDES8[i].INIT;
-
- for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
-  if(hard.MIXAGES1[i].SLEEP)
-   floatCibles1[i] = conf.TX.COMMANDES1[i].INIT;
-
  if(hard.CAPTURESENVEILLE) {
   sigterm("Raspistill", "raspistill", function(code) {
    diffusion();
