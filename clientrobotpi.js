@@ -386,8 +386,6 @@ function initOutputs() {
   oldOutputs[i] = 0;
   backslashs[i] = 0;
  }
-
- engine = true;
 }
 
 USER.SERVEURS.forEach(function(serveur, index) {
@@ -444,6 +442,8 @@ USER.SERVEURS.forEach(function(serveur, index) {
    oldBoostVideo = false;
 
    initOutputs();
+   if(!up)
+    writeOutputs();
 
    setTimeout(function() {
     if(up) {
@@ -459,6 +459,7 @@ USER.SERVEURS.forEach(function(serveur, index) {
       initVideo = true;
       setInit();
      });
+     setSleepModes();
     }
    }, 100);
 
