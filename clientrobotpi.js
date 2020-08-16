@@ -62,7 +62,6 @@ let marges8 = [];
 
 let outputs = [];
 let oldOutputs = [];
-let backslashs = [];
 
 let boostVideo = false;
 let oldBoostVideo = false;
@@ -378,8 +377,8 @@ function initOutputs() {
   floatCommandes1[i] = conf.TX.COMMANDES1[i].INIT;
 
  for(let i = 0; i < hard.OUTPUTS.length; i++) {
-  backslashs[i] = 0;
   computeOutput(i);
+  oldOutputs[i] = outputs[i];
   writeOutput(i);
  }
 }
@@ -686,54 +685,45 @@ function setMotorFrequency(n) {
  }
 }
 
-function setOutput(n) {
- computeOutput(n);
- if(outputs[n] == oldOutputs[n])
-  return;
-
- if(outputs[n] < oldOutputs[n])
-  backslashs[n] = -hard.OUTPUTS[n].BACKSLASH;
- else if(outputs[n] > oldOutputs[n])
-  backslashs[n] = hard.OUTPUTS[n].BACKSLASH;
-
- writeOutput(n);
-}
-
 function computeOutput(n) {
  outputs[n] = 0;
+
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
   outputs[n] += floatCommandes16[i] * hard.MIXAGES16[i].GAINS[n];
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
   outputs[n] += floatCommandes8[i] * hard.MIXAGES8[i].GAINS[n];
  for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
   outputs[n] += floatCommandes1[i] * hard.MIXAGES1[i].GAINS[n];
+
+ if(outputs[n] < oldOutputs[n])
+  outputs[n] -= hard.OUTPUTS[n].BACKSLASH;
+ else if(outputs[n] > oldOutputs[n])
+  outputs[n] += hard.OUTPUTS[n].BACKSLASH;
+
+ oldOutputs[n] = outputs[n];
 }
 
 function writeOutput(n) {
- let consigne = outputs[n] + backslashs[n];
-
  switch(hard.OUTPUTS[n].TYPE) {
   case "Gpios":
-   setGpios(n, consigne);
+   setGpios(n, outputs[n]);
    break;
   case "Servos":
-   setServos(n, consigne);
+   setServos(n, outputs[n]);
    break;
   case "Pwms":
-   setPwms(n, consigne);
+   setPwms(n, outputs[n]);
    break;
   case "PwmPwm":
-   setPwmPwm(n, consigne);
+   setPwmPwm(n, outputs[n]);
    break;
   case "PwmDir":
-   setPwmDir(n, consigne);
+   setPwmDir(n, outputs[n]);
    break;
   case "PwmDirDir":
-   setPwmDirDir(n, consigne);
+   setPwmDirDir(n, outputs[n]);
    break;
  }
-
- oldOutputs[n] = outputs[n];
 }
 
 function setGpio(n, pin, etat) {
@@ -944,8 +934,10 @@ setInterval(function() {
  }
 
  if(running) {
-  for(let i = 0; i < hard.OUTPUTS.length; i++)
-   setOutput(i);
+  for(let i = 0; i < hard.OUTPUTS.length; i++) {
+   computeOutput(i);
+   writeOutput(i);
+  }
  } else {
   if(up)
    return;
