@@ -254,15 +254,15 @@ function dodo() {
 
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
   if(hard.MIXAGES16[i].SLEEP)
-   floatCibles16[i] = hard.MIXAGES16[i].SLEEPVALUE;
+   floatCibles16[i] = conf.TX.COMMANDES16[i].INIT;
 
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
   if(hard.MIXAGES8[i].SLEEP)
-   floatCibles8[i] = hard.MIXAGES8[i].SLEEPVALUE;
+   floatCibles8[i] = conf.TX.COMMANDES8[i].INIT;
 
  for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
   if(hard.MIXAGES1[i].SLEEP)
-   floatCibles1[i] = hard.MIXAGES1[i].SLEEPVALUE;
+   floatCibles1[i] = conf.TX.COMMANDES1[i].INIT;
 
  sigterm("Diffusion", SYS.PROCESSDIFFUSION, function(code) {
   sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function(code) {
@@ -853,15 +853,15 @@ setInterval(function() {
  if(alarmeLatence) {
   for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
    if(hard.MIXAGES16[i].FAILSAFE)
-    floatCibles16[i] = hard.MIXAGES16[i].SLEEPVALUE;
+    floatCibles16[i] = conf.TX.COMMANDES16[i].INIT;
 
   for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
    if(hard.MIXAGES8[i].FAILSAFE)
-    floatCibles8[i] = hard.MIXAGES8[i].SLEEPVALUE;
+    floatCibles8[i] = conf.TX.COMMANDES8[i].INIT;
 
   for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
    if(hard.MIXAGES1[i].FAILSAFE)
-    floatCibles1[i] = hard.MIXAGES1[i].SLEEPVALUE;
+    floatCibles1[i] = conf.TX.COMMANDES1[i].INIT;
  }
 
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++) {
