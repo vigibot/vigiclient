@@ -30,7 +30,7 @@ let sockets = {};
 let serveurCourant = "";
 
 let up = false;
-let run = false;
+let engine = false;
 let upTimeout;
 
 let init = false;
@@ -60,7 +60,6 @@ let floatCommandes1 = [];
 let marges16 = [];
 let marges8 = [];
 
-let outputs = [];
 let oldOutputs = [];
 let backslashs = [];
 
@@ -233,6 +232,8 @@ function debout(serveur) {
 
  trace("Sortie de veille du robot");
 
+ writeOutputs();
+
  if(hard.CAPTURESENVEILLE) {
   sigterm("Raspistill", "raspistill", function(code) {
    diffusion();
@@ -243,7 +244,7 @@ function debout(serveur) {
 
  serveurCourant = serveur;
  up = true;
- run = true;
+ engine = true;
 }
 
 function dodo() {
@@ -365,24 +366,28 @@ function initOutputs() {
  }
 
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++) {
-  floatCommandes16[i] = conf.TX.COMMANDES16[i].INIT;
+  floatCibles16[i] = conf.TX.COMMANDES16[i].INIT;
+  floatCommandes16[i] = floatCibles16[i];
   marges16[i] = (conf.TX.COMMANDES16[i].ECHELLEMAX - conf.TX.COMMANDES16[i].ECHELLEMIN) / 65535;
  }
 
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++) {
-  floatCommandes8[i] = conf.TX.COMMANDES8[i].INIT;
+  floatCibles8[i] = conf.TX.COMMANDES8[i].INIT;
+  floatCommandes8[i] = floatCibles8[i];
   marges8[i] = (conf.TX.COMMANDES8[i].ECHELLEMAX - conf.TX.COMMANDES8[i].ECHELLEMIN) / 255;
  }
 
- for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
-  floatCommandes1[i] = conf.TX.COMMANDES1[i].INIT;
+ for(let i = 0; i < conf.TX.COMMANDES1.length; i++) {
+  floatCibles1[i] = conf.TX.COMMANDES1[i].INIT;
+  floatCommandes1[i] = floatCibles1[i];
+ }
 
  for(let i = 0; i < hard.OUTPUTS.length; i++) {
-  computeOutput(i);
-  oldOutputs[i] = outputs[i];
+  oldOutputs[i] = 0;
   backslashs[i] = 0;
-  writeOutput(i);
  }
+
+ engine = true;
 }
 
 USER.SERVEURS.forEach(function(serveur, index) {
@@ -687,50 +692,6 @@ function setMotorFrequency(n) {
  }
 }
 
-function computeOutput(n) {
- outputs[n] = 0;
-
- for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-  outputs[n] += floatCommandes16[i] * hard.MIXAGES16[i].GAINS[n];
- for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-  outputs[n] += floatCommandes8[i] * hard.MIXAGES8[i].GAINS[n];
- for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
-  outputs[n] += floatCommandes1[i] * hard.MIXAGES1[i].GAINS[n];
-}
-
-function computeBackslash(n) {
- if(outputs[n] < oldOutputs[n])
-  backslashs[n] = -hard.OUTPUTS[n].BACKSLASH;
- else if(outputs[n] > oldOutputs[n])
-  backslashs[n] = hard.OUTPUTS[n].BACKSLASH;
- oldOutputs[n] = outputs[n];
-}
-
-function writeOutput(n) {
- let consigne = outputs[n] + backslashs[n];
-
- switch(hard.OUTPUTS[n].TYPE) {
-  case "Gpios":
-   setGpios(n, consigne);
-   break;
-  case "Servos":
-   setServos(n, consigne);
-   break;
-  case "Pwms":
-   setPwms(n, consigne);
-   break;
-  case "PwmPwm":
-   setPwmPwm(n, consigne);
-   break;
-  case "PwmDir":
-   setPwmDir(n, consigne);
-   break;
-  case "PwmDirDir":
-   setPwmDirDir(n, consigne);
-   break;
- }
-}
-
 function setGpio(n, pin, etat) {
  let pcaId = hard.OUTPUTS[n].ADRESSE;
  let gpio;
@@ -826,11 +787,74 @@ function setPwmDirDir(n, consigne) {
  setPwm(n, 0, pwm);
 }
 
+function writeOutputs() {
+ for(let i = 0; i < hard.OUTPUTS.length; i++) {
+
+  let output = 0;
+
+  for(let j = 0; j < conf.TX.COMMANDES16.length; j++)
+   output += floatCommandes16[j] * hard.MIXAGES16[j].GAINS[i];
+  for(let j = 0; j < conf.TX.COMMANDES8.length; j++)
+   output += floatCommandes8[j] * hard.MIXAGES8[j].GAINS[i];
+  for(let j = 0; j < conf.TX.COMMANDES1.length; j++)
+   output += floatCommandes1[j] * hard.MIXAGES1[j].GAINS[i];
+
+  if(output < oldOutputs[i])
+   backslashs[i] = -hard.OUTPUTS[i].BACKSLASH;
+  else if(output > oldOutputs[i])
+   backslashs[i] = hard.OUTPUTS[i].BACKSLASH;
+
+  oldOutputs[i] = output;
+
+  let consigne = output + backslashs[i];
+
+  switch(hard.OUTPUTS[i].TYPE) {
+   case "Gpios":
+    setGpios(i, consigne);
+    break;
+   case "Servos":
+    setServos(i, consigne);
+    break;
+   case "Pwms":
+    setPwms(i, consigne);
+    break;
+   case "PwmPwm":
+    setPwmPwm(i, consigne);
+    break;
+   case "PwmDir":
+    setPwmDir(i, consigne);
+    break;
+   case "PwmDirDir":
+    setPwmDirDir(i, consigne);
+    break;
+  }
+ }
+}
+
+function setSleepModes() {
+ for(let i = 0; i < hard.OUTPUTS.length; i++) {
+  let pcaId = hard.OUTPUTS[i].ADRESSE;
+  let etat;
+  for(let j = 0; j < hard.OUTPUTS[i].SLEEPMODES.length; j++) {
+   let sleepMode = hard.OUTPUTS[i].SLEEPMODES[j];
+   if(sleepMode == "None")
+    continue;
+   if(sleepMode == "High")
+    etat = 1;
+   else if(sleepMode == "Low")
+    etat = 0;
+   else
+    etat = 2;
+   setGpio(i, j, etat);
+  }
+ }
+}
+
 setInterval(function() {
- if(!run)
+ if(!engine)
   return;
 
- let running = false;
+ let change = false;
  let latencePredictive = Date.now() - lastTimestamp;
 
  if(latencePredictive < SYS.LATENCEFINALARME && alarmeLatence) {
@@ -862,7 +886,7 @@ setInterval(function() {
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++) {
   if(floatCommandes16[i] == floatCibles16[i])
    continue;
-  running = true;
+  change = true;
 
   let delta;
   let cible = floatCibles16[i];
@@ -891,7 +915,7 @@ setInterval(function() {
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++) {
   if(floatCommandes8[i] == floatCibles8[i])
    continue;
-  running = true;
+  change = true;
 
   let delta;
   let cible = floatCibles8[i];
@@ -920,7 +944,7 @@ setInterval(function() {
  for(let i = 0; i < conf.TX.COMMANDES1.length; i++) {
   if(floatCommandes1[i] == floatCibles1[i])
    continue;
-  running = true;
+  change = true;
 
   let delta;
   if(Math.abs(floatCibles1[i] - conf.TX.COMMANDES1[i].INIT) < 1)
@@ -938,34 +962,11 @@ setInterval(function() {
    floatCommandes1[i] = floatCibles1[i];
  }
 
- if(running) {
-  for(let i = 0; i < hard.OUTPUTS.length; i++) {
-   computeOutput(i);
-   computeBackslash(i);
-   writeOutput(i);
-  }
- } else {
-  if(up)
-   return;
-
-  for(let i = 0; i < hard.OUTPUTS.length; i++) {
-   let pcaId = hard.OUTPUTS[i].ADRESSE;
-   let etat;
-   for(let j = 0; j < hard.OUTPUTS[i].SLEEPMODES.length; j++) {
-    let sleepMode = hard.OUTPUTS[i].SLEEPMODES[j];
-    if(sleepMode == "None")
-     continue;
-    if(sleepMode == "High")
-     etat = 1;
-    else if(sleepMode == "Low")
-     etat = 0;
-    else
-     etat = 2;
-    setGpio(i, j, etat);
-   }
-  }
-
-  run = false;
+ if(change)
+  writeOutputs();
+ else if(!up) {
+  setSleepModes();
+  engine = false;
  }
 }, SYS.SERVORATE);
 
