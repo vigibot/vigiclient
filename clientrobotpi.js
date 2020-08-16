@@ -62,6 +62,7 @@ let marges8 = [];
 
 let outputs = [];
 let oldOutputs = [];
+let backslashs = [];
 
 let boostVideo = false;
 let oldBoostVideo = false;
@@ -379,6 +380,7 @@ function initOutputs() {
  for(let i = 0; i < hard.OUTPUTS.length; i++) {
   computeOutput(i);
   oldOutputs[i] = outputs[i];
+  backslashs[i] = 0;
   writeOutput(i);
  }
 }
@@ -694,34 +696,37 @@ function computeOutput(n) {
   outputs[n] += floatCommandes8[i] * hard.MIXAGES8[i].GAINS[n];
  for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
   outputs[n] += floatCommandes1[i] * hard.MIXAGES1[i].GAINS[n];
+}
 
+function computeBackslash(n) {
  if(outputs[n] < oldOutputs[n])
-  outputs[n] -= hard.OUTPUTS[n].BACKSLASH;
+  backslashs[n] = -hard.OUTPUTS[n].BACKSLASH;
  else if(outputs[n] > oldOutputs[n])
-  outputs[n] += hard.OUTPUTS[n].BACKSLASH;
-
+  backslashs[n] = hard.OUTPUTS[n].BACKSLASH;
  oldOutputs[n] = outputs[n];
 }
 
 function writeOutput(n) {
+ let consigne = outputs[n] + backslashs[n];
+
  switch(hard.OUTPUTS[n].TYPE) {
   case "Gpios":
-   setGpios(n, outputs[n]);
+   setGpios(n, consigne);
    break;
   case "Servos":
-   setServos(n, outputs[n]);
+   setServos(n, consigne);
    break;
   case "Pwms":
-   setPwms(n, outputs[n]);
+   setPwms(n, consigne);
    break;
   case "PwmPwm":
-   setPwmPwm(n, outputs[n]);
+   setPwmPwm(n, consigne);
    break;
   case "PwmDir":
-   setPwmDir(n, outputs[n]);
+   setPwmDir(n, consigne);
    break;
   case "PwmDirDir":
-   setPwmDirDir(n, outputs[n]);
+   setPwmDirDir(n, consigne);
    break;
  }
 }
@@ -936,6 +941,7 @@ setInterval(function() {
  if(running) {
   for(let i = 0; i < hard.OUTPUTS.length; i++) {
    computeOutput(i);
+   computeBackslash(i);
    writeOutput(i);
   }
  } else {
