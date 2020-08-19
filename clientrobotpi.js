@@ -254,15 +254,15 @@ function dodo() {
  trace("Mise en veille du robot");
 
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-  if(hard.MIXAGES16[i].SLEEP)
+  if(hard.COMMANDS16[i].SLEEP)
    floatCibles16[i] = conf.TX.COMMANDES16[i].INIT;
 
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-  if(hard.MIXAGES8[i].SLEEP)
+  if(hard.COMMANDS8[i].SLEEP)
    floatCibles8[i] = conf.TX.COMMANDES8[i].INIT;
 
  for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
-  if(hard.MIXAGES1[i].SLEEP)
+  if(hard.COMMANDS1[i].SLEEP)
    floatCibles1[i] = conf.TX.COMMANDES1[i].INIT;
 
  sigterm("Diffusion", SYS.PROCESSDIFFUSION, function(code) {
@@ -793,12 +793,12 @@ function writeOutputs() {
 
   let output = 0;
 
-  for(let j = 0; j < conf.TX.COMMANDES16.length; j++)
-   output += floatCommandes16[j] * hard.MIXAGES16[j].GAINS[i];
-  for(let j = 0; j < conf.TX.COMMANDES8.length; j++)
-   output += floatCommandes8[j] * hard.MIXAGES8[j].GAINS[i];
-  for(let j = 0; j < conf.TX.COMMANDES1.length; j++)
-   output += floatCommandes1[j] * hard.MIXAGES1[j].GAINS[i];
+  for(let j = 0; j < hard.OUTPUTS[i].COMMANDS16.length; j++)
+   output += floatCommandes16[hard.OUTPUTS[i].COMMANDS16[j]] * hard.OUTPUTS[i].GAINS16[j];
+  for(let j = 0; j < hard.OUTPUTS[i].COMMANDS8.length; j++)
+   output += floatCommandes8[hard.OUTPUTS[i].COMMANDS8[j]] * hard.OUTPUTS[i].GAINS8[j];
+  for(let j = 0; j < hard.OUTPUTS[i].COMMANDS1.length; j++)
+   output += floatCommandes1[hard.OUTPUTS[i].COMMANDS1[j]] * hard.OUTPUTS[i].GAINS1[j];
 
   if(output < oldOutputs[i])
    backslashs[i] = -hard.OUTPUTS[i].BACKSLASH;
@@ -872,15 +872,15 @@ setInterval(function() {
 
  if(alarmeLatence) {
   for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-   if(hard.MIXAGES16[i].FAILSAFE)
+   if(hard.COMMANDS16[i].FAILSAFE)
     floatCibles16[i] = conf.TX.COMMANDES16[i].INIT;
 
   for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-   if(hard.MIXAGES8[i].FAILSAFE)
+   if(hard.COMMANDS8[i].FAILSAFE)
     floatCibles8[i] = conf.TX.COMMANDES8[i].INIT;
 
   for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
-   if(hard.MIXAGES1[i].FAILSAFE)
+   if(hard.COMMANDS1[i].FAILSAFE)
     floatCibles1[i] = conf.TX.COMMANDES1[i].INIT;
  }
 
@@ -894,14 +894,14 @@ setInterval(function() {
   let init = conf.TX.COMMANDES16[i].INIT;
 
   if(Math.abs(cible - init) <= marges16[i])
-   delta = hard.MIXAGES16[i].RAMPINIT;
+   delta = hard.COMMANDS16[i].RAMPINIT;
   else if((cible - init) * (floatCommandes16[i] - init) < 0) {
-   delta = hard.MIXAGES16[i].RAMPDOWN;
+   delta = hard.COMMANDS16[i].RAMPDOWN;
    cible = init;
   } else if(Math.abs(cible) - Math.abs(floatCommandes16[i]) < 0)
-   delta = hard.MIXAGES16[i].RAMPDOWN;
+   delta = hard.COMMANDS16[i].RAMPDOWN;
   else
-   delta = hard.MIXAGES16[i].RAMPUP;
+   delta = hard.COMMANDS16[i].RAMPUP;
 
   if(delta <= 0)
    floatCommandes16[i] = cible;
@@ -923,14 +923,14 @@ setInterval(function() {
   let init = conf.TX.COMMANDES8[i].INIT;
 
   if(Math.abs(cible - init) <= marges8[i])
-   delta = hard.MIXAGES8[i].RAMPINIT;
+   delta = hard.COMMANDS8[i].RAMPINIT;
   else if((cible - init) * (floatCommandes8[i] - init) < 0) {
-   delta = hard.MIXAGES8[i].RAMPDOWN;
+   delta = hard.COMMANDS8[i].RAMPDOWN;
    cible = init;
   } else if(Math.abs(cible) - Math.abs(floatCommandes8[i]) < 0)
-   delta = hard.MIXAGES8[i].RAMPDOWN;
+   delta = hard.COMMANDS8[i].RAMPDOWN;
   else
-   delta = hard.MIXAGES8[i].RAMPUP;
+   delta = hard.COMMANDS8[i].RAMPUP;
 
   if(delta <= 0)
    floatCommandes8[i] = cible;
@@ -949,9 +949,9 @@ setInterval(function() {
 
   let delta;
   if(Math.abs(floatCibles1[i] - conf.TX.COMMANDES1[i].INIT) < 1)
-   delta = hard.MIXAGES1[i].RAMPINIT;
+   delta = hard.COMMANDS1[i].RAMPINIT;
   else
-   delta = hard.MIXAGES1[i].RAMPUP;
+   delta = hard.COMMANDS1[i].RAMPUP;
 
   if(delta <= 0)
    floatCommandes1[i] = floatCibles1[i];
