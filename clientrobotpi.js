@@ -234,7 +234,7 @@ function debout(serveur) {
 
  writeOutputs();
 
- if(hard.CAPTURESENVEILLE) {
+ if(hard.SNAPSHOTSINTERVAL) {
   sigterm("Raspistill", "raspistill", function(code) {
    diffusion();
   });
@@ -464,17 +464,17 @@ USER.SERVEURS.forEach(function(serveur, index) {
    }, 100);
 
    if(!initUart) {
-    if(!hard.DEVTELECOMMANDE) {
+    if(!hard.WRITEUSERDEVICE) {
 
-     if(hard.DEVGPS) {
-      serial = new SP(hard.DEVROBOT, {
-       baudRate: hard.DEVDEBIT,
+     if(hard.ENABLEGPS) {
+      serial = new SP(hard.SERIALPORT, {
+       baudRate: hard.SERIALRATE,
        lock: false,
        parser: new SP.parsers.Readline("\r\n")
       });
 
       serial.on("open", function() {
-       trace("Connecté sur " + hard.DEVROBOT);
+       trace("Connecté sur " + hard.SERIALPORT);
 
        gps = new GPS;
 
@@ -487,15 +487,15 @@ USER.SERVEURS.forEach(function(serveur, index) {
      initUart = true;
      setInit();
     } else {
-     serial = new SP(hard.DEVROBOT, {
-      baudRate: hard.DEVDEBIT,
+     serial = new SP(hard.SERIALPORT, {
+      baudRate: hard.SERIALRATE,
       lock: false
      });
 
      serial.on("open", function() {
-      trace("Connecté sur " + hard.DEVROBOT);
+      trace("Connecté sur " + hard.SERIALPORT);
 
-      if(hard.DEVTELEMETRIE) {
+      if(hard.READUSERDEVICE) {
        serial.on("data", function(data) {
 
         rx.update(data, function() {
@@ -585,7 +585,7 @@ USER.SERVEURS.forEach(function(serveur, index) {
 
   lastTimestamp = data.boucleVideoCommande;
 
-  if(hard.DEVTELECOMMANDE)
+  if(hard.WRITEUSERDEVICE)
    serial.write(data.data);
 
   if(data.data[1] == FRAME1S) {
@@ -601,7 +601,7 @@ USER.SERVEURS.forEach(function(serveur, index) {
    for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
     floatCibles1[i] = tx.getCommande1(i);
 
-   boostVideo = tx.getCommande1(hard.INTERRUPTEURBOOSTVIDEO);
+   boostVideo = tx.getCommande1(hard.BOOSTVIDEOSWITCH);
    if(boostVideo != oldBoostVideo) {
     if(boostVideo) {
      exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.BOOSTVIDEOLUMINOSITE +
@@ -641,7 +641,7 @@ USER.SERVEURS.forEach(function(serveur, index) {
    dodo();
   }, SYS.UPTIMEOUT);
 
-  if(!hard.DEVTELEMETRIE) {
+  if(!hard.READUSERDEVICE) {
    setRxCommandes();
    setRxValeurs();
    sockets[serveur].emit("serveurrobotrx", {
@@ -677,17 +677,17 @@ function setMotorFrequency(n) {
   switch(hard.OUTPUTS[n].TYPE) {
    case "Pwms":
     for(let i = 0; i < gpioOutputs[n].length; i++)
-     gpioOutputs[n][i].pwmFrequency(hard.FREQUENCEPWM);
+     gpioOutputs[n][i].pwmFrequency(hard.PWMFREQUENCY);
     break;
    case "PwmPwm":
-    gpioOutputs[n][0].pwmFrequency(hard.FREQUENCEPWM);
-    gpioOutputs[n][1].pwmFrequency(hard.FREQUENCEPWM);
+    gpioOutputs[n][0].pwmFrequency(hard.PWMFREQUENCY);
+    gpioOutputs[n][1].pwmFrequency(hard.PWMFREQUENCY);
     break;
    case "PwmDir":
-    gpioOutputs[n][0].pwmFrequency(hard.FREQUENCEPWM);
+    gpioOutputs[n][0].pwmFrequency(hard.PWMFREQUENCY);
     break;
    case "PwmDirDir":
-    gpioOutputs[n][0].pwmFrequency(hard.FREQUENCEPWM);
+    gpioOutputs[n][0].pwmFrequency(hard.PWMFREQUENCY);
     break;
   }
  }
@@ -1080,7 +1080,7 @@ function setRxCommandes() {
 }
 
 function setRxValeurs() {
- if(hard.DEVGPS && gps.state.lat !== null) {
+ if(hard.ENABLEGPS && gps.state.lat !== null) {
   rx.setFloatValeur32(0, gps.state.lat);
   rx.setFloatValeur32(1, gps.state.lon);
  }
@@ -1090,7 +1090,7 @@ function setRxValeurs() {
  rx.setFloatValeur8(1, socTemp);
  rx.setFloatValeur8(2, link);
  rx.setFloatValeur8(3, rssi);
- if(hard.DEVGPS) {
+ if(hard.ENABLEGPS) {
   if(typeof gps.state.satsActive !== "undefined")
    rx.setFloatValeur8(4, gps.state.satsActive.length);
   rx.setFloatValeur8(5, gps.state.speed);
@@ -1100,7 +1100,7 @@ function setRxValeurs() {
 }
 
 setInterval(function() {
- if(up || !init || hard.DEVTELEMETRIE)
+ if(up || !init || hard.READUSERDEVICE)
   return;
 
  setRxCommandes();
@@ -1114,21 +1114,21 @@ setInterval(function() {
 }, SYS.BEACONRATE);
 
 setInterval(function() {
- if(up || !init || !hard.CAPTURESENVEILLE)
+ if(up || !init || !hard.SNAPSHOTSINTERVAL)
   return;
 
  let date = new Date();
 
- if(date.getMinutes() % hard.CAPTURESENVEILLE)
+ if(date.getMinutes() % hard.SNAPSHOTSINTERVAL)
   return;
 
  let overlay = date.toLocaleDateString() + " " + date.toLocaleTimeString();
- if(hard.CAPTURESHDR)
-  overlay += " HDR " + hard.CAPTURESHDR;
+ if(hard.EXPOSUREBRACKETING)
+  overlay += " HDR " + hard.EXPOSUREBRACKETING;
  let options = "-a 1024 -a '" + overlay + "' -rot " + confVideo.ROTATION;
 
- if(hard.CAPTURESHDR) {
-  EXEC("raspistill -ev " + -hard.CAPTURESHDR + " " + options + " -o /tmp/1.jpg", function(err) {
+ if(hard.EXPOSUREBRACKETING) {
+  EXEC("raspistill -ev " + -hard.EXPOSUREBRACKETING + " " + options + " -o /tmp/1.jpg", function(err) {
    if(err) {
     trace("Erreur lors de la capture de la première photo");
     return;
@@ -1138,7 +1138,7 @@ setInterval(function() {
      trace("Erreur lors de la capture de la deuxième photo");
      return;
     }
-    EXEC("raspistill -ev " + hard.CAPTURESHDR + " " + options + " -o /tmp/3.jpg", function(err) {
+    EXEC("raspistill -ev " + hard.EXPOSUREBRACKETING + " " + options + " -o /tmp/3.jpg", function(err) {
      if(err) {
       trace("Erreur lors de la capture de la troisième photo");
       return;
