@@ -859,12 +859,12 @@ setInterval(function() {
  let predictiveLatency = Date.now() - lastTimestamp;
 
  if(predictiveLatency < SYS.LATENCEFINALARME && latencyAlarm) {
-  trace("Latency of " + predictiveLatency + " ms, return to configured video bitrate");
+  trace(predictiveLatency + " ms latency, return to configured video bitrate");
   exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function(code) {
   });
   latencyAlarm = false;
  } else if(predictiveLatency > SYS.LATENCEDEBUTALARME && !latencyAlarm) {
-  trace("Latency of " + predictiveLatency + " ms, stop the motors and switch to reduced video bitrate");
+  trace(predictiveLatency + " ms latency, stop the motors and switch to reduced video bitrate");
   exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + SYS.BITRATEVIDEOFAIBLE, function(code) {
   });
   latencyAlarm = true;
