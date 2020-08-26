@@ -51,14 +51,14 @@ let lastTimestamp = Date.now();
 let lastTrame = Date.now();
 let alarmeLatence = false;
 
-let floatCibles16 = [];
-let floatCibles8 = [];
-let floatCibles1 = [];
-let floatCommandes16 = [];
-let floatCommandes8 = [];
-let floatCommandes1 = [];
-let marges16 = [];
-let marges8 = [];
+let floatTargets16 = [];
+let floatTargets8 = [];
+let floatTargets1 = [];
+let floatCommands16 = [];
+let floatCommands8 = [];
+let floatCommands1 = [];
+let margins16 = [];
+let margins8 = [];
 
 let oldOutputs = [];
 let backslashs = [];
@@ -255,15 +255,15 @@ function dodo() {
 
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
   if(hard.COMMANDS16[i].SLEEP)
-   floatCibles16[i] = conf.TX.COMMANDES16[i].INIT;
+   floatTargets16[i] = conf.TX.COMMANDES16[i].INIT;
 
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
   if(hard.COMMANDS8[i].SLEEP)
-   floatCibles8[i] = conf.TX.COMMANDES8[i].INIT;
+   floatTargets8[i] = conf.TX.COMMANDES8[i].INIT;
 
  for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
   if(hard.COMMANDS1[i].SLEEP)
-   floatCibles1[i] = conf.TX.COMMANDES1[i].INIT;
+   floatTargets1[i] = conf.TX.COMMANDES1[i].INIT;
 
  sigterm("Diffusion", SYS.PROCESSDIFFUSION, function(code) {
   sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function(code) {
@@ -366,20 +366,20 @@ function initOutputs() {
  }
 
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++) {
-  floatCibles16[i] = conf.TX.COMMANDES16[i].INIT;
-  floatCommandes16[i] = floatCibles16[i];
-  marges16[i] = (conf.TX.COMMANDES16[i].ECHELLEMAX - conf.TX.COMMANDES16[i].ECHELLEMIN) / 65535;
+  floatTargets16[i] = conf.TX.COMMANDES16[i].INIT;
+  floatCommands16[i] = floatTargets16[i];
+  margins16[i] = (conf.TX.COMMANDES16[i].ECHELLEMAX - conf.TX.COMMANDES16[i].ECHELLEMIN) / 65535;
  }
 
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++) {
-  floatCibles8[i] = conf.TX.COMMANDES8[i].INIT;
-  floatCommandes8[i] = floatCibles8[i];
-  marges8[i] = (conf.TX.COMMANDES8[i].ECHELLEMAX - conf.TX.COMMANDES8[i].ECHELLEMIN) / 255;
+  floatTargets8[i] = conf.TX.COMMANDES8[i].INIT;
+  floatCommands8[i] = floatTargets8[i];
+  margins8[i] = (conf.TX.COMMANDES8[i].ECHELLEMAX - conf.TX.COMMANDES8[i].ECHELLEMIN) / 255;
  }
 
  for(let i = 0; i < conf.TX.COMMANDES1.length; i++) {
-  floatCibles1[i] = conf.TX.COMMANDES1[i].INIT;
-  floatCommandes1[i] = floatCibles1[i];
+  floatTargets1[i] = conf.TX.COMMANDES1[i].INIT;
+  floatCommands1[i] = floatTargets1[i];
  }
 
  for(let i = 0; i < hard.OUTPUTS.length; i++) {
@@ -593,13 +593,13 @@ USER.SERVEURS.forEach(function(serveur, index) {
     tx.bytes[i] = data.data[i];
 
    for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-    floatCibles16[i] = tx.getFloatCommande16(i);
+    floatTargets16[i] = tx.getFloatCommande16(i);
 
    for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-    floatCibles8[i] = tx.getFloatCommande8(i);
+    floatTargets8[i] = tx.getFloatCommande8(i);
 
    for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
-    floatCibles1[i] = tx.getCommande1(i);
+    floatTargets1[i] = tx.getCommande1(i);
 
    contrastBoost = tx.getCommande1(hard.CONTRASTBOOSTSWITCH);
    if(contrastBoost != oldContrastBoost) {
@@ -794,11 +794,11 @@ function writeOutputs() {
   let output = 0;
 
   for(let j = 0; j < hard.OUTPUTS[i].COMMANDS16.length; j++)
-   output += floatCommandes16[hard.OUTPUTS[i].COMMANDS16[j]] * hard.OUTPUTS[i].GAINS16[j];
+   output += floatCommands16[hard.OUTPUTS[i].COMMANDS16[j]] * hard.OUTPUTS[i].GAINS16[j];
   for(let j = 0; j < hard.OUTPUTS[i].COMMANDS8.length; j++)
-   output += floatCommandes8[hard.OUTPUTS[i].COMMANDS8[j]] * hard.OUTPUTS[i].GAINS8[j];
+   output += floatCommands8[hard.OUTPUTS[i].COMMANDS8[j]] * hard.OUTPUTS[i].GAINS8[j];
   for(let j = 0; j < hard.OUTPUTS[i].COMMANDS1.length; j++)
-   output += floatCommandes1[hard.OUTPUTS[i].COMMANDS1[j]] * hard.OUTPUTS[i].GAINS1[j];
+   output += floatCommands1[hard.OUTPUTS[i].COMMANDS1[j]] * hard.OUTPUTS[i].GAINS1[j];
 
   if(output < oldOutputs[i])
    backslashs[i] = -hard.OUTPUTS[i].BACKSLASH;
@@ -873,94 +873,94 @@ setInterval(function() {
  if(alarmeLatence) {
   for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
    if(hard.COMMANDS16[i].FAILSAFE)
-    floatCibles16[i] = conf.TX.COMMANDES16[i].INIT;
+    floatTargets16[i] = conf.TX.COMMANDES16[i].INIT;
 
   for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
    if(hard.COMMANDS8[i].FAILSAFE)
-    floatCibles8[i] = conf.TX.COMMANDES8[i].INIT;
+    floatTargets8[i] = conf.TX.COMMANDES8[i].INIT;
 
   for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
    if(hard.COMMANDS1[i].FAILSAFE)
-    floatCibles1[i] = conf.TX.COMMANDES1[i].INIT;
+    floatTargets1[i] = conf.TX.COMMANDES1[i].INIT;
  }
 
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++) {
-  if(floatCommandes16[i] == floatCibles16[i])
+  if(floatCommands16[i] == floatTargets16[i])
    continue;
   change = true;
 
   let delta;
-  let cible = floatCibles16[i];
+  let cible = floatTargets16[i];
   let init = conf.TX.COMMANDES16[i].INIT;
 
-  if(Math.abs(cible - init) <= marges16[i])
+  if(Math.abs(cible - init) <= margins16[i])
    delta = hard.COMMANDS16[i].RAMPINIT;
-  else if((cible - init) * (floatCommandes16[i] - init) < 0) {
+  else if((cible - init) * (floatCommands16[i] - init) < 0) {
    delta = hard.COMMANDS16[i].RAMPDOWN;
    cible = init;
-  } else if(Math.abs(cible) - Math.abs(floatCommandes16[i]) < 0)
+  } else if(Math.abs(cible) - Math.abs(floatCommands16[i]) < 0)
    delta = hard.COMMANDS16[i].RAMPDOWN;
   else
    delta = hard.COMMANDS16[i].RAMPUP;
 
   if(delta <= 0)
-   floatCommandes16[i] = cible;
-  else if(floatCommandes16[i] - cible < -delta)
-   floatCommandes16[i] += delta;
-  else if(floatCommandes16[i] - cible > delta)
-   floatCommandes16[i] -= delta;
+   floatCommands16[i] = cible;
+  else if(floatCommands16[i] - cible < -delta)
+   floatCommands16[i] += delta;
+  else if(floatCommands16[i] - cible > delta)
+   floatCommands16[i] -= delta;
   else
-   floatCommandes16[i] = cible;
+   floatCommands16[i] = cible;
  }
 
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++) {
-  if(floatCommandes8[i] == floatCibles8[i])
+  if(floatCommands8[i] == floatTargets8[i])
    continue;
   change = true;
 
   let delta;
-  let cible = floatCibles8[i];
+  let cible = floatTargets8[i];
   let init = conf.TX.COMMANDES8[i].INIT;
 
-  if(Math.abs(cible - init) <= marges8[i])
+  if(Math.abs(cible - init) <= margins8[i])
    delta = hard.COMMANDS8[i].RAMPINIT;
-  else if((cible - init) * (floatCommandes8[i] - init) < 0) {
+  else if((cible - init) * (floatCommands8[i] - init) < 0) {
    delta = hard.COMMANDS8[i].RAMPDOWN;
    cible = init;
-  } else if(Math.abs(cible) - Math.abs(floatCommandes8[i]) < 0)
+  } else if(Math.abs(cible) - Math.abs(floatCommands8[i]) < 0)
    delta = hard.COMMANDS8[i].RAMPDOWN;
   else
    delta = hard.COMMANDS8[i].RAMPUP;
 
   if(delta <= 0)
-   floatCommandes8[i] = cible;
-  else if(floatCommandes8[i] - cible < -delta)
-   floatCommandes8[i] += delta;
-  else if(floatCommandes8[i] - cible > delta)
-   floatCommandes8[i] -= delta;
+   floatCommands8[i] = cible;
+  else if(floatCommands8[i] - cible < -delta)
+   floatCommands8[i] += delta;
+  else if(floatCommands8[i] - cible > delta)
+   floatCommands8[i] -= delta;
   else
-   floatCommandes8[i] = cible;
+   floatCommands8[i] = cible;
  }
 
  for(let i = 0; i < conf.TX.COMMANDES1.length; i++) {
-  if(floatCommandes1[i] == floatCibles1[i])
+  if(floatCommands1[i] == floatTargets1[i])
    continue;
   change = true;
 
   let delta;
-  if(Math.abs(floatCibles1[i] - conf.TX.COMMANDES1[i].INIT) < 1)
+  if(Math.abs(floatTargets1[i] - conf.TX.COMMANDES1[i].INIT) < 1)
    delta = hard.COMMANDS1[i].RAMPINIT;
   else
    delta = hard.COMMANDS1[i].RAMPUP;
 
   if(delta <= 0)
-   floatCommandes1[i] = floatCibles1[i];
-  else if(floatCibles1[i] - floatCommandes1[i] > delta)
-   floatCommandes1[i] += delta;
-  else if(floatCibles1[i] - floatCommandes1[i] < -delta)
-   floatCommandes1[i] -= delta;
+   floatCommands1[i] = floatTargets1[i];
+  else if(floatTargets1[i] - floatCommands1[i] > delta)
+   floatCommands1[i] += delta;
+  else if(floatTargets1[i] - floatCommands1[i] < -delta)
+   floatCommands1[i] -= delta;
   else
-   floatCommandes1[i] = floatCibles1[i];
+   floatCommands1[i] = floatTargets1[i];
  }
 
  if(change)
@@ -1066,14 +1066,14 @@ switch(gaugeType) {
 
 function setRxCommandes() {
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-  rx.commandesInt16[i] = tx.computeRawCommande16(i, floatCommandes16[i]);
+  rx.commandesInt16[i] = tx.computeRawCommande16(i, floatCommands16[i]);
  rx.choixCameras[0] = tx.choixCameras[0];
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-  rx.commandesInt8[i] = tx.computeRawCommande8(i, floatCommandes8[i]);
+  rx.commandesInt8[i] = tx.computeRawCommande8(i, floatCommands8[i]);
  for(let i = 0; i < conf.TX.COMMANDES1.length / 8; i++) {
   let commande1 = 0;
   for(let j = 0; j < 8; j++)
-   if(floatCommandes1[i * 8 + j] >= 0.5)
+   if(floatCommands1[i * 8 + j] >= 0.5)
     commande1 += 1 << j;
   rx.commandes1[i] = commande1;
  }
