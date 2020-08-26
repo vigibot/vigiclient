@@ -1,16 +1,16 @@
 {
- "PORTROBOTS": 8042,
- "PORTTCPVIDEO": 8043,
- "PORTTCPAUDIO": 8044,
+ "SECUREMOTEPORT": 8042,
+ "VIDEOLOCALPORT": 8043,
+ "AUDIOLOCALPORT": 8044,
 
- "FICHIERLOG": "/var/log/vigiclient.log",
+ "LOGFILE": "/var/log/vigiclient.log",
 
- "INTERFACEWIFI": "wlan0",
- "FICHIERWIFI": "/proc/net/wireless",
- "FICHIERTEMPERATURE": "/sys/class/thermal/thermal_zone0/temp",
- "CPURATE": 250,
- "TEMPERATURERATE": 1000,
+ "WIFIFACE": "wlan0",
+ "WIFIFILE": "/proc/net/wireless",
+ "TEMPFILE": "/sys/class/thermal/thermal_zone0/temp",
  "WIFIRATE": 250,
+ "TEMPRATE": 1000,
+ "CPURATE": 250,
 
  "PROCESSDIFFUSION": "/usr/local/vigiclient/processdiffusion",
  "PROCESSDIFFVIDEO": "/usr/local/vigiclient/processdiffvideo",
@@ -20,7 +20,7 @@
   [
    "/usr/local/vigiclient/processdiffusion",
    " /dev/video0",
-   " | /bin/nc 127.0.0.1 PORTTCPVIDEO",
+   " | /bin/nc 127.0.0.1 VIDEOLOCALPORT",
    " -w 2"
   ], [
    "/usr/local/vigiclient/processdiffvideo",
@@ -34,7 +34,7 @@
    " -flags:v +global_header",
    " -bsf:v dump_extra",
    " -f rawvideo",
-   " tcp://127.0.0.1:PORTTCPVIDEO"
+   " tcp://127.0.0.1:VIDEOLOCALPORT"
   ]
  ],
 
@@ -47,16 +47,16 @@
   " -ar 16000",
   " -c:a pcm_s16le",
   " -f s16le",
-  " tcp://127.0.0.1:PORTTCPAUDIO"
+  " tcp://127.0.0.1:AUDIOLOCALPORT"
  ],
 
  "CMDTTS": "/usr/bin/espeak -v fr -f /tmp/tts.txt --stdout | /usr/bin/aplay -D plughw:PLAYBACKDEVICE",
 
  "UPTIMEOUT": 5000,
  "V4L2": "/usr/bin/v4l2-ctl",
- "LATENCEFINALARME": 250,
- "LATENCEDEBUTALARME": 500,
- "BITRATEVIDEOFAIBLE": 100000,
+ "LATENCYALARMEND": 250,
+ "LATENCYALARMBEGIN": 500,
+ "EMERGENCYBITRATE": 50000,
  "TXRATE": 50,
  "SERVORATE": 20,
  "BEACONRATE": 10000,

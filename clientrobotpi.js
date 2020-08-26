@@ -95,7 +95,7 @@ if(typeof USER.CMDTTS === "undefined")
  USER.CMDTTS = SYS.CMDTTS;
 
 USER.SERVEURS.forEach(function(server) {
- sockets[server] = IO.connect(server, {"connect timeout": 1000, transports: ["websocket"], path: "/" + SYS.PORTROBOTS + "/socket.io"});
+ sockets[server] = IO.connect(server, {"connect timeout": 1000, transports: ["websocket"], path: "/" + SYS.SECUREMOTEPORT + "/socket.io"});
 });
 
 hard.DEBUG = true;
@@ -149,7 +149,7 @@ function hmsm(date) {
 function trace(message) {
  if(hard.DEBUG) {
   let trace = hmsm(new Date()) + " | " + message;
-  FS.appendFile(SYS.FICHIERLOG, trace + "\n", function(err) {
+  FS.appendFile(SYS.LOGFILE, trace + "\n", function(err) {
   });
  }
 
@@ -286,9 +286,9 @@ function configurationVideo(callback) {
                                                            ).replace(new RegExp("FPS", "g"), confVideo.FPS
                                                            ).replace(new RegExp("BITRATE", "g"), confVideo.BITRATE
                                                            ).replace(new RegExp("ROTATE", "g"), confVideo.ROTATE
-                                                           ).replace(new RegExp("PORTTCPVIDEO", "g"), SYS.PORTTCPVIDEO);
+                                                           ).replace(new RegExp("VIDEOLOCALPORT", "g"), SYS.VIDEOLOCALPORT);
  cmdDiffAudio = USER.CMDDIFFAUDIO.join("").replace(new RegExp("RECORDINGDEVICE", "g"), hard.RECORDINGDEVICE
-                                         ).replace(new RegExp("PORTTCPAUDIO", "g"), SYS.PORTTCPAUDIO);
+                                         ).replace(new RegExp("AUDIOLOCALPORT", "g"), SYS.AUDIOLOCALPORT);
 
  trace("Initializing the Video4Linux configuration");
 
@@ -391,7 +391,7 @@ function initOutputs() {
 USER.SERVEURS.forEach(function(server, index) {
 
  sockets[server].on("connect", function() {
-  trace("Connected to " + server + "/" + SYS.PORTROBOTS);
+  trace("Connected to " + server + "/" + SYS.SECUREMOTEPORT);
   EXEC("hostname -I").stdout.on("data", function(ipPriv) {
    EXEC("iwgetid -r || echo $?").stdout.on("data", function(ssid) {
     sockets[server].emit("serveurrobotlogin", {
@@ -525,12 +525,12 @@ USER.SERVEURS.forEach(function(server, index) {
  }
 
  sockets[server].on("disconnect", function() {
-  trace("Disconnected from " + server + "/" + SYS.PORTROBOTS);
+  trace("Disconnected from " + server + "/" + SYS.SECUREMOTEPORT);
   sleep();
  });
 
  sockets[server].on("connect_error", function(err) {
-  //trace("Error connecting to " + server + "/" + SYS.PORTROBOTS);
+  //trace("Error connecting to " + server + "/" + SYS.SECUREMOTEPORT);
  });
 
  sockets[server].on("clientsrobottts", function(data) {
@@ -858,14 +858,14 @@ setInterval(function() {
  let change = false;
  let predictiveLatency = Date.now() - lastTimestamp;
 
- if(predictiveLatency < SYS.LATENCEFINALARME && latencyAlarm) {
+ if(predictiveLatency < SYS.LATENCYALARMEND && latencyAlarm) {
   trace(predictiveLatency + " ms latency, return to configured video bitrate");
   exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function(code) {
   });
   latencyAlarm = false;
- } else if(predictiveLatency > SYS.LATENCEDEBUTALARME && !latencyAlarm) {
+ } else if(predictiveLatency > SYS.LATENCYALARMBEGIN && !latencyAlarm) {
   trace(predictiveLatency + " ms latency, stop the motors and switch to reduced video bitrate");
-  exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + SYS.BITRATEVIDEOFAIBLE, function(code) {
+  exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + SYS.EMERGENCYBITRATE, function(code) {
   });
   latencyAlarm = true;
  }
@@ -998,21 +998,21 @@ setInterval(function() {
  if(!init)
   return;
 
- FS.readFile(SYS.FICHIERTEMPERATURE, function(err, data) {
+ FS.readFile(SYS.TEMPFILE, function(err, data) {
   socTemp = data / 1000;
  });
-}, SYS.TEMPERATURERATE);
+}, SYS.TEMPRATE);
 
 setInterval(function() {
  if(!init)
   return;
 
- const STATS = RL.createInterface(FS.createReadStream(SYS.FICHIERWIFI));
+ const STATS = RL.createInterface(FS.createReadStream(SYS.WIFIFILE));
 
  STATS.on("line", function(ligne) {
   ligne = ligne.split(/\s+/);
 
-  if(ligne[1] == SYS.INTERFACEWIFI + ":") {
+  if(ligne[1] == SYS.WIFIFACE + ":") {
    link = ligne[3];
    rssi = ligne[4];
   }
@@ -1178,7 +1178,7 @@ NET.createServer(function(socket) {
  const SEPARATEURNALU = new Buffer.from([0, 0, 0, 1]);
  const SPLITTER = new SPLIT(SEPARATEURNALU);
 
- trace("H.264 video streaming process is connected to tcp://127.0.0.1:" + SYS.PORTTCPVIDEO);
+ trace("H.264 video streaming process is connected to tcp://127.0.0.1:" + SYS.VIDEOLOCALPORT);
 
  SPLITTER.on("data", function(data) {
 
@@ -1196,14 +1196,14 @@ NET.createServer(function(socket) {
  socket.pipe(SPLITTER);
 
  socket.on("end", function() {
-  trace("H.264 video streaming process is disconnected from tcp://127.0.0.1:" + SYS.PORTTCPVIDEO);
+  trace("H.264 video streaming process is disconnected from tcp://127.0.0.1:" + SYS.VIDEOLOCALPORT);
  });
 
-}).listen(SYS.PORTTCPVIDEO);
+}).listen(SYS.VIDEOLOCALPORT);
 
 NET.createServer(function(socket) {
 
- trace("The audio streaming process is connected to tcp://127.0.0.1:" + SYS.PORTTCPAUDIO);
+ trace("The audio streaming process is connected to tcp://127.0.0.1:" + SYS.AUDIOLOCALPORT);
 
  let array = [];
  let i = 0;
@@ -1226,10 +1226,10 @@ NET.createServer(function(socket) {
  })
 
  socket.on("end", function() {
-  trace("Audio streaming process is disconnected from tcp://127.0.0.1:" + SYS.PORTTCPAUDIO);
+  trace("Audio streaming process is disconnected from tcp://127.0.0.1:" + SYS.AUDIOLOCALPORT);
  });
 
-}).listen(SYS.PORTTCPAUDIO);
+}).listen(SYS.AUDIOLOCALPORT);
 
 process.on("uncaughtException", function(err) {
  let i = 0;
