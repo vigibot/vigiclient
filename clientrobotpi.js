@@ -27,7 +27,7 @@ const PROCESSTIME = Date.now();
 const OSTIME = PROCESSTIME - OS.uptime() * 1000;
 
 let sockets = {};
-let serveurCourant = "";
+let currentServer = "";
 
 let up = false;
 let engine = false;
@@ -94,8 +94,8 @@ if(typeof USER.CMDDIFFAUDIO === "undefined")
 if(typeof USER.CMDTTS === "undefined")
  USER.CMDTTS = SYS.CMDTTS;
 
-USER.SERVEURS.forEach(function(serveur) {
- sockets[serveur] = IO.connect(serveur, {"connect timeout": 1000, transports: ["websocket"], path: "/" + SYS.PORTROBOTS + "/socket.io"});
+USER.SERVEURS.forEach(function(server) {
+ sockets[server] = IO.connect(server, {"connect timeout": 1000, transports: ["websocket"], path: "/" + SYS.PORTROBOTS + "/socket.io"});
 });
 
 hard.DEBUG = true;
@@ -139,7 +139,7 @@ function map(n, inMin, inMax, outMin, outMax) {
  return Math.trunc((n - inMin) * (outMax - outMin) / (inMax - inMin) + outMin);
 }
 
-function heure(date) {
+function hmsm(date) {
  return ("0" + date.getHours()).slice(-2) + ":" +
         ("0" + date.getMinutes()).slice(-2) + ":" +
         ("0" + date.getSeconds()).slice(-2) + ":" +
@@ -148,15 +148,15 @@ function heure(date) {
 
 function trace(message) {
  if(hard.DEBUG) {
-  let trace = heure(new Date()) + " | " + message;
+  let trace = hmsm(new Date()) + " | " + message;
   FS.appendFile(SYS.FICHIERLOG, trace + "\n", function(err) {
   });
  }
 
  if(hard.TELEDEBUG) {
-  let trace = heure(new Date()) + " | " + message;
-  USER.SERVEURS.forEach(function(serveur) {
-   sockets[serveur].emit("serveurrobottrace", message);
+  let trace = hmsm(new Date()) + " | " + message;
+  USER.SERVEURS.forEach(function(server) {
+   sockets[server].emit("serveurrobottrace", message);
   });
  }
 }
@@ -181,18 +181,18 @@ function constrain(n, nMin, nMax) {
  return n;
 }
 
-function sigterm(nom, processus, callback) {
- trace("Envoi du signal SIGTERM au processus " + nom);
- let processkill = EXEC("/usr/bin/pkill -15 -f ^" + processus);
+function sigterm(name, process, callback) {
+ trace("Envoi du signal SIGTERM au processus " + name);
+ let processkill = EXEC("/usr/bin/pkill -15 -f ^" + process);
  processkill.on("close", function(code) {
   callback(code);
  });
 }
 
-function exec(nom, commande, callback) {
- trace("Démarrage du processus " + nom);
- trace(commande);
- let processus = EXEC(commande);
+function exec(name, command, callback) {
+ trace("Démarrage du processus " + name);
+ trace(command);
+ let processus = EXEC(command);
  let stdout = RL.createInterface(processus.stdout);
  let stderr = RL.createInterface(processus.stderr);
  let pid = processus.pid;
@@ -200,23 +200,23 @@ function exec(nom, commande, callback) {
 
  //processus.stdout.on("data", function(data) {
  stdout.on("line", function(data) {
-  traces(nom + " | " + pid + " | stdout", data);
+  traces(name + " | " + pid + " | stdout", data);
  });
 
  //processus.stderr.on("data", function(data) {
  stderr.on("line", function(data) {
-  traces(nom + " | " + pid + " | stderr", data);
+  traces(name + " | " + pid + " | stderr", data);
  });
 
  processus.on("close", function(code) {
   let elapsed = Date.now() - execTime;
 
-  trace("Le processus " + nom + " c'est arrêté après " + elapsed + " millisecondes avec le code de sortie " + code);
+  trace("Le processus " + name + " c'est arrêté après " + elapsed + " millisecondes avec le code de sortie " + code);
   callback(code);
  });
 }
 
-function debout(serveur) {
+function wake(server) {
  if(up)
   return;
 
@@ -225,8 +225,8 @@ function debout(serveur) {
   return;
  }
 
- if(serveurCourant) {
-  trace("Ce robot est déjà utilisé depuis le serveur " + serveurCourant);
+ if(currentServer) {
+  trace("Ce robot est déjà utilisé depuis le serveur " + currentServer);
   return;
  }
 
@@ -242,12 +242,12 @@ function debout(serveur) {
   diffusion();
  diffAudio();
 
- serveurCourant = serveur;
+ currentServer = server;
  up = true;
  engine = true;
 }
 
-function dodo() {
+function sleep() {
  if(!up)
   return;
 
@@ -276,7 +276,7 @@ function dodo() {
  exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function(code) {
  });
 
- serveurCourant = "";
+ currentServer = "";
  up = false;
 }
 
@@ -388,13 +388,13 @@ function initOutputs() {
  }
 }
 
-USER.SERVEURS.forEach(function(serveur, index) {
+USER.SERVEURS.forEach(function(server, index) {
 
- sockets[serveur].on("connect", function() {
-  trace("Connecté sur " + serveur + "/" + SYS.PORTROBOTS);
+ sockets[server].on("connect", function() {
+  trace("Connecté sur " + server + "/" + SYS.PORTROBOTS);
   EXEC("hostname -I").stdout.on("data", function(ipPriv) {
    EXEC("iwgetid -r || echo $?").stdout.on("data", function(ssid) {
-    sockets[serveur].emit("serveurrobotlogin", {
+    sockets[server].emit("serveurrobotlogin", {
      conf: USER,
      version: VERSION,
      processTime: PROCESSTIME,
@@ -407,8 +407,8 @@ USER.SERVEURS.forEach(function(serveur, index) {
  });
 
  if(index == 0) {
-  sockets[serveur].on("clientsrobotconf", function(data) {
-   trace("Réception des données de configuration du robot depuis le serveur " + serveur);
+  sockets[server].on("clientsrobotconf", function(data) {
+   trace("Réception des données de configuration du robot depuis le serveur " + server);
 
    // Security hardening: even if already done on server side,
    // always filter values integrated in command lines
@@ -499,12 +499,12 @@ USER.SERVEURS.forEach(function(serveur, index) {
        serial.on("data", function(data) {
 
         rx.update(data, function() {
-         USER.SERVEURS.forEach(function(serveur) {
-          if(serveurCourant && serveur != serveurCourant)
+         USER.SERVEURS.forEach(function(server) {
+          if(currentServer && server != currentServer)
            return;
 
           setRxValues();
-          sockets[serveur].emit("serveurrobotrx", {
+          sockets[server].emit("serveurrobotrx", {
            timestamp: Date.now(),
            data: rx.arrayBuffer
           });
@@ -524,16 +524,16 @@ USER.SERVEURS.forEach(function(serveur, index) {
   });
  }
 
- sockets[serveur].on("disconnect", function() {
-  trace("Déconnecté de " + serveur + "/" + SYS.PORTROBOTS);
-  dodo();
+ sockets[server].on("disconnect", function() {
+  trace("Déconnecté de " + server + "/" + SYS.PORTROBOTS);
+  sleep();
  });
 
- sockets[serveur].on("connect_error", function(err) {
+ sockets[server].on("connect_error", function(err) {
   //trace("Erreur de connexion au serveur " + serveur + "/" + SYS.PORTROBOTS);
  });
 
- sockets[serveur].on("clientsrobottts", function(data) {
+ sockets[server].on("clientsrobottts", function(data) {
   FS.writeFile("/tmp/tts.txt", data, function(err) {
    if(err)
     trace(err);
@@ -542,7 +542,7 @@ USER.SERVEURS.forEach(function(serveur, index) {
   });
  });
 
- sockets[serveur].on("clientsrobotsys", function(data) {
+ sockets[server].on("clientsrobotsys", function(data) {
   switch(data) {
    case "exit":
     trace("Fin du processus Node.js");
@@ -559,15 +559,15 @@ USER.SERVEURS.forEach(function(serveur, index) {
   }
  });
 
- sockets[serveur].on("echo", function(data) {
-  sockets[serveur].emit("echo", {
+ sockets[server].on("echo", function(data) {
+  sockets[server].emit("echo", {
    serveur: data,
    client: Date.now()
   });
  });
 
- sockets[serveur].on("clientsrobottx", function(data) {
-  if(serveurCourant && serveur != serveurCourant || !init)
+ sockets[server].on("clientsrobottx", function(data) {
+  if(currentServer && server != currentServer || !init)
    return;
 
   if(data.data[0] != FRAME0 ||
@@ -635,16 +635,16 @@ USER.SERVEURS.forEach(function(serveur, index) {
   } else
    trace("Réception d'une trame texte");
 
-  debout(serveur);
+  wake(server);
   clearTimeout(upTimeout);
   upTimeout = setTimeout(function() {
-   dodo();
+   sleep();
   }, SYS.UPTIMEOUT);
 
   if(!hard.READUSERDEVICE) {
    setRxCommandes();
    setRxValues();
-   sockets[serveur].emit("serveurrobotrx", {
+   sockets[server].emit("serveurrobotrx", {
     timestamp: now,
     data: rx.arrayBuffer
    });
@@ -1105,8 +1105,8 @@ setInterval(function() {
 
  setRxCommandes();
  setRxValues();
- USER.SERVEURS.forEach(function(serveur) {
-  sockets[serveur].emit("serveurrobotrx", {
+ USER.SERVEURS.forEach(function(server) {
+  sockets[server].emit("serveurrobotrx", {
    timestamp: Date.now(),
    data: rx.arrayBuffer
   });
@@ -1148,9 +1148,9 @@ setInterval(function() {
        trace("Erreur lors de la fusion des photos");
       else {
        FS.readFile("/tmp/out.jpg", function(err, data) {
-        USER.SERVEURS.forEach(function(serveur) {
-         trace("Envoi d'une photo sur le serveur " + serveur);
-         sockets[serveur].emit("serveurrobotcapturesenveille", data);
+        USER.SERVEURS.forEach(function(server) {
+         trace("Envoi d'une photo sur le serveur " + server);
+         sockets[server].emit("serveurrobotcapturesenveille", data);
         });
        });
       }
@@ -1164,9 +1164,9 @@ setInterval(function() {
     trace("Erreur lors de la capture de la photo");
    else {
     FS.readFile("/tmp/out.jpg", function(err, data) {
-     USER.SERVEURS.forEach(function(serveur) {
-      trace("Envoi d'une photo sur le serveur " + serveur);
-      sockets[serveur].emit("serveurrobotcapturesenveille", data);
+     USER.SERVEURS.forEach(function(server) {
+      trace("Envoi d'une photo sur le serveur " + server);
+      sockets[server].emit("serveurrobotcapturesenveille", data);
      });
     });
    }
@@ -1182,8 +1182,8 @@ NET.createServer(function(socket) {
 
  SPLITTER.on("data", function(data) {
 
-  if(serveurCourant) {
-   sockets[serveurCourant].emit("serveurrobotvideo", {
+  if(currentServer) {
+   sockets[currentServer].emit("serveurrobotvideo", {
     timestamp: Date.now(),
     data: data
    });
@@ -1213,8 +1213,8 @@ NET.createServer(function(socket) {
   i++;
 
   if(i == 20) {
-   if(serveurCourant) {
-    sockets[serveurCourant].emit("serveurrobotaudio", {
+   if(currentServer) {
+    sockets[currentServer].emit("serveurrobotaudio", {
      timestamp: Date.now(),
      data: Buffer.concat(array)
     });
