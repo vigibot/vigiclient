@@ -49,7 +49,7 @@ let cmdDiffAudio;
 
 let lastTimestamp = Date.now();
 let lastTrame = Date.now();
-let alarmeLatence = false;
+let latencyAlarm = false;
 
 let floatTargets16 = [];
 let floatTargets8 = [];
@@ -165,11 +165,11 @@ function traces(id, messages) {
  if(!hard.DEBUG && !hard.TELEDEBUG)
   return;
 
- let tableau = messages.split("\n");
- if(!tableau[tableau.length - 1])
-  tableau.pop();
- for(let i = 0; i < tableau.length; i++)
-  trace(id + " | " + tableau[i]);
+ let array = messages.split("\n");
+ if(!array[array.length - 1])
+  array.pop();
+ for(let i = 0; i < array.length; i++)
+  trace(id + " | " + array[i]);
 }
 
 function constrain(n, nMin, nMax) {
@@ -503,7 +503,7 @@ USER.SERVEURS.forEach(function(serveur, index) {
           if(serveurCourant && serveur != serveurCourant)
            return;
 
-          setRxValeurs();
+          setRxValues();
           sockets[serveur].emit("serveurrobotrx", {
            timestamp: Date.now(),
            data: rx.arrayBuffer
@@ -643,7 +643,7 @@ USER.SERVEURS.forEach(function(serveur, index) {
 
   if(!hard.READUSERDEVICE) {
    setRxCommandes();
-   setRxValeurs();
+   setRxValues();
    sockets[serveur].emit("serveurrobotrx", {
     timestamp: now,
     data: rx.arrayBuffer
@@ -652,18 +652,18 @@ USER.SERVEURS.forEach(function(serveur, index) {
  });
 });
 
-function computeOut(n, consigne) {
+function computeOut(n, value) {
  let out;
  let nbInMax = hard.OUTPUTS[n].INS.length - 1;
 
- if(consigne <= hard.OUTPUTS[n].INS[0])
+ if(value <= hard.OUTPUTS[n].INS[0])
   out = hard.OUTPUTS[n].OUTS[0];
- else if(consigne > hard.OUTPUTS[n].INS[nbInMax])
+ else if(value > hard.OUTPUTS[n].INS[nbInMax])
   out = hard.OUTPUTS[n].OUTS[nbInMax];
  else {
   for(let i = 0; i < nbInMax; i++) {
-   if(consigne <= hard.OUTPUTS[n].INS[i + 1]) {
-    out = map(consigne, hard.OUTPUTS[n].INS[i], hard.OUTPUTS[n].INS[i + 1], hard.OUTPUTS[n].OUTS[i], hard.OUTPUTS[n].OUTS[i + 1]);
+   if(value <= hard.OUTPUTS[n].INS[i + 1]) {
+    out = map(value, hard.OUTPUTS[n].INS[i], hard.OUTPUTS[n].INS[i + 1], hard.OUTPUTS[n].OUTS[i], hard.OUTPUTS[n].OUTS[i + 1]);
     break;
    }
   }
@@ -712,15 +712,15 @@ function setGpio(n, pin, etat) {
  }
 }
 
-function setGpios(n, consigne) {
- let etat = computeOut(n, consigne);
+function setGpios(n, value) {
+ let etat = computeOut(n, value);
 
  for(let i = 0; i < hard.OUTPUTS[n].GPIOS.length; i++)
   setGpio(n, i, etat);
 }
 
-function setServos(n, consigne) {
- let pwm = computeOut(n, consigne);
+function setServos(n, value) {
+ let pwm = computeOut(n, value);
  let pcaId = hard.OUTPUTS[n].ADRESSE;
 
  if(pcaId == SYS.UNUSED)
@@ -740,15 +740,15 @@ function setPwm(n, gpio, pwm) {
   pca9685Driver[pcaId].setDutyCycle(hard.OUTPUTS[n].GPIOS[gpio], Math.abs(pwm / 100));
 }
 
-function setPwms(n, consigne) {
- let pwm = computeOut(n, consigne);
+function setPwms(n, value) {
+ let pwm = computeOut(n, value);
 
  for(let i = 0; i < hard.OUTPUTS[n].GPIOS.length; i++)
   setPwm(n, i, pwm);
 }
 
-function setPwmPwm(n, consigne) {
- let pwm = computeOut(n, consigne);
+function setPwmPwm(n, value) {
+ let pwm = computeOut(n, value);
 
  if(pwm > 0) {
   setPwm(n, 0, pwm);
@@ -762,8 +762,8 @@ function setPwmPwm(n, consigne) {
  }
 }
 
-function setPwmDir(n, consigne) {
- let pwm = computeOut(n, consigne);
+function setPwmDir(n, value) {
+ let pwm = computeOut(n, value);
 
  if(pwm > 0)
   setGpio(n, 1, 1);
@@ -772,8 +772,8 @@ function setPwmDir(n, consigne) {
  setPwm(n, 0, pwm);
 }
 
-function setPwmDirDir(n, consigne) {
- let pwm = computeOut(n, consigne);
+function setPwmDirDir(n, value) {
+ let pwm = computeOut(n, value);
 
  if(pwm > 0) {
   setGpio(n, 1, 1);
@@ -807,26 +807,26 @@ function writeOutputs() {
 
   oldOutputs[i] = output;
 
-  let consigne = output + backslashs[i];
+  let value = output + backslashs[i];
 
   switch(hard.OUTPUTS[i].TYPE) {
    case "Gpios":
-    setGpios(i, consigne);
+    setGpios(i, value);
     break;
    case "Servos":
-    setServos(i, consigne);
+    setServos(i, value);
     break;
    case "Pwms":
-    setPwms(i, consigne);
+    setPwms(i, value);
     break;
    case "PwmPwm":
-    setPwmPwm(i, consigne);
+    setPwmPwm(i, value);
     break;
    case "PwmDir":
-    setPwmDir(i, consigne);
+    setPwmDir(i, value);
     break;
    case "PwmDirDir":
-    setPwmDirDir(i, consigne);
+    setPwmDirDir(i, value);
     break;
   }
  }
@@ -856,21 +856,21 @@ setInterval(function() {
   return;
 
  let change = false;
- let latencePredictive = Date.now() - lastTimestamp;
+ let predictiveLatency = Date.now() - lastTimestamp;
 
- if(latencePredictive < SYS.LATENCEFINALARME && alarmeLatence) {
-  trace("Latence de " + latencePredictive + " ms, retour au débit vidéo configuré");
+ if(predictiveLatency < SYS.LATENCEFINALARME && latencyAlarm) {
+  trace("Latence de " + predictiveLatency + " ms, retour au débit vidéo configuré");
   exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function(code) {
   });
-  alarmeLatence = false;
- } else if(latencePredictive > SYS.LATENCEDEBUTALARME && !alarmeLatence) {
-  trace("Latence de " + latencePredictive + " ms, arrêt des moteurs et passage en débit vidéo réduit");
+  latencyAlarm = false;
+ } else if(predictiveLatency > SYS.LATENCEDEBUTALARME && !latencyAlarm) {
+  trace("Latence de " + predictiveLatency + " ms, arrêt des moteurs et passage en débit vidéo réduit");
   exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + SYS.BITRATEVIDEOFAIBLE, function(code) {
   });
-  alarmeLatence = true;
+  latencyAlarm = true;
  }
 
- if(alarmeLatence) {
+ if(latencyAlarm) {
   for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
    if(hard.COMMANDS16[i].FAILSAFE)
     floatTargets16[i] = conf.TX.COMMANDES16[i].INIT;
@@ -1079,7 +1079,7 @@ function setRxCommandes() {
  }
 }
 
-function setRxValeurs() {
+function setRxValues() {
  if(hard.ENABLEGPS && gps.state.lat !== null) {
   rx.setFloatValeur32(0, gps.state.lat);
   rx.setFloatValeur32(1, gps.state.lon);
@@ -1104,7 +1104,7 @@ setInterval(function() {
   return;
 
  setRxCommandes();
- setRxValeurs();
+ setRxValues();
  USER.SERVEURS.forEach(function(serveur) {
   sockets[serveur].emit("serveurrobotrx", {
    timestamp: Date.now(),
@@ -1233,10 +1233,10 @@ NET.createServer(function(socket) {
 
 process.on("uncaughtException", function(err) {
  let i = 0;
- let erreur = err.stack.split("\n");
+ let errors = err.stack.split("\n");
 
- while(i < erreur.length)
-  trace(erreur[i++]);
+ while(i < errors.length)
+  trace(errors[i++]);
 
  trace("Suite à cette exception non interceptée, le processus Node.js va être terminé automatiquement");
  setTimeout(function() {
