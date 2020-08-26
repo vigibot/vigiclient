@@ -63,8 +63,8 @@ let marges8 = [];
 let oldOutputs = [];
 let backslashs = [];
 
-let boostVideo = false;
-let oldBoostVideo = false;
+let contrastBoost = false;
+let oldContrastBoost = false;
 
 let serial;
 let gps;
@@ -285,21 +285,21 @@ function configurationVideo(callback) {
                                                            ).replace(new RegExp("HEIGHT", "g"), confVideo.HEIGHT
                                                            ).replace(new RegExp("FPS", "g"), confVideo.FPS
                                                            ).replace(new RegExp("BITRATE", "g"), confVideo.BITRATE
-                                                           ).replace(new RegExp("ROTATION", "g"), confVideo.ROTATION
+                                                           ).replace(new RegExp("ROTATE", "g"), confVideo.ROTATE
                                                            ).replace(new RegExp("PORTTCPVIDEO", "g"), SYS.PORTTCPVIDEO);
  cmdDiffAudio = USER.CMDDIFFAUDIO.join("").replace(new RegExp("RECORDINGDEVICE", "g"), hard.RECORDINGDEVICE
                                          ).replace(new RegExp("PORTTCPAUDIO", "g"), SYS.PORTTCPAUDIO);
 
  trace("Initialisation de la configuration Video4Linux");
 
- let luminosite;
- let contraste;
- if(boostVideo) {
-  luminosite = confVideo.BOOSTVIDEOLUMINOSITE;
-  contraste = confVideo.BOOSTVIDEOCONTRASTE;
+ let brightness;
+ let contrast;
+ if(contrastBoost) {
+  brightness = confVideo.BRIGHTNESSBOOST;
+  contrast = confVideo.CONTRASTBOOST;
  } else {
-  luminosite = confVideo.LUMINOSITE;
-  contraste = confVideo.CONTRASTE;
+  brightness = confVideo.BRIGHTNESS;
+  contrast = confVideo.CONTRAST;
  }
 
  exec("v4l2-ctl", SYS.V4L2 + " -v width=" + confVideo.WIDTH +
@@ -308,10 +308,10 @@ function configurationVideo(callback) {
                              " -p " + confVideo.FPS +
                              " -c h264_profile=0" +
                                 ",repeat_sequence_header=1" +
-                                ",rotate=" + confVideo.ROTATION +
+                                ",rotate=" + confVideo.ROTATE +
                                 ",video_bitrate=" + confVideo.BITRATE +
-                                ",brightness=" + luminosite +
-                                ",contrast=" + contraste, function(code) {
+                                ",brightness=" + brightness +
+                                ",contrast=" + contrast, function(code) {
   callback(code);
  });
 }
@@ -419,11 +419,11 @@ USER.SERVEURS.forEach(function(serveur, index) {
          CMDINT.test(data.hard.CAMERAS[i].HEIGHT) &&
          CMDINT.test(data.hard.CAMERAS[i].FPS) &&
          CMDINT.test(data.hard.CAMERAS[i].BITRATE) &&
-         CMDINT.test(data.hard.CAMERAS[i].ROTATION) &&
-         CMDINT.test(data.hard.CAMERAS[i].LUMINOSITE) &&
-         CMDINT.test(data.hard.CAMERAS[i].CONTRASTE) &&
-         CMDINT.test(data.hard.CAMERAS[i].BOOSTVIDEOLUMINOSITE) &&
-         CMDINT.test(data.hard.CAMERAS[i].BOOSTVIDEOCONTRASTE)))
+         CMDINT.test(data.hard.CAMERAS[i].ROTATE) &&
+         CMDINT.test(data.hard.CAMERAS[i].BRIGHTNESS) &&
+         CMDINT.test(data.hard.CAMERAS[i].CONTRAST) &&
+         CMDINT.test(data.hard.CAMERAS[i].BRIGHTNESSBOOST) &&
+         CMDINT.test(data.hard.CAMERAS[i].CONTRASTBOOST)))
      return;
    }
    if(!(CMDINT.test(data.hard.PLAYBACKDEVICE) &&
@@ -438,8 +438,8 @@ USER.SERVEURS.forEach(function(serveur, index) {
 
    confVideo = hard.CAMERAS[conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA];
    oldConfVideo = confVideo;
-   boostVideo = false;
-   oldBoostVideo = false;
+   contrastBoost = false;
+   oldContrastBoost = false;
 
    initOutputs();
    if(!up)
@@ -601,18 +601,18 @@ USER.SERVEURS.forEach(function(serveur, index) {
    for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
     floatCibles1[i] = tx.getCommande1(i);
 
-   boostVideo = tx.getCommande1(hard.BOOSTVIDEOSWITCH);
-   if(boostVideo != oldBoostVideo) {
-    if(boostVideo) {
-     exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.BOOSTVIDEOLUMINOSITE +
-                                    ",contrast=" + confVideo.BOOSTVIDEOCONTRASTE, function(code) {
+   contrastBoost = tx.getCommande1(hard.CONTRASTBOOSTSWITCH);
+   if(contrastBoost != oldContrastBoost) {
+    if(contrastBoost) {
+     exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.BRIGHTNESSBOOST +
+                                    ",contrast=" + confVideo.CONTRASTBOOST, function(code) {
      });
     } else {
-     exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.LUMINOSITE +
-                                    ",contrast=" + confVideo.CONTRASTE, function(code) {
+     exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.BRIGHTNESS +
+                                    ",contrast=" + confVideo.CONTRAST, function(code) {
      });
     }
-    oldBoostVideo = boostVideo;
+    oldContrastBoost = contrastBoost;
    }
 
    confVideo = hard.CAMERAS[tx.choixCameras[0]];
@@ -1125,7 +1125,7 @@ setInterval(function() {
  let overlay = date.toLocaleDateString() + " " + date.toLocaleTimeString();
  if(hard.EXPOSUREBRACKETING)
   overlay += " HDR " + hard.EXPOSUREBRACKETING;
- let options = "-a 1024 -a '" + overlay + "' -rot " + confVideo.ROTATION;
+ let options = "-a 1024 -a '" + overlay + "' -rot " + confVideo.ROTATE;
 
  if(hard.EXPOSUREBRACKETING) {
   EXEC("raspistill -ev " + -hard.EXPOSUREBRACKETING + " " + options + " -o /tmp/1.jpg", function(err) {
