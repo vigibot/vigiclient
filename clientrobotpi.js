@@ -890,27 +890,27 @@ setInterval(function() {
   change = true;
 
   let delta;
-  let cible = floatTargets16[i];
+  let target = floatTargets16[i];
   let init = conf.TX.COMMANDES16[i].INIT;
 
-  if(Math.abs(cible - init) <= margins16[i])
+  if(Math.abs(target - init) <= margins16[i])
    delta = hard.COMMANDS16[i].RAMPINIT;
-  else if((cible - init) * (floatCommands16[i] - init) < 0) {
+  else if((target - init) * (floatCommands16[i] - init) < 0) {
    delta = hard.COMMANDS16[i].RAMPDOWN;
-   cible = init;
-  } else if(Math.abs(cible) - Math.abs(floatCommands16[i]) < 0)
+   target = init;
+  } else if(Math.abs(target) - Math.abs(floatCommands16[i]) < 0)
    delta = hard.COMMANDS16[i].RAMPDOWN;
   else
    delta = hard.COMMANDS16[i].RAMPUP;
 
   if(delta <= 0)
-   floatCommands16[i] = cible;
-  else if(floatCommands16[i] - cible < -delta)
+   floatCommands16[i] = target;
+  else if(floatCommands16[i] - target < -delta)
    floatCommands16[i] += delta;
-  else if(floatCommands16[i] - cible > delta)
+  else if(floatCommands16[i] - target > delta)
    floatCommands16[i] -= delta;
   else
-   floatCommands16[i] = cible;
+   floatCommands16[i] = target;
  }
 
  for(let i = 0; i < conf.TX.COMMANDES8.length; i++) {
@@ -919,27 +919,27 @@ setInterval(function() {
   change = true;
 
   let delta;
-  let cible = floatTargets8[i];
+  let target = floatTargets8[i];
   let init = conf.TX.COMMANDES8[i].INIT;
 
-  if(Math.abs(cible - init) <= margins8[i])
+  if(Math.abs(target - init) <= margins8[i])
    delta = hard.COMMANDS8[i].RAMPINIT;
-  else if((cible - init) * (floatCommands8[i] - init) < 0) {
+  else if((target - init) * (floatCommands8[i] - init) < 0) {
    delta = hard.COMMANDS8[i].RAMPDOWN;
-   cible = init;
-  } else if(Math.abs(cible) - Math.abs(floatCommands8[i]) < 0)
+   target = init;
+  } else if(Math.abs(target) - Math.abs(floatCommands8[i]) < 0)
    delta = hard.COMMANDS8[i].RAMPDOWN;
   else
    delta = hard.COMMANDS8[i].RAMPUP;
 
   if(delta <= 0)
-   floatCommands8[i] = cible;
-  else if(floatCommands8[i] - cible < -delta)
+   floatCommands8[i] = target;
+  else if(floatCommands8[i] - target < -delta)
    floatCommands8[i] += delta;
-  else if(floatCommands8[i] - cible > delta)
+  else if(floatCommands8[i] - target > delta)
    floatCommands8[i] -= delta;
   else
-   floatCommands8[i] = cible;
+   floatCommands8[i] = target;
  }
 
  for(let i = 0; i < conf.TX.COMMANDES1.length; i++) {
