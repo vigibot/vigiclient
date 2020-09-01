@@ -265,15 +265,15 @@ function sleep() {
   if(hard.COMMANDS1[i].SLEEP)
    floatTargets1[i] = conf.TX.COMMANDES1[i].INIT;
 
- sigterm("Diffusion", SYS.PROCESSDIFFUSION, function(code) {
-  sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function(code) {
+ sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
+  sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
   });
  });
 
- sigterm("DiffAudio", SYS.PROCESSDIFFAUDIO, function(code) {
+ sigterm("DiffAudio", SYS.PROCESSDIFFAUDIO, function() {
  });
 
- exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function(code) {
+ exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function() {
  });
 
  currentServer = "";
@@ -311,21 +311,21 @@ function configurationVideo(callback) {
                                 ",rotate=" + confVideo.ROTATE +
                                 ",video_bitrate=" + confVideo.BITRATE +
                                 ",brightness=" + brightness +
-                                ",contrast=" + contrast, function(code) {
-  callback(code);
+                                ",contrast=" + contrast, function() {
+  callback();
  });
 }
 
 function diffusion() {
  trace("Starting the H.264 video broadcast stream");
- exec("Diffusion", cmdDiffusion, function(code) {
+ exec("Diffusion", cmdDiffusion, function() {
   trace("Stopping the H.264 video broadcast stream");
  });
 }
 
 function diffAudio() {
  trace("Starting the audio broadcast stream");
- exec("DiffAudio", cmdDiffAudio, function(code) {
+ exec("DiffAudio", cmdDiffAudio, function() {
   trace("Stopping the audio broadcast stream");
  });
 }
@@ -446,22 +446,24 @@ USER.SERVEURS.forEach(function(server, index) {
     writeOutputs();
 
    setTimeout(function() {
-    if(up) {
-     sigterm("Diffusion", SYS.PROCESSDIFFUSION, function(code) {
-      sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function(code) {
-       configurationVideo(function(code) {
-        diffusion();
-       });
+    if(!up)
+     setSleepModes();
+   }, 100);
+
+   if(up) {
+    sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
+     sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
+      configurationVideo(function() {
+       diffusion();
       });
      });
-    } else {
-     configurationVideo(function(code) {
-      initVideo = true;
-      setInit();
-     });
-     setSleepModes();
-    }
-   }, 100);
+    });
+   } else {
+    configurationVideo(function() {
+     initVideo = true;
+     setInit();
+    });
+   }
 
    if(!initUart) {
     if(!hard.WRITEUSERDEVICE) {
@@ -537,7 +539,7 @@ USER.SERVEURS.forEach(function(server, index) {
   FS.writeFile("/tmp/tts.txt", data, function(err) {
    if(err)
     trace(err);
-   exec("eSpeak", USER.CMDTTS.replace(new RegExp("PLAYBACKDEVICE", "g"), hard.PLAYBACKDEVICE), function(code) {
+   exec("eSpeak", USER.CMDTTS.replace(new RegExp("PLAYBACKDEVICE", "g"), hard.PLAYBACKDEVICE), function() {
    });
   });
  });
@@ -605,11 +607,11 @@ USER.SERVEURS.forEach(function(server, index) {
    if(contrastBoost != oldContrastBoost) {
     if(contrastBoost) {
      exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.BRIGHTNESSBOOST +
-                                    ",contrast=" + confVideo.CONTRASTBOOST, function(code) {
+                                    ",contrast=" + confVideo.CONTRASTBOOST, function() {
      });
     } else {
      exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.BRIGHTNESS +
-                                    ",contrast=" + confVideo.CONTRAST, function(code) {
+                                    ",contrast=" + confVideo.CONTRAST, function() {
      });
     }
     oldContrastBoost = contrastBoost;
@@ -619,15 +621,15 @@ USER.SERVEURS.forEach(function(server, index) {
    if(confVideo != oldConfVideo &&
       JSON.stringify(confVideo) != JSON.stringify(oldConfVideo)) {
     if(up) {
-     sigterm("Diffusion", SYS.PROCESSDIFFUSION, function(code) {
-      sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function(code) {
-       configurationVideo(function(code) {
+     sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
+      sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
+       configurationVideo(function() {
         diffusion();
        });
       });
      });
     } else {
-     configurationVideo(function(code) {
+     configurationVideo(function() {
      });
     }
     oldConfVideo = confVideo;
@@ -860,12 +862,12 @@ setInterval(function() {
 
  if(predictiveLatency < SYS.LATENCYALARMEND && latencyAlarm) {
   trace(predictiveLatency + " ms latency, return to configured video bitrate");
-  exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function(code) {
+  exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function() {
   });
   latencyAlarm = false;
  } else if(predictiveLatency > SYS.LATENCYALARMBEGIN && !latencyAlarm) {
   trace(predictiveLatency + " ms latency, stop the motors and switch to reduced video bitrate");
-  exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + SYS.EMERGENCYBITRATE, function(code) {
+  exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + SYS.EMERGENCYBITRATE, function() {
   });
   latencyAlarm = true;
  }
