@@ -436,6 +436,9 @@ USER.SERVEURS.forEach(function(server, index) {
    tx = new TRAME.Tx(conf.TX);
    rx = new TRAME.Rx(conf.TX, conf.RX);
 
+   init = false;
+   initPca = 0;
+
    confVideo = hard.CAMERAS[conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA];
    oldConfVideo = confVideo;
    contrastBoost = false;
