@@ -23,9 +23,8 @@ class Tx {
   this.conftx = conftx;
 
   let nb32 = conftx.COMMANDES32.length;
-  let nb16 = conftx.COMMANDES16.length + conftx.AUTOGOTO.length + conftx.AUTOANGLES.length;
-  let nb8 = conftx.SYNC.length + conftx.CHOIXCAMERAS.length + conftx.COMMANDES8.length +
-            conftx.REQUETESMISSION.length + conftx.FIN.length;
+  let nb16 = conftx.COMMANDES16.length;
+  let nb8 = conftx.SYNC.length + conftx.CHOIXCAMERAS.length + conftx.COMMANDES8.length;
 
   this.byteLength = nb32 * 4 + nb16 * 2 + nb8 + Math.ceil(conftx.COMMANDES1.length / 8);
   this.arrayBuffer = new ArrayBuffer(this.byteLength);
@@ -48,16 +47,6 @@ class Tx {
   for(let i = 0; i < conftx.COMMANDES16.length; i++)
    this.setFloatCommande16(i, conftx.COMMANDES16[i].INIT);
 
-  this.autoGoto = new Int16Array(this.arrayBuffer, p, conftx.AUTOGOTO.length);
-  p += this.autoGoto.byteLength;
-  for(let i = 0; i < conftx.AUTOGOTO.length; i++)
-   this.autoGoto[i] = conftx.AUTOGOTO[i];
-
-  this.autoAngles = new Uint16Array(this.arrayBuffer, p, conftx.AUTOANGLES.length);
-  p += this.autoAngles.byteLength;
-  for(let i = 0; i < conftx.AUTOANGLES.length; i++)
-   this.autoAngles[i] = conftx.AUTOANGLES[i];
-
   this.choixCameras = new Uint8Array(this.arrayBuffer, p, conftx.CHOIXCAMERAS.length);
   p += this.choixCameras.byteLength;
   for(let i = 0; i < conftx.CHOIXCAMERAS.length; i++)
@@ -69,20 +58,10 @@ class Tx {
   for(let i = 0; i < conftx.COMMANDES8.length; i++)
    this.setFloatCommande8(i, conftx.COMMANDES8[i].INIT);
 
-  this.requetesMission = new Uint8Array(this.arrayBuffer, p, conftx.REQUETESMISSION.length);
-  p += this.requetesMission.byteLength;
-  for(let i = 0; i < conftx.REQUETESMISSION.length; i++)
-   this.requetesMission[i] = conftx.REQUETESMISSION[i];
-
   this.commandes1 = new Uint8Array(this.arrayBuffer, p, Math.ceil(conftx.COMMANDES1.length / 8));
   p += this.commandes1.byteLength;
   for(let i = 0; i < conftx.COMMANDES1.length; i++)
    this.setCommande1(i, conftx.COMMANDES1[i].INIT);
-
-  this.fin = new Uint8Array(this.arrayBuffer, p, conftx.FIN.length);
-  p += this.fin.byteLength;
-  for(let i = 0; i < conftx.FIN.length; i++)
-   this.fin[i] = conftx.FIN[i];
 
   this.bytes = new Uint8Array(this.arrayBuffer);
  }
@@ -263,11 +242,9 @@ class Rx {
   this.pos = 0;
 
   let nb32 = conftx.COMMANDES32.length + confrx.VALEURS32.length;
-  let nb16 = conftx.COMMANDES16.length + conftx.AUTOGOTO.length + conftx.AUTOANGLES.length +
-             confrx.ODOMETRIES.length + confrx.ANGLES.length + confrx.CIBLES.length + confrx.RESULTATSMISSION.length +
-             (confrx.NBCORRECTEURS + confrx.NBCLUSTERS) * 4 + confrx.NBPOINTSLIDAR2D * 2 + confrx.VALEURS16.length;
-  let nb8 = confrx.SYNC.length + conftx.CHOIXCAMERAS.length + conftx.COMMANDES8.length + conftx.REQUETESMISSION.length +
-            confrx.NBCORRECTEURS + confrx.NBCLUSTERS + confrx.VALEURS8.length + confrx.FIN.length;
+  let nb16 = conftx.COMMANDES16.length + confrx.VALEURS16.length;
+  let nb8 = confrx.SYNC.length + conftx.CHOIXCAMERAS.length +
+            conftx.COMMANDES8.length + confrx.VALEURS8.length;
 
   this.byteLength = nb32 * 4 + nb16 * 2 + nb8 + Math.ceil(conftx.COMMANDES1.length / 8);
   this.arrayBuffer = new ArrayBuffer(this.byteLength);
@@ -296,51 +273,6 @@ class Rx {
   for(let i = 0; i < conftx.COMMANDES16.length; i++)
    this.setFloatCommande16(i, conftx.COMMANDES16[i].INIT);
 
-  this.autoGoto = new Int16Array(this.arrayBuffer, p, conftx.AUTOGOTO.length);
-  p += this.autoGoto.byteLength;
-  for(let i = 0; i < conftx.AUTOGOTO.length; i++)
-   this.autoGoto[i] = conftx.AUTOGOTO[i];
-
-  this.autoAngles = new Uint16Array(this.arrayBuffer, p, conftx.AUTOANGLES.length);
-  p += this.autoAngles.byteLength;
-  for(let i = 0; i < conftx.AUTOANGLES.length; i++)
-   this.autoAngles[i] = conftx.AUTOANGLES[i];
-
-  this.odometries = new Int16Array(this.arrayBuffer, p, confrx.ODOMETRIES.length);
-  p += this.odometries.byteLength;
-  for(let i = 0; i < confrx.ODOMETRIES.length; i++)
-   this.odometries[i] = confrx.ODOMETRIES[i];
-
-  this.angles = new Uint16Array(this.arrayBuffer, p, confrx.ANGLES.length);
-  p += this.angles.byteLength;
-  for(let i = 0; i < confrx.ANGLES.length; i++)
-   this.angles[i] = confrx.ANGLES[i];
-
-  this.cibles = new Int16Array(this.arrayBuffer, p, confrx.CIBLES.length);
-  p += this.cibles.byteLength;
-  for(let i = 0; i < confrx.CIBLES.length; i++)
-   this.cibles[i] = confrx.CIBLES[i];
-
-  this.resultatsMission = new Uint16Array(this.arrayBuffer, p, confrx.RESULTATSMISSION.length);
-  p += this.resultatsMission.byteLength;
-  for(let i = 0; i < confrx.RESULTATSMISSION.length; i++)
-   this.resultatsMission[i] = confrx.RESULTATSMISSION[i];
-
-  this.correcteurs = new Int16Array(this.arrayBuffer, p, confrx.NBCORRECTEURS * 4);
-  p += this.correcteurs.byteLength;
-  for(let i = 0; i < confrx.NBCORRECTEURS * 4; i++)
-   this.correcteurs[i] = -32768;
-
-  this.clusters = new Int16Array(this.arrayBuffer, p, confrx.NBCLUSTERS * 4);
-  p += this.clusters.byteLength;
-  for(let i = 0; i < confrx.NBCLUSTERS * 4; i++)
-   this.clusters[i] = -32768;
-
-  this.pointsLidar2D = new Int16Array(this.arrayBuffer, p, confrx.NBPOINTSLIDAR2D * 2);
-  p += this.pointsLidar2D.byteLength;
-  for(let i = 0; i < confrx.NBPOINTSLIDAR2D * 2; i++)
-   this.pointsLidar2D[i] = -32768;
-
   this.valeursUint16 = new Uint16Array(this.arrayBuffer, p, confrx.VALEURS16.length);
   this.valeursInt16 = new Int16Array(this.arrayBuffer, p, confrx.VALEURS16.length);
   p += this.valeursUint16.byteLength;
@@ -358,36 +290,16 @@ class Rx {
   for(let i = 0; i < conftx.COMMANDES8.length; i++)
    this.setFloatCommande8(i, conftx.COMMANDES8[i].INIT);
 
-  this.requetesMission = new Uint8Array(this.arrayBuffer, p, conftx.REQUETESMISSION.length);
-  p += this.requetesMission.byteLength;
-  for(let i = 0; i < conftx.REQUETESMISSION.length; i++)
-   this.requetesMission[i] = conftx.REQUETESMISSION[i];
-
   this.commandes1 = new Uint8Array(this.arrayBuffer, p, Math.ceil(conftx.COMMANDES1.length / 8));
   p += this.commandes1.byteLength;
   for(let i = 0; i < conftx.COMMANDES1.length; i++)
    this.setCommande1(i, conftx.COMMANDES1[i].INIT);
-
-  this.idCorrecteurs = new Uint8Array(this.arrayBuffer, p, confrx.NBCORRECTEURS);
-  p += this.idCorrecteurs.byteLength;
-  for(let i = 0; i < conftx.NBCORRECTEURS; i++)
-   this.idCorrecteurs[i] = 0;
-
-  this.idClusters = new Uint8Array(this.arrayBuffer, p, confrx.NBCLUSTERS);
-  p += this.idClusters.byteLength;
-  for(let i = 0; i < conftx.NBCLUSTERS; i++)
-   this.idClusters[i] = 0;
 
   this.valeursUint8 = new Uint8Array(this.arrayBuffer, p, confrx.VALEURS8.length);
   this.valeursInt8 = new Int8Array(this.arrayBuffer, p, confrx.VALEURS8.length);
   p += this.valeursUint8.byteLength;
   for(let i = 0; i < confrx.VALEURS8.length; i++)
    this.setFloatValeur8(i, confrx.VALEURS8[i].INIT);
-
-  this.fin = new Uint8Array(this.arrayBuffer, p, confrx.FIN.length);
-  p += this.fin.byteLength;
-  for(let i = 0; i < confrx.FIN.length; i++)
-   this.fin[i] = confrx.FIN[i];
 
   this.bytes = new Uint8Array(this.arrayBuffer);
  }
