@@ -1078,7 +1078,7 @@ function setRxCommandes() {
  for(let i = 0; i < conf.TX.COMMANDES1.length / 8; i++) {
   let commande1 = 0;
   for(let j = 0; j < 8; j++)
-   if(floatCommands1[i * 8 + j] >= 0.5)
+   if(floatCommands1[i * 8 + j] > 0)
     commande1 += 1 << j;
   rx.commandes1[i] = commande1;
  }
