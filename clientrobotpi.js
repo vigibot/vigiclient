@@ -37,6 +37,7 @@ let init = false;
 let initVideo = false;
 let initUart = false;
 let initPca = 0;
+let initPcaLock = 0;
 
 let conf = {};
 let hard = {};
@@ -339,21 +340,27 @@ function initOutputs() {
 
  pca9685Driver = [];
  gpioOutputs = [];
+ initPca = 0;
+ setInit();
 
- for(let i = 0; i < hard.PCA9685ADDRESSES.length; i++) {
-  pca9685Driver[i] = new PCA9685.Pca9685Driver({
-   i2c: i2c,
-   address: hard.PCA9685ADDRESSES[i],
-   frequency: SYS.PCA9685FREQUENCY
-  }, function(err) {
-   if(err)
-    trace("Error initializing PCA9685 at address " + hard.PCA9685ADDRESSES[i]);
-   else {
-    trace("PCA9685 initialized at address " + hard.PCA9685ADDRESSES[i]);
-    initPca++;
-    setInit();
-   }
-  });
+ if(initPcaLock == 0) {
+  initPcaLock = hard.PCA9685ADDRESSES.length;
+  for(let i = 0; i < hard.PCA9685ADDRESSES.length; i++) {
+   pca9685Driver[i] = new PCA9685.Pca9685Driver({
+    i2c: i2c,
+    address: hard.PCA9685ADDRESSES[i],
+    frequency: SYS.PCA9685FREQUENCY
+   }, function(err) {
+    if(err)
+     trace("Error initializing PCA9685 at address " + hard.PCA9685ADDRESSES[i]);
+    else {
+     trace("PCA9685 initialized at address " + hard.PCA9685ADDRESSES[i]);
+     initPca++;
+     setInit();
+    }
+    initPcaLock--;
+   });
+  }
  }
 
  for(let i = 0; i < hard.OUTPUTS.length; i++) {
@@ -435,9 +442,6 @@ USER.SERVEURS.forEach(function(server, index) {
 
    tx = new TRAME.Tx(conf.TX);
    rx = new TRAME.Rx(conf.TX, conf.RX);
-
-   init = false;
-   initPca = 0;
 
    confVideo = hard.CAMERAS[conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA];
    oldConfVideo = confVideo;
