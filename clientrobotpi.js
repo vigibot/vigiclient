@@ -130,6 +130,9 @@ setTimeout(function() {
   trace(gaugeType + " I2C fuel gauge detected");
  else
   trace("No I2C fuel gauge detected");
+
+ exec("VideoCore", "script -c 'vcdbg log msg -f' /dev/null", function() {
+ });
 }, 1000);
 
 function setInit() {
