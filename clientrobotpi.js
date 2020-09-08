@@ -125,14 +125,36 @@ try {
  }
 }
 
+function VideoCoreWatchdog() {
+ let proc = EXEC("script -c 'vcdbg log msg -f' /dev/null");
+ let stdout = RL.createInterface(proc.stdout);
+
+ stdout.on("line", function(data) {
+  if(data.indexOf("venc: venc_exit: cnt != out_cnt") != -1) {
+   USER.SERVEURS.forEach(function(server) {
+    sockets[server].emit("serveurrobottrace", "Following a Raspberry PI VideoCore crash, the system will be restarted automatically");
+   });
+   setTimeout(function() {
+    EXEC("reboot");
+   }, 1000);
+  }
+ });
+
+ proc.on("close", function(code) {
+  USER.SERVEURS.forEach(function(server) {
+   sockets[server].emit("serveurrobottrace", "The Raspberry PI VideoCore watchdog is restarted");
+  });
+  VideoCoreWatchdog();
+ });
+}
+
 setTimeout(function() {
  if(gaugeType)
   trace(gaugeType + " I2C fuel gauge detected");
  else
   trace("No I2C fuel gauge detected");
 
- exec("VideoCore", "script -c 'vcdbg log msg -f' /dev/null", function() {
- });
+ VideoCoreWatchdog();
 }, 1000);
 
 function setInit() {
@@ -196,32 +218,23 @@ function sigterm(name, process, callback) {
 function exec(name, command, callback) {
  trace("Starting the process " + name);
  trace(command);
- let processus = EXEC(command);
- let stdout = RL.createInterface(processus.stdout);
- let stderr = RL.createInterface(processus.stderr);
- let pid = processus.pid;
+ let proc = EXEC(command);
+ let stdout = RL.createInterface(proc.stdout);
+ let stderr = RL.createInterface(proc.stderr);
+ let pid = proc.pid;
  let execTime = Date.now();
 
- //processus.stdout.on("data", function(data) {
+ //proc.stdout.on("data", function(data) {
  stdout.on("line", function(data) {
   traces(name + " | " + pid + " | stdout", data);
-
-  if(name == "VideoCore" && data.indexOf("venc: venc_exit: cnt != out_cnt") != -1) {
-   USER.SERVEURS.forEach(function(server) {
-    sockets[server].emit("serveurrobottrace", "Raspberry PI VideoCore crashed, the system will be restarted automatically");
-   });
-   setTimeout(function() {
-    EXEC("reboot");
-   }, 1000);
-  }
  });
 
- //processus.stderr.on("data", function(data) {
+ //proc.stderr.on("data", function(data) {
  stderr.on("line", function(data) {
   traces(name + " | " + pid + " | stderr", data);
  });
 
- processus.on("close", function(code) {
+ proc.on("close", function(code) {
   let elapsed = Date.now() - execTime;
 
   trace("The " + name + " process is stopped after " + elapsed + " milliseconds with the exit code " + code);
