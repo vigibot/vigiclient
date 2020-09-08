@@ -460,20 +460,22 @@ USER.SERVEURS.forEach(function(server, index) {
      setSleepModes();
    }, 100);
 
-   if(up) {
-    sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
-     sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
-      configurationVideo(function() {
-       diffusion();
+   setTimeout(function() {
+    if(up) {
+     sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
+      sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
+       configurationVideo(function() {
+        diffusion();
+       });
       });
      });
-    });
-   } else {
-    configurationVideo(function() {
-     initVideo = true;
-     setInit();
-    });
-   }
+    } else {
+     configurationVideo(function() {
+      initVideo = true;
+      setInit();
+     });
+    }
+   }, 200);
 
    if(!initUart) {
     if(!hard.WRITEUSERDEVICE) {
