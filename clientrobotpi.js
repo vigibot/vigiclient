@@ -205,6 +205,15 @@ function exec(name, command, callback) {
  //processus.stdout.on("data", function(data) {
  stdout.on("line", function(data) {
   traces(name + " | " + pid + " | stdout", data);
+
+  if(name == "VideoCore" && data.indexOf("venc: venc_exit: cnt != out_cnt") != -1) {
+   USER.SERVEURS.forEach(function(server) {
+    sockets[server].emit("serveurrobottrace", "Raspberry PI VideoCore crashed, the system will be restarted automatically");
+   });
+   setTimeout(function() {
+    EXEC("reboot");
+   }, 1000);
+  }
  });
 
  //processus.stderr.on("data", function(data) {
