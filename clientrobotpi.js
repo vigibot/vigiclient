@@ -125,38 +125,11 @@ try {
  }
 }
 
-function VideoCoreWatchdog() {
- let proc = EXEC("script -c 'vcdbg log msg -f' /dev/null");
- let stdout = RL.createInterface(proc.stdout);
-
- stdout.on("line", function(data) {
-  if(data.indexOf("venc: venc_exit: cnt != out_cnt") != -1) {
-   USER.SERVEURS.forEach(function(server) {
-    sockets[server].emit("serveurrobottrace", "Following a Raspberry PI VideoCore crash, the system will be restarted automatically");
-   });
-   setTimeout(function() {
-    EXEC("reboot");
-   }, 1000);
-  }
- });
-
- proc.on("close", function(code) {
-  USER.SERVEURS.forEach(function(server) {
-   sockets[server].emit("serveurrobottrace", "The Raspberry PI VideoCore watchdog is restarted");
-  });
-  setTimeout(function() {
-   VideoCoreWatchdog();
-  }, 1000);
- });
-}
-
 setTimeout(function() {
  if(gaugeType)
   trace(gaugeType + " I2C fuel gauge detected");
  else
   trace("No I2C fuel gauge detected");
-
- VideoCoreWatchdog();
 }, 1000);
 
 function setInit() {
@@ -182,7 +155,6 @@ function trace(message) {
  }
 
  if(hard.TELEDEBUG) {
-  let trace = hmsm(new Date()) + " | " + message;
   USER.SERVEURS.forEach(function(server) {
    sockets[server].emit("serveurrobottrace", message);
   });
@@ -1268,6 +1240,31 @@ NET.createServer(function(socket) {
  });
 
 }).listen(SYS.AUDIOLOCALPORT);
+
+function VideoCoreWatchdog() {
+ let proc = EXEC("script -c 'vcdbg log msg' /dev/null");
+ let stdout = RL.createInterface(proc.stdout);
+
+ stdout.on("line", function(data) {
+  if(data.indexOf("venc: venc_exit: cnt != out_cnt") != -1) {
+   let message = "Following a Raspberry PI VideoCore crash, the system will be restarted automatically";
+   let trace = hmsm(new Date()) + " | " + message;
+   FS.appendFile(SYS.LOGFILE, trace + "\n", function(err) {
+   });
+   USER.SERVEURS.forEach(function(server) {
+    sockets[server].emit("serveurrobottrace", message);
+   });
+   setTimeout(function() {
+    EXEC("reboot");
+   }, 1000);
+  }
+ });
+}
+
+setInterval(function() {
+ if(!up)
+  VideoCoreWatchdog();
+}, 10000);
 
 process.on("uncaughtException", function(err) {
  let i = 0;
