@@ -144,7 +144,9 @@ function VideoCoreWatchdog() {
   USER.SERVEURS.forEach(function(server) {
    sockets[server].emit("serveurrobottrace", "The Raspberry PI VideoCore watchdog is restarted");
   });
-  VideoCoreWatchdog();
+  setTimeout(function() {
+   VideoCoreWatchdog();
+  }, 1000);
  });
 }
 
