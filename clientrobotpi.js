@@ -434,7 +434,7 @@ USER.SERVEURS.forEach(function(server, index) {
    }
    if(!(CMDINT.test(data.hard.WLANDEVICE) &&
         CMDINT.test(data.hard.RECORDINGDEVICE) &&
-        CMDINT.test(data.hard.PLAYBACKDEVICE))
+        CMDINT.test(data.hard.PLAYBACKDEVICE)))
     return;
 
    conf = data.conf;
