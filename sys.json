@@ -5,7 +5,6 @@
 
  "LOGFILE": "/var/log/vigiclient.log",
 
- "WIFIFACE": "wlan0",
  "WIFIFILE": "/proc/net/wireless",
  "TEMPFILE": "/sys/class/thermal/thermal_zone0/temp",
  "WIFIRATE": 250,

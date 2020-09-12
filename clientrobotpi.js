@@ -432,8 +432,9 @@ USER.SERVEURS.forEach(function(server, index) {
          CMDINT.test(data.hard.CAMERAS[i].CONTRASTBOOST)))
      return;
    }
-   if(!(CMDINT.test(data.hard.PLAYBACKDEVICE) &&
-        CMDINT.test(data.hard.RECORDINGDEVICE)))
+   if(!(CMDINT.test(data.hard.WLANDEVICE) &&
+        CMDINT.test(data.hard.RECORDINGDEVICE) &&
+        CMDINT.test(data.hard.PLAYBACKDEVICE))
     return;
 
    conf = data.conf;
@@ -1022,7 +1023,7 @@ setInterval(function() {
  STATS.on("line", function(ligne) {
   ligne = ligne.split(/\s+/);
 
-  if(ligne[1] == SYS.WIFIFACE + ":") {
+  if(ligne[1] == "wlan" + hard.WLANDEVICE + ":") {
    link = ligne[3];
    rssi = ligne[4];
   }
