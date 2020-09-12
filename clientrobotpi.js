@@ -267,6 +267,8 @@ function sleep() {
 
  sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
   sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
+   sigterm("DiffCustm", SYS.PROCESSDIFFCUSTM, function() {
+   });
   });
  });
 
@@ -461,8 +463,10 @@ USER.SERVEURS.forEach(function(server, index) {
     if(up) {
      sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
       sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
-       configurationVideo(function() {
-        diffusion();
+       sigterm("DiffCustm", SYS.PROCESSDIFFCUSTM, function() {
+        configurationVideo(function() {
+         diffusion();
+        });
        });
       });
      });
@@ -632,8 +636,10 @@ USER.SERVEURS.forEach(function(server, index) {
     if(up) {
      sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
       sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
-       configurationVideo(function() {
-        diffusion();
+       sigterm("DiffCustm", SYS.PROCESSDIFFCUSTM, function() {
+        configurationVideo(function() {
+         diffusion();
+        });
        });
       });
      });

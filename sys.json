@@ -13,7 +13,7 @@
 
  "PROCESSDIFFUSION": "/usr/local/vigiclient/processdiffusion",
  "PROCESSDIFFVIDEO": "/usr/local/vigiclient/processdiffvideo",
- "PROCESSDIFFVIDEO": "/usr/local/vigiclient/processdiffcustm",
+ "PROCESSDIFFCUSTM": "/usr/local/vigiclient/processdiffcustm",
  "PROCESSDIFFAUDIO": "/usr/local/vigiclient/processdiffaudio",
 
  "CMDDIFFUSION": [
