@@ -14,6 +14,7 @@
 
  "PROCESSDIFFUSION": "/usr/local/vigiclient/processdiffusion",
  "PROCESSDIFFVIDEO": "/usr/local/vigiclient/processdiffvideo",
+ "PROCESSDIFFVIDEO": "/usr/local/vigiclient/processdiffcustm",
  "PROCESSDIFFAUDIO": "/usr/local/vigiclient/processdiffaudio",
 
  "CMDDIFFUSION": [
@@ -28,6 +29,22 @@
    " -f fbdev",
    " -r FPS",
    " -i /dev/fb0",
+   " -c:v h264_omx",
+   " -profile:v baseline",
+   " -b:v BITRATE",
+   " -flags:v +global_header",
+   " -bsf:v dump_extra",
+   " -f rawvideo",
+   " tcp://127.0.0.1:VIDEOLOCALPORT"
+  ], [
+   "/usr/local/vigiclient/processdiffcustm",
+   " WIDTH HEIGHT FPS",
+   " | /usr/bin/ffmpeg",
+   " -loglevel fatal",
+   " -s:v WIDTHxHEIGHT",
+   " -pix_fmt rgb24",
+   " -f rawvideo",
+   " -i -",
    " -c:v h264_omx",
    " -profile:v baseline",
    " -b:v BITRATE",
