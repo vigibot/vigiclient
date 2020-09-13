@@ -268,6 +268,8 @@ function sleep() {
  sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
   sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
    sigterm("DiffCustm", SYS.PROCESSDIFFCUSTM, function() {
+    sigterm("DiffIntro", SYS.PROCESSDIFFINTRO, function() {
+    });
    });
   });
  });
@@ -464,8 +466,10 @@ USER.SERVEURS.forEach(function(server, index) {
      sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
       sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
        sigterm("DiffCustm", SYS.PROCESSDIFFCUSTM, function() {
-        configurationVideo(function() {
-         diffusion();
+        sigterm("DiffIntro", SYS.PROCESSDIFFINTRO, function() {
+         configurationVideo(function() {
+          diffusion();
+         });
         });
        });
       });
@@ -637,8 +641,10 @@ USER.SERVEURS.forEach(function(server, index) {
      sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
       sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
        sigterm("DiffCustm", SYS.PROCESSDIFFCUSTM, function() {
-        configurationVideo(function() {
-         diffusion();
+        sigterm("DiffIntro", SYS.PROCESSDIFFINTRO, function() {
+         configurationVideo(function() {
+          diffusion();
+         });
         });
        });
       });

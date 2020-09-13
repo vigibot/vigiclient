@@ -14,6 +14,7 @@
  "PROCESSDIFFUSION": "/usr/local/vigiclient/processdiffusion",
  "PROCESSDIFFVIDEO": "/usr/local/vigiclient/processdiffvideo",
  "PROCESSDIFFCUSTM": "/usr/local/vigiclient/processdiffcustm",
+ "PROCESSDIFFINTRO": "/usr/local/vigiclient/processdiffintro",
  "PROCESSDIFFAUDIO": "/usr/local/vigiclient/processdiffaudio",
 
  "CMDDIFFUSION": [
@@ -44,6 +45,19 @@
    " -pix_fmt rgb24",
    " -f rawvideo",
    " -i -",
+   " -c:v h264_omx",
+   " -profile:v baseline",
+   " -b:v BITRATE",
+   " -flags:v +global_header",
+   " -bsf:v dump_extra",
+   " -f rawvideo",
+   " tcp://127.0.0.1:VIDEOLOCALPORT"
+  ], [
+   "/usr/local/vigiclient/processdiffintro",
+   " -loglevel fatal",
+   " -stream_loop -1",
+   " -re",
+   " -i /usr/local/vigiclient/intro",
    " -c:v h264_omx",
    " -profile:v baseline",
    " -b:v BITRATE",
