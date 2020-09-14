@@ -102,7 +102,7 @@ USER.SERVEURS.forEach(function(server) {
 hard.DEBUG = true;
 hard.TELEDEBUG = false;
 
-trace("Client start");
+trace("Client start", true);
 
 i2c = I2C.openSync(1);
 
@@ -127,9 +127,9 @@ try {
 
 setTimeout(function() {
  if(gaugeType)
-  trace(gaugeType + " I2C fuel gauge detected");
+  trace(gaugeType + " I2C fuel gauge detected", true);
  else
-  trace("No I2C fuel gauge detected");
+  trace("No I2C fuel gauge detected", true);
 }, 1000);
 
 function setInit() {
@@ -147,21 +147,21 @@ function hmsm(date) {
         ("00" + date.getMilliseconds()).slice(-3);
 }
 
-function trace(message) {
- if(hard.DEBUG) {
+function trace(message, mandatory) {
+ if(mandatory || hard.DEBUG) {
   let trace = hmsm(new Date()) + " | " + message;
   FS.appendFile(SYS.LOGFILE, trace + "\n", function(err) {
   });
  }
 
- if(hard.TELEDEBUG) {
+ if(mandatory || hard.TELEDEBUG) {
   USER.SERVEURS.forEach(function(server) {
    sockets[server].emit("serveurrobottrace", message);
   });
  }
 }
 
-function traces(id, messages) {
+function traces(id, messages, mandatory) {
  if(!hard.DEBUG && !hard.TELEDEBUG)
   return;
 
@@ -169,7 +169,7 @@ function traces(id, messages) {
  if(!array[array.length - 1])
   array.pop();
  for(let i = 0; i < array.length; i++)
-  trace(id + " | " + array[i]);
+  trace(id + " | " + array[i], mandatory);
 }
 
 function constrain(n, nMin, nMax) {
@@ -182,7 +182,7 @@ function constrain(n, nMin, nMax) {
 }
 
 function sigterm(name, process, callback) {
- trace("Sending the SIGTERM signal to the process " + name);
+ trace("Sending the SIGTERM signal to the process " + name, false);
  let processkill = EXEC("/usr/bin/pkill -15 -f ^" + process);
  processkill.on("close", function(code) {
   callback(code);
@@ -190,8 +190,8 @@ function sigterm(name, process, callback) {
 }
 
 function exec(name, command, callback) {
- trace("Starting the process " + name);
- trace(command);
+ trace("Starting the process " + name, false);
+ trace(command, false);
  let proc = EXEC(command);
  let stdout = RL.createInterface(proc.stdout);
  let stderr = RL.createInterface(proc.stderr);
@@ -211,7 +211,7 @@ function exec(name, command, callback) {
  proc.on("close", function(code) {
   let elapsed = Date.now() - execTime;
 
-  trace("The " + name + " process is stopped after " + elapsed + " milliseconds with the exit code " + code);
+  trace("The " + name + " process is stopped after " + elapsed + " milliseconds with the exit code " + code, false);
   callback(code);
  });
 }
@@ -221,16 +221,16 @@ function wake(server) {
   return;
 
  if(!init) {
-  trace("This robot is not initialized");
+  trace("This robot is not initialized", true);
   return;
  }
 
  if(currentServer) {
-  trace("This robot is already in use from the " + currentServer + " server");
+  trace("This robot is already in use from the " + currentServer + " server", true);
   return;
  }
 
- trace("Robot wake");
+ trace("Robot wake", false);
 
  writeOutputs();
 
@@ -251,7 +251,7 @@ function sleep() {
  if(!up)
   return;
 
- trace("Robot sleep");
+ trace("Robot sleep", false);
 
  for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
   if(hard.COMMANDS16[i].SLEEP)
@@ -294,7 +294,7 @@ function configurationVideo(callback) {
  cmdDiffAudio = USER.CMDDIFFAUDIO.join("").replace(new RegExp("RECORDINGDEVICE", "g"), hard.RECORDINGDEVICE
                                          ).replace(new RegExp("AUDIOLOCALPORT", "g"), SYS.AUDIOLOCALPORT);
 
- trace("Initializing the Video4Linux configuration");
+ trace("Initializing the Video4Linux configuration", false);
 
  let brightness;
  let contrast;
@@ -321,16 +321,16 @@ function configurationVideo(callback) {
 }
 
 function diffusion() {
- trace("Starting the H.264 video broadcast stream");
+ trace("Starting the H.264 video broadcast stream", false);
  exec("Diffusion", cmdDiffusion, function() {
-  trace("Stopping the H.264 video broadcast stream");
+  trace("Stopping the H.264 video broadcast stream", false);
  });
 }
 
 function diffAudio() {
- trace("Starting the audio broadcast stream");
+ trace("Starting the audio broadcast stream", false);
  exec("DiffAudio", cmdDiffAudio, function() {
-  trace("Stopping the audio broadcast stream");
+  trace("Stopping the audio broadcast stream", false);
  });
 }
 
@@ -355,9 +355,9 @@ function initOutputs() {
     frequency: SYS.PCA9685FREQUENCY
    }, function(err) {
     if(err)
-     trace("Error initializing PCA9685 at address " + hard.PCA9685ADDRESSES[i]);
+     trace("Error initializing PCA9685 at address " + hard.PCA9685ADDRESSES[i], true);
     else {
-     trace("PCA9685 initialized at address " + hard.PCA9685ADDRESSES[i]);
+     trace("PCA9685 initialized at address " + hard.PCA9685ADDRESSES[i], true);
      initPca++;
      setInit();
     }
@@ -401,7 +401,7 @@ function initOutputs() {
 USER.SERVEURS.forEach(function(server, index) {
 
  sockets[server].on("connect", function() {
-  trace("Connected to " + server + "/" + SYS.SECUREMOTEPORT);
+  trace("Connected to " + server + "/" + SYS.SECUREMOTEPORT, true);
   EXEC("hostname -I").stdout.on("data", function(ipPriv) {
    EXEC("iwgetid -r || echo $?").stdout.on("data", function(ssid) {
     sockets[server].emit("serveurrobotlogin", {
@@ -418,7 +418,7 @@ USER.SERVEURS.forEach(function(server, index) {
 
  if(index == 0) {
   sockets[server].on("clientsrobotconf", function(data) {
-   trace("Receiving robot configuration data from the " + server + " server");
+   trace("Receiving robot configuration data from the " + server + " server", true);
 
    // Security hardening: even if already done on server side,
    // always filter values integrated in command lines
@@ -493,7 +493,7 @@ USER.SERVEURS.forEach(function(server, index) {
       });
 
       serial.on("open", function() {
-       trace("Connected to " + hard.SERIALPORT);
+       trace("Connected to " + hard.SERIALPORT, true);
 
        gps = new GPS;
 
@@ -512,7 +512,7 @@ USER.SERVEURS.forEach(function(server, index) {
      });
 
      serial.on("open", function() {
-      trace("Connected to " + hard.SERIALPORT);
+      trace("Connected to " + hard.SERIALPORT, true);
 
       if(hard.READUSERDEVICE) {
        serial.on("data", function(data) {
@@ -529,7 +529,7 @@ USER.SERVEURS.forEach(function(server, index) {
           });
          });
         }, function(err) {
-         trace(err);
+         trace(err, false);
         });
 
        });
@@ -544,18 +544,18 @@ USER.SERVEURS.forEach(function(server, index) {
  }
 
  sockets[server].on("disconnect", function() {
-  trace("Disconnected from " + server + "/" + SYS.SECUREMOTEPORT);
+  trace("Disconnected from " + server + "/" + SYS.SECUREMOTEPORT, true);
   sleep();
  });
 
  sockets[server].on("connect_error", function(err) {
-  //trace("Error connecting to " + server + "/" + SYS.SECUREMOTEPORT);
+  //trace("Error connecting to " + server + "/" + SYS.SECUREMOTEPORT, false);
  });
 
  sockets[server].on("clientsrobottts", function(data) {
   FS.writeFile("/tmp/tts.txt", data, function(err) {
    if(err)
-    trace(err);
+    trace(err, false);
    exec("eSpeak", USER.CMDTTS.replace(new RegExp("PLAYBACKDEVICE", "g"), hard.PLAYBACKDEVICE), function() {
    });
   });
@@ -564,15 +564,15 @@ USER.SERVEURS.forEach(function(server, index) {
  sockets[server].on("clientsrobotsys", function(data) {
   switch(data) {
    case "exit":
-    trace("Restart the client process");
+    trace("Restart the client process", true);
     process.exit();
     break;
    case "reboot":
-    trace("Restart the system");
+    trace("Restart the system", true);
     EXEC("reboot");
     break;
    case "poweroff":
-    trace("Power off the system");
+    trace("Power off the system", true);
     EXEC("poweroff");
     break;
   }
@@ -592,7 +592,7 @@ USER.SERVEURS.forEach(function(server, index) {
   if(data.data[0] != FRAME0 ||
      data.data[1] != FRAME1S &&
      data.data[1] != FRAME1T) {
-   trace("Reception of a corrupted frame");
+   trace("Reception of a corrupted frame", false);
    return;
   }
 
@@ -656,7 +656,7 @@ USER.SERVEURS.forEach(function(server, index) {
     oldConfVideo = confVideo;
    }
   } else
-   trace("Reception of a text frame");
+   trace("Reception of a text frame", false);
 
   wake(server);
   clearTimeout(upTimeout);
@@ -882,12 +882,12 @@ setInterval(function() {
  let predictiveLatency = Date.now() - lastTimestamp;
 
  if(predictiveLatency < SYS.LATENCYALARMEND && latencyAlarm) {
-  trace(predictiveLatency + " ms latency, return to configured video bitrate");
+  trace(predictiveLatency + " ms latency, return to configured video bitrate", false);
   exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function() {
   });
   latencyAlarm = false;
  } else if(predictiveLatency > SYS.LATENCYALARMBEGIN && !latencyAlarm) {
-  trace(predictiveLatency + " ms latency, stop the motors and switch to reduced video bitrate");
+  trace(predictiveLatency + " ms latency, stop the motors and switch to reduced video bitrate", false);
   exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + SYS.EMERGENCYBITRATE, function() {
   });
   latencyAlarm = true;
@@ -1153,26 +1153,26 @@ setInterval(function() {
  if(hard.EXPOSUREBRACKETING) {
   EXEC("raspistill -ev " + -hard.EXPOSUREBRACKETING + " " + options + " -o /tmp/1.jpg", function(err) {
    if(err) {
-    trace("Error while capturing the first photo");
+    trace("Error while capturing the first photo", false);
     return;
    }
    EXEC("raspistill " + options + " -o /tmp/2.jpg", function(err) {
     if(err) {
-     trace("Error while capturing the second photo");
+     trace("Error while capturing the second photo", false);
      return;
     }
     EXEC("raspistill -ev " + hard.EXPOSUREBRACKETING + " " + options + " -o /tmp/3.jpg", function(err) {
      if(err) {
-      trace("Error while capturing the third photo");
+      trace("Error while capturing the third photo", false);
       return;
      }
      EXEC("enfuse -o /tmp/out.jpg /tmp/1.jpg /tmp/2.jpg /tmp/3.jpg", function(err) {
       if(err)
-       trace("Error when merging photos");
+       trace("Error when merging photos", false);
       else {
        FS.readFile("/tmp/out.jpg", function(err, data) {
         USER.SERVEURS.forEach(function(server) {
-         trace("Uploading a photo to the server " + server);
+         trace("Uploading a photo to the server " + server, false);
          sockets[server].emit("serveurrobotcapturesenveille", data);
         });
        });
@@ -1184,11 +1184,11 @@ setInterval(function() {
  } else {
   EXEC("raspistill -q 10 " + options + " -o /tmp/out.jpg", function(err) {
    if(err)
-    trace("Error while capturing the photo");
+    trace("Error while capturing the photo", false);
    else {
     FS.readFile("/tmp/out.jpg", function(err, data) {
      USER.SERVEURS.forEach(function(server) {
-      trace("Uploading a photo to the server " + server);
+      trace("Uploading a photo to the server " + server, false);
       sockets[server].emit("serveurrobotcapturesenveille", data);
      });
     });
@@ -1201,7 +1201,7 @@ NET.createServer(function(socket) {
  const SEPARATEURNALU = new Buffer.from([0, 0, 0, 1]);
  const SPLITTER = new SPLIT(SEPARATEURNALU);
 
- trace("H.264 video streaming process is connected to tcp://127.0.0.1:" + SYS.VIDEOLOCALPORT);
+ trace("H.264 video streaming process is connected to tcp://127.0.0.1:" + SYS.VIDEOLOCALPORT, false);
 
  SPLITTER.on("data", function(data) {
 
@@ -1213,20 +1213,20 @@ NET.createServer(function(socket) {
   }
 
  }).on("error", function(err) {
-  trace("Error when splitting input stream into H.264 network abstraction layer units");
+  trace("Error when splitting input stream into H.264 network abstraction layer units", false);
  });
 
  socket.pipe(SPLITTER);
 
  socket.on("end", function() {
-  trace("H.264 video streaming process is disconnected from tcp://127.0.0.1:" + SYS.VIDEOLOCALPORT);
+  trace("H.264 video streaming process is disconnected from tcp://127.0.0.1:" + SYS.VIDEOLOCALPORT, false);
  });
 
 }).listen(SYS.VIDEOLOCALPORT);
 
 NET.createServer(function(socket) {
 
- trace("The audio streaming process is connected to tcp://127.0.0.1:" + SYS.AUDIOLOCALPORT);
+ trace("The audio streaming process is connected to tcp://127.0.0.1:" + SYS.AUDIOLOCALPORT, false);
 
  let array = [];
  let i = 0;
@@ -1249,7 +1249,7 @@ NET.createServer(function(socket) {
  })
 
  socket.on("end", function() {
-  trace("Audio streaming process is disconnected from tcp://127.0.0.1:" + SYS.AUDIOLOCALPORT);
+  trace("Audio streaming process is disconnected from tcp://127.0.0.1:" + SYS.AUDIOLOCALPORT, false);
  });
 
 }).listen(SYS.AUDIOLOCALPORT);
@@ -1260,13 +1260,7 @@ function VideoCoreWatchdog() {
 
  stdout.on("line", function(data) {
   if(data.indexOf("venc: venc_exit: cnt != out_cnt") != -1) {
-   let message = "Following a Raspberry PI VideoCore crash, the system will be restarted automatically";
-   let trace = hmsm(new Date()) + " | " + message;
-   FS.appendFile(SYS.LOGFILE, trace + "\n", function(err) {
-   });
-   USER.SERVEURS.forEach(function(server) {
-    sockets[server].emit("serveurrobottrace", message);
-   });
+   trace("Following a Raspberry PI VideoCore crash, the system will be restarted automatically", true);
    setTimeout(function() {
     EXEC("reboot");
    }, 1000);
@@ -1284,12 +1278,12 @@ process.on("uncaughtException", function(err) {
  let errors = err.stack.split("\n");
 
  while(i < errors.length)
-  trace(errors[i++]);
+  trace(errors[i++], false);
 
- trace("Following this uncaught exception, the Node.js process will be terminated automatically");
+ trace("Following this uncaught exception, the Node.js process will be terminated automatically", true);
  setTimeout(function() {
   process.exit(1);
  }, 1000);
 })
 
-trace("Client ready");
+trace("Client ready", true);
