@@ -312,9 +312,6 @@ function configurationVideo(callback) {
                              " -p " + confVideo.FPS +
                              " -c h264_profile=0" +
                                 ",repeat_sequence_header=1" +
-                                ",white_balance_auto_preset=0" +
-                                ",red_balance=1400" +
-                                ",blue_balance=1400" +
                                 ",rotate=" + confVideo.ROTATE +
                                 ",video_bitrate=" + confVideo.BITRATE +
                                 ",brightness=" + brightness +
