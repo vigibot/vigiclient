@@ -68,6 +68,7 @@ let contrastBoost = false;
 let oldContrastBoost = false;
 
 let serial;
+let serialGps;
 let gps;
 
 let i2c;
@@ -482,64 +483,65 @@ USER.SERVEURS.forEach(function(server, index) {
     }
    }, 200);
 
-   if(!initUart) {
-    if(!hard.WRITEUSERDEVICE) {
+   if(initUart)
+    return;
 
-     if(hard.ENABLEGPS) {
-      serial = new SP(hard.SERIALPORT, {
-       baudRate: hard.SERIALRATE,
-       lock: false,
-       parser: new SP.parsers.Readline("\r\n")
-      });
+   if(hard.ENABLEGPS >= 0) {
+    serialGps = new SP(hard.SERIALPORTS[hard.ENABLEGPS], {
+     baudRate: hard.SERIALRATES[hard.ENABLEGPS],
+     lock: false,
+     parser: new SP.parsers.Readline("\r\n")
+    });
 
-      serial.on("open", function() {
-       trace("Connected to " + hard.SERIALPORT, true);
+    serialGps.on("open", function() {
+     trace("Connected to " + hard.SERIALPORTS[hard.ENABLEGPS], true);
 
-       gps = new GPS;
+     gps = new GPS;
 
-       serial.on("data", function(data) {
-        gps.updatePartial(data);
+     serialGps.on("data", function(data) {
+      gps.updatePartial(data);
+     });
+
+     initUart = true;
+     setInit();
+    });
+   }
+
+   if(hard.WRITEUSERDEVICE >= 0) {
+    serial = new SP(hard.SERIALPORTS[hard.WRITEUSERDEVICE], {
+     baudRate: hard.SERIALRATES[hard.WRITEUSERDEVICE],
+     lock: false
+    });
+
+    serial.on("open", function() {
+     trace("Connected to " + hard.SERIALPORTS[hard.WRITEUSERDEVICE], true);
+
+     if(hard.READUSERDEVICE >= 0) {
+      serial.on("data", function(data) {
+
+       rx.update(data, function() {
+        USER.SERVEURS.forEach(function(server) {
+         if(currentServer && server != currentServer)
+          return;
+
+         setRxValues();
+         sockets[server].emit("serveurrobotrx", {
+          timestamp: Date.now(),
+          data: rx.arrayBuffer
+         });
+        });
+       }, function(err) {
+        trace(err, false);
        });
+
       });
      }
 
      initUart = true;
      setInit();
-    } else {
-     serial = new SP(hard.SERIALPORT, {
-      baudRate: hard.SERIALRATE,
-      lock: false
-     });
-
-     serial.on("open", function() {
-      trace("Connected to " + hard.SERIALPORT, true);
-
-      if(hard.READUSERDEVICE) {
-       serial.on("data", function(data) {
-
-        rx.update(data, function() {
-         USER.SERVEURS.forEach(function(server) {
-          if(currentServer && server != currentServer)
-           return;
-
-          setRxValues();
-          sockets[server].emit("serveurrobotrx", {
-           timestamp: Date.now(),
-           data: rx.arrayBuffer
-          });
-         });
-        }, function(err) {
-         trace(err, false);
-        });
-
-       });
-      }
-
-      initUart = true;
-      setInit();
-     });
-    }
+    });
    }
+
   });
  }
 
@@ -604,7 +606,7 @@ USER.SERVEURS.forEach(function(server, index) {
 
   lastTimestamp = data.boucleVideoCommande;
 
-  if(hard.WRITEUSERDEVICE)
+  if(hard.WRITEUSERDEVICE >= 0)
    serial.write(data.data);
 
   if(data.data[1] == FRAME1S) {
@@ -664,7 +666,7 @@ USER.SERVEURS.forEach(function(server, index) {
    sleep();
   }, SYS.UPTIMEOUT);
 
-  if(!hard.READUSERDEVICE) {
+  if(hard.READUSERDEVICE == -1) {
    setRxCommandes();
    setRxValues();
    sockets[server].emit("serveurrobotrx", {
@@ -1103,7 +1105,7 @@ function setRxCommandes() {
 }
 
 function setRxValues() {
- if(hard.ENABLEGPS && gps.state.lat !== null) {
+ if(hard.ENABLEGPS >= 0 && gps.state.lat !== null) {
   rx.setFloatValeur32(0, gps.state.lat);
   rx.setFloatValeur32(1, gps.state.lon);
  }
@@ -1113,7 +1115,7 @@ function setRxValues() {
  rx.setFloatValeur8(1, socTemp);
  rx.setFloatValeur8(2, link);
  rx.setFloatValeur8(3, rssi);
- if(hard.ENABLEGPS) {
+ if(hard.ENABLEGPS >= 0) {
   if(typeof gps.state.satsActive !== "undefined")
    rx.setFloatValeur8(4, gps.state.satsActive.length);
   rx.setFloatValeur8(5, gps.state.speed);
@@ -1123,7 +1125,7 @@ function setRxValues() {
 }
 
 setInterval(function() {
- if(up || !init || hard.READUSERDEVICE)
+ if(up || !init || hard.READUSERDEVICE >= 0)
   return;
 
  setRxCommandes();
