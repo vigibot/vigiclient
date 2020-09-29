@@ -486,28 +486,11 @@ USER.SERVEURS.forEach(function(server, index) {
    if(initUart)
     return;
 
-   if(hard.ENABLEGPS >= 0) {
-    serialGps = new SP(hard.SERIALPORTS[hard.ENABLEGPS], {
-     baudRate: hard.SERIALRATES[hard.ENABLEGPS],
-     lock: false,
-     parser: new SP.parsers.Readline("\r\n")
-    });
+   if(hard.WRITEUSERDEVICE == -1 && hard.ENABLEGPS == -1) {
+    initUart = true;
+    setInit();
 
-    serialGps.on("open", function() {
-     trace("Connected to " + hard.SERIALPORTS[hard.ENABLEGPS], true);
-
-     gps = new GPS;
-
-     serialGps.on("data", function(data) {
-      gps.updatePartial(data);
-     });
-
-     initUart = true;
-     setInit();
-    });
-   }
-
-   if(hard.WRITEUSERDEVICE >= 0) {
+   } else if(hard.WRITEUSERDEVICE >= 0) {
     serial = new SP(hard.SERIALPORTS[hard.WRITEUSERDEVICE], {
      baudRate: hard.SERIALRATES[hard.WRITEUSERDEVICE],
      lock: false
@@ -536,6 +519,27 @@ USER.SERVEURS.forEach(function(server, index) {
 
       });
      }
+
+     initUart = true;
+     setInit();
+    });
+   }
+
+   if(hard.ENABLEGPS >= 0) {
+    serialGps = new SP(hard.SERIALPORTS[hard.ENABLEGPS], {
+     baudRate: hard.SERIALRATES[hard.ENABLEGPS],
+     lock: false,
+     parser: new SP.parsers.Readline("\r\n")
+    });
+
+    serialGps.on("open", function() {
+     trace("Connected to " + hard.SERIALPORTS[hard.ENABLEGPS], true);
+
+     gps = new GPS;
+
+     serialGps.on("data", function(data) {
+      gps.updatePartial(data);
+     });
 
      initUart = true;
      setInit();
