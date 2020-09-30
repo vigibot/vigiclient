@@ -1277,13 +1277,15 @@ function VideoCoreWatchdog() {
 function KernelExceptionWatchdog() {
  let proc = EXEC("cat /var/log/syslog");
  let stdout = RL.createInterface(proc.stdout);
+ let once = false;
 
  stdout.on("line", function(data) {
-  if(data.indexOf("Exception stack") != -1) {
+  if(!once && data.indexOf("Exception stack") != -1) {
    trace("Following a Raspberry PI kernel exception, the system will be restarted automatically", true);
    setTimeout(function() {
     EXEC("reboot");
    }, 1000);
+   once = true;
   }
  });
 }
