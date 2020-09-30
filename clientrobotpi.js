@@ -1274,9 +1274,24 @@ function VideoCoreWatchdog() {
  });
 }
 
+function KernelExceptionWatchdog() {
+ let proc = EXEC("cat /var/log/syslog");
+ let stdout = RL.createInterface(proc.stdout);
+
+ stdout.on("line", function(data) {
+  if(data.indexOf("Exception stack") != -1) {
+   trace("Following a Raspberry PI kernel exception, the system will be restarted automatically", true);
+   setTimeout(function() {
+    EXEC("reboot");
+   }, 1000);
+  }
+ });
+}
+
 setInterval(function() {
  if(!up)
-  VideoCoreWatchdog();
+  //VideoCoreWatchdog();
+  KernelExceptionWatchdog();
 }, 10000);
 
 process.on("uncaughtException", function(err) {
