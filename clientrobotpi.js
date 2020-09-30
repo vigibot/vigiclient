@@ -1275,7 +1275,7 @@ function VideoCoreWatchdog() {
 }
 
 function KernelExceptionWatchdog() {
- let proc = EXEC("cat /var/log/syslog");
+ let proc = EXEC("dmesg");
  let stdout = RL.createInterface(proc.stdout);
  let once = false;
 
