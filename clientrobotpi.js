@@ -47,6 +47,9 @@ let confVideo;
 let oldConfVideo;
 let cmdDiffusion;
 let cmdDiffAudio;
+let contrastBoost = false;
+let oldContrastBoost = false;
+let autopilot;
 
 let lastTimestamp = Date.now();
 let lastTrame = Date.now();
@@ -63,9 +66,6 @@ let margins8 = [];
 
 let oldOutputs = [];
 let backslashs = [];
-
-let contrastBoost = false;
-let oldContrastBoost = false;
 
 let serial;
 let serialGps;
@@ -358,28 +358,6 @@ function actions(trx) {
   }
   oldContrastBoost = contrastBoost;
  }
-
- confVideo = hard.CAMERAS[trx.choixCameras[0]];
- if(confVideo != oldConfVideo &&
-    JSON.stringify(confVideo) != JSON.stringify(oldConfVideo)) {
-  if(up) {
-   sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
-    sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
-     sigterm("DiffCustm", SYS.PROCESSDIFFCUSTM, function() {
-      sigterm("DiffIntro", SYS.PROCESSDIFFINTRO, function() {
-       configurationVideo(function() {
-        diffusion();
-       });
-      });
-     });
-    });
-   });
-  } else {
-   configurationVideo(function() {
-   });
-  }
-  oldConfVideo = confVideo;
- }
 }
 
 function initOutputs() {
@@ -500,6 +478,14 @@ USER.SERVEURS.forEach(function(server, index) {
    contrastBoost = false;
    oldContrastBoost = false;
 
+   autopilot = false;
+   for(let i = 0; i < hard.CAMERAS.length; i++) {
+    if(hard.CAMERAS[i].TYPE == "Autopilot") {
+     autopilot = true;
+     break;
+    }
+   }
+
    initOutputs();
    if(!up)
     writeOutputs();
@@ -537,7 +523,7 @@ USER.SERVEURS.forEach(function(server, index) {
     initUart = true;
     setInit();
 
-   } else if(hard.WRITEUSERDEVICE >= 0) {
+   } else if(hard.WRITEUSERDEVICE != SYS.UNUSED) {
     serial = new SP(hard.SERIALPORTS[hard.WRITEUSERDEVICE], {
      baudRate: hard.SERIALRATES[hard.WRITEUSERDEVICE],
      lock: false
@@ -546,12 +532,12 @@ USER.SERVEURS.forEach(function(server, index) {
     serial.on("open", function() {
      trace("Connected to " + hard.SERIALPORTS[hard.WRITEUSERDEVICE], true);
 
-     if(hard.READUSERDEVICE >= 0) {
+     if(hard.READUSERDEVICE != SYS.UNUSED) {
       serial.on("data", function(data) {
 
        rx.update(data, function() {
 
-        if(confVideo.TYPE == "Autopilot")
+        if(hard.CAMERAS[rx.choixCameras[0]].TYPE == "Autopilot")
          actions(rx);
 
         setRxValues();
@@ -576,7 +562,7 @@ USER.SERVEURS.forEach(function(server, index) {
     });
    }
 
-   if(hard.ENABLEGPS >= 0) {
+   if(hard.ENABLEGPS != SYS.UNUSED) {
     serialGps = new SP(hard.SERIALPORTS[hard.ENABLEGPS], {
      baudRate: hard.SERIALRATES[hard.ENABLEGPS],
      lock: false,
@@ -661,15 +647,37 @@ USER.SERVEURS.forEach(function(server, index) {
 
   lastTimestamp = data.boucleVideoCommande;
 
-  if(hard.WRITEUSERDEVICE >= 0)
+  if(hard.WRITEUSERDEVICE != SYS.UNUSED)
    serial.write(data.data);
 
   if(data.data[1] == FRAME1S) {
    for(let i = 0; i < tx.byteLength; i++)
     tx.bytes[i] = data.data[i];
 
-   if(confVideo.TYPE != "Autopilot")
+   if(hard.CAMERAS[tx.choixCameras[0]].TYPE != "Autopilot")
     actions(tx);
+
+   confVideo = hard.CAMERAS[tx.choixCameras[0]];
+   if(confVideo != oldConfVideo &&
+      JSON.stringify(confVideo) != JSON.stringify(oldConfVideo)) {
+    if(up) {
+     sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
+      sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
+       sigterm("DiffCustm", SYS.PROCESSDIFFCUSTM, function() {
+        sigterm("DiffIntro", SYS.PROCESSDIFFINTRO, function() {
+         configurationVideo(function() {
+          diffusion();
+         });
+        });
+       });
+      });
+     });
+    } else {
+     configurationVideo(function() {
+     });
+    }
+    oldConfVideo = confVideo;
+   }
 
   } else
    trace("Reception of a text frame", false);
@@ -680,7 +688,8 @@ USER.SERVEURS.forEach(function(server, index) {
    sleep();
   }, SYS.UPTIMEOUT);
 
-  if(hard.READUSERDEVICE == SYS.UNUSED) {
+  if(hard.READUSERDEVICE == SYS.UNUSED ||
+     autopilot && hard.CAMERAS[tx.choixCameras[0]].TYPE != "Autopilot") {
    setRxCommandes();
    setRxValues();
    sockets[server].emit("serveurrobotrx", {
@@ -1119,7 +1128,7 @@ function setRxCommandes() {
 }
 
 function setRxValues() {
- if(hard.ENABLEGPS >= 0 && gps.state.lat !== null) {
+ if(hard.ENABLEGPS != SYS.UNUSED && gps.state.lat !== null) {
   rx.setFloatValeur32(0, gps.state.lat);
   rx.setFloatValeur32(1, gps.state.lon);
  }
@@ -1129,7 +1138,7 @@ function setRxValues() {
  rx.setFloatValeur8(1, socTemp);
  rx.setFloatValeur8(2, link);
  rx.setFloatValeur8(3, rssi);
- if(hard.ENABLEGPS >= 0) {
+ if(hard.ENABLEGPS != SYS.UNUSED) {
   if(typeof gps.state.satsActive !== "undefined")
    rx.setFloatValeur8(4, gps.state.satsActive.length);
   rx.setFloatValeur8(5, gps.state.speed);
