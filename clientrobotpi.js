@@ -335,6 +335,53 @@ function diffAudio() {
  });
 }
 
+function actions(trx) {
+ for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
+  floatTargets16[i] = trx.getFloatCommande16(i);
+
+ for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
+  floatTargets8[i] = trx.getFloatCommande8(i);
+
+ for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
+  floatTargets1[i] = trx.getCommande1(i);
+
+ contrastBoost = trx.getCommande1(hard.CONTRASTBOOSTSWITCH);
+ if(contrastBoost != oldContrastBoost) {
+  if(contrastBoost) {
+   exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.BRIGHTNESSBOOST +
+                                  ",contrast=" + confVideo.CONTRASTBOOST, function() {
+   });
+  } else {
+   exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.BRIGHTNESS +
+                                  ",contrast=" + confVideo.CONTRAST, function() {
+   });
+  }
+  oldContrastBoost = contrastBoost;
+ }
+
+ confVideo = hard.CAMERAS[trx.choixCameras[0]];
+ if(confVideo != oldConfVideo &&
+    JSON.stringify(confVideo) != JSON.stringify(oldConfVideo)) {
+  if(up) {
+   sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
+    sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
+     sigterm("DiffCustm", SYS.PROCESSDIFFCUSTM, function() {
+      sigterm("DiffIntro", SYS.PROCESSDIFFINTRO, function() {
+       configurationVideo(function() {
+        diffusion();
+       });
+      });
+     });
+    });
+   });
+  } else {
+   configurationVideo(function() {
+   });
+  }
+  oldConfVideo = confVideo;
+ }
+}
+
 function initOutputs() {
  gpioOutputs.forEach(function(gpios) {
   gpios.forEach(function(gpio) {
@@ -486,7 +533,7 @@ USER.SERVEURS.forEach(function(server, index) {
    if(initUart)
     return;
 
-   if(hard.WRITEUSERDEVICE == -1 && hard.ENABLEGPS == -1) {
+   if(hard.WRITEUSERDEVICE == SYS.UNUSED && hard.ENABLEGPS == SYS.UNUSED) {
     initUart = true;
     setInit();
 
@@ -503,11 +550,15 @@ USER.SERVEURS.forEach(function(server, index) {
       serial.on("data", function(data) {
 
        rx.update(data, function() {
+
+        if(confVideo.TYPE == "Autopilot")
+         actions(rx);
+
+        setRxValues();
         USER.SERVEURS.forEach(function(server) {
          if(currentServer && server != currentServer)
           return;
 
-         setRxValues();
          sockets[server].emit("serveurrobotrx", {
           timestamp: Date.now(),
           data: rx.arrayBuffer
@@ -617,50 +668,9 @@ USER.SERVEURS.forEach(function(server, index) {
    for(let i = 0; i < tx.byteLength; i++)
     tx.bytes[i] = data.data[i];
 
-   for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-    floatTargets16[i] = tx.getFloatCommande16(i);
+   if(confVideo.TYPE != "Autopilot")
+    actions(tx);
 
-   for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-    floatTargets8[i] = tx.getFloatCommande8(i);
-
-   for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
-    floatTargets1[i] = tx.getCommande1(i);
-
-   contrastBoost = tx.getCommande1(hard.CONTRASTBOOSTSWITCH);
-   if(contrastBoost != oldContrastBoost) {
-    if(contrastBoost) {
-     exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.BRIGHTNESSBOOST +
-                                    ",contrast=" + confVideo.CONTRASTBOOST, function() {
-     });
-    } else {
-     exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.BRIGHTNESS +
-                                    ",contrast=" + confVideo.CONTRAST, function() {
-     });
-    }
-    oldContrastBoost = contrastBoost;
-   }
-
-   confVideo = hard.CAMERAS[tx.choixCameras[0]];
-   if(confVideo != oldConfVideo &&
-      JSON.stringify(confVideo) != JSON.stringify(oldConfVideo)) {
-    if(up) {
-     sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
-      sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
-       sigterm("DiffCustm", SYS.PROCESSDIFFCUSTM, function() {
-        sigterm("DiffIntro", SYS.PROCESSDIFFINTRO, function() {
-         configurationVideo(function() {
-          diffusion();
-         });
-        });
-       });
-      });
-     });
-    } else {
-     configurationVideo(function() {
-     });
-    }
-    oldConfVideo = confVideo;
-   }
   } else
    trace("Reception of a text frame", false);
 
@@ -670,7 +680,7 @@ USER.SERVEURS.forEach(function(server, index) {
    sleep();
   }, SYS.UPTIMEOUT);
 
-  if(hard.READUSERDEVICE == -1) {
+  if(hard.READUSERDEVICE == SYS.UNUSED) {
    setRxCommandes();
    setRxValues();
    sockets[server].emit("serveurrobotrx", {
@@ -1129,7 +1139,7 @@ function setRxValues() {
 }
 
 setInterval(function() {
- if(up || !init || hard.READUSERDEVICE >= 0)
+ if(up || !init)
   return;
 
  setRxCommandes();
