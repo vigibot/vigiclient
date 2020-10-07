@@ -87,6 +87,9 @@ let socTemp = 0;
 let link = 0;
 let rssi = 0;
 
+if(typeof USER.SERVERS === "undefined")
+ USER.SERVERS = SYS.SERVERS;
+
 if(typeof USER.CMDDIFFUSION === "undefined")
  USER.CMDDIFFUSION = SYS.CMDDIFFUSION;
 
@@ -96,7 +99,7 @@ if(typeof USER.CMDDIFFAUDIO === "undefined")
 if(typeof USER.CMDTTS === "undefined")
  USER.CMDTTS = SYS.CMDTTS;
 
-USER.SERVEURS.forEach(function(server) {
+USER.SERVERS.forEach(function(server) {
  sockets[server] = IO.connect(server, {"connect timeout": 1000, transports: ["websocket"], path: "/" + SYS.SECUREMOTEPORT + "/socket.io"});
 });
 
@@ -156,7 +159,7 @@ function trace(message, mandatory) {
  }
 
  if(mandatory || hard.TELEDEBUG) {
-  USER.SERVEURS.forEach(function(server) {
+  USER.SERVERS.forEach(function(server) {
    sockets[server].emit("serveurrobottrace", message);
   });
  }
@@ -248,6 +251,21 @@ function wake(server) {
  engine = true;
 }
 
+function sigterms(callback) {
+ let i = 0;
+
+ function loop() {
+  if(i == USER.CMDDIFFUSION.length) {
+   callback();
+   return;
+  }
+  sigterm("Diffusion" + i, USER.CMDDIFFUSION[i][0], loop);
+  i++;
+ }
+
+ loop();
+}
+
 function sleep() {
  if(!up)
   return;
@@ -266,16 +284,9 @@ function sleep() {
   if(hard.COMMANDS1[i].SLEEP)
    floatTargets1[i] = conf.TX.COMMANDES1[i].INIT;
 
- sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
-  sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
-   sigterm("DiffCustm", SYS.PROCESSDIFFCUSTM, function() {
-    sigterm("DiffIntro", SYS.PROCESSDIFFINTRO, function() {
-    });
-   });
-  });
- });
+ sigterms();
 
- sigterm("DiffAudio", SYS.PROCESSDIFFAUDIO, function() {
+ sigterm("DiffAudio", USER.CMDDIFFAUDIO[0], function() {
  });
 
  exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function() {
@@ -424,7 +435,7 @@ function initOutputs() {
  }
 }
 
-USER.SERVEURS.forEach(function(server, index) {
+USER.SERVERS.forEach(function(server, index) {
 
  sockets[server].on("connect", function() {
   trace("Connected to " + server + "/" + SYS.SECUREMOTEPORT, true);
@@ -497,15 +508,9 @@ USER.SERVEURS.forEach(function(server, index) {
 
    setTimeout(function() {
     if(up) {
-     sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
-      sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
-       sigterm("DiffCustm", SYS.PROCESSDIFFCUSTM, function() {
-        sigterm("DiffIntro", SYS.PROCESSDIFFINTRO, function() {
-         configurationVideo(function() {
-          diffusion();
-         });
-        });
-       });
+     sigterms(function() {
+      configurationVideo(function() {
+       diffusion();
       });
      });
     } else {
@@ -541,7 +546,7 @@ USER.SERVEURS.forEach(function(server, index) {
          actions(rx);
 
         setRxValues();
-        USER.SERVEURS.forEach(function(server) {
+        USER.SERVERS.forEach(function(server) {
          if(currentServer && server != currentServer)
           return;
 
@@ -661,15 +666,9 @@ USER.SERVEURS.forEach(function(server, index) {
    if(confVideo != oldConfVideo &&
       JSON.stringify(confVideo) != JSON.stringify(oldConfVideo)) {
     if(up) {
-     sigterm("Diffusion", SYS.PROCESSDIFFUSION, function() {
-      sigterm("DiffVideo", SYS.PROCESSDIFFVIDEO, function() {
-       sigterm("DiffCustm", SYS.PROCESSDIFFCUSTM, function() {
-        sigterm("DiffIntro", SYS.PROCESSDIFFINTRO, function() {
-         configurationVideo(function() {
-          diffusion();
-         });
-        });
-       });
+     sigterms(function() {
+      configurationVideo(function() {
+       diffusion();
       });
      });
     } else {
@@ -1153,7 +1152,7 @@ setInterval(function() {
 
  setRxCommandes();
  setRxValues();
- USER.SERVEURS.forEach(function(server) {
+ USER.SERVERS.forEach(function(server) {
   sockets[server].emit("serveurrobotrx", {
    timestamp: Date.now(),
    data: rx.arrayBuffer
@@ -1196,7 +1195,7 @@ setInterval(function() {
        trace("Error when merging photos", false);
       else {
        FS.readFile("/tmp/out.jpg", function(err, data) {
-        USER.SERVEURS.forEach(function(server) {
+        USER.SERVERS.forEach(function(server) {
          trace("Uploading a photo to the server " + server, false);
          sockets[server].emit("serveurrobotcapturesenveille", data);
         });
@@ -1212,7 +1211,7 @@ setInterval(function() {
     trace("Error while capturing the photo", false);
    else {
     FS.readFile("/tmp/out.jpg", function(err, data) {
-     USER.SERVEURS.forEach(function(server) {
+     USER.SERVERS.forEach(function(server) {
       trace("Uploading a photo to the server " + server, false);
       sockets[server].emit("serveurrobotcapturesenveille", data);
      });

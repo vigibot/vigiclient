@@ -1,4 +1,6 @@
 {
+ "SERVERS": ["https://www.vigibot.com"],
+
  "SECUREMOTEPORT": 8042,
  "VIDEOLOCALPORT": 8043,
  "AUDIOLOCALPORT": 8044,
@@ -10,12 +12,6 @@
  "WIFIRATE": 250,
  "TEMPRATE": 1000,
  "CPURATE": 250,
-
- "PROCESSDIFFUSION": "/usr/local/vigiclient/processdiffusion",
- "PROCESSDIFFVIDEO": "/usr/local/vigiclient/processdiffvideo",
- "PROCESSDIFFCUSTM": "/usr/local/vigiclient/processdiffcustm",
- "PROCESSDIFFINTRO": "/usr/local/vigiclient/processdiffintro",
- "PROCESSDIFFAUDIO": "/usr/local/vigiclient/processdiffaudio",
 
  "CMDDIFFUSION": [
   [
