@@ -284,7 +284,8 @@ function sleep() {
   if(hard.COMMANDS1[i].SLEEP)
    floatTargets1[i] = conf.TX.COMMANDES1[i].INIT;
 
- sigterms();
+ sigterms(function() {
+ });
 
  sigterm("DiffAudio", USER.CMDDIFFAUDIO[0], function() {
  });
