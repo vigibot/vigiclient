@@ -38,7 +38,7 @@
    " | /usr/bin/ffmpeg",
    " -loglevel fatal",
    " -s:v WIDTHxHEIGHT",
-   " -pix_fmt rgb24",
+   " -pix_fmt bgr24",
    " -f rawvideo",
    " -i -",
    " -c:v h264_omx",
