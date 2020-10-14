@@ -33,9 +33,13 @@ systemctl disable hciuart || true
 echo "Disable serial console"
 sed -i "s/console=serial0,115200 //" /boot/cmdline.txt
 
-echo "eSpeak, FFmpeg, pigpio and Node.js installation"
 apt update
-apt install -y espeak ffmpeg pigpio npm
+
+echo "Node.js, pigpio, FFmpeg and eSpeak installation"
+apt install -y npm pigpio ffmpeg espeak
+
+echo "OpenCV, WiringPI and Socat installation"
+apt install -y libopencv-dev wiringpi socat
 
 echo "Cleaning"
 rm -rf $BASEDIR

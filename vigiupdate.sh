@@ -45,6 +45,7 @@ then
 fi
 
 check /etc/systemd/system vigiclient.service
+check /etc/systemd/system socat.service
 
 if [ $updated == "yes" ]
 then
@@ -87,6 +88,15 @@ then
  rm -f /var/log/vigiclient.log
  trace "Restarting vigiclient"
  systemctl restart vigiclient
+fi
+
+check $BASEDIR opencv.tar.gz
+
+if [ $updated == "yes" ]
+then
+ cd $BASEDIR
+ rm -rf opencv
+ tar xvf opencv.tar.gz
 fi
 
 trap - EXIT

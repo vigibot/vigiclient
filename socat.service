@@ -1,0 +1,21 @@
+[Unit]
+Description=Socat Service
+Documentation=https://www.vigibot.com
+After=multi-user.target
+
+[Service]
+Type=simple
+
+User=root
+Group=root
+
+WorkingDirectory=/usr/local/vigiclient
+ExecStart=/usr/bin/socat pty,raw,echo=0 pty,raw,echo=0
+ExecReload=
+ExecStop=
+
+Restart=always
+RestartSec=1s
+
+[Install]
+WantedBy=multi-user.target

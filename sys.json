@@ -33,7 +33,7 @@
    " -f rawvideo",
    " tcp://127.0.0.1:VIDEOLOCALPORT"
   ], [
-   "/usr/local/vigiclient/processdiffcustm",
+   "/usr/local/vigiclient/opencv/colors/colors",
    " WIDTH HEIGHT FPS",
    " | /usr/bin/ffmpeg",
    " -loglevel fatal",
