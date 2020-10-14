@@ -59,6 +59,8 @@ wget $BASEURL/vigicron -P /etc/cron.d -N
 echo "Adding the default config file"
 wget $BASEURL/robot.json -P /boot -N
 
-echo "Systemd unit file installation"
+echo "Systemd unit files installation"
 wget $BASEURL/vigiclient.service -P /etc/systemd/system -N
+wget $BASEURL/socat.service -P /etc/systemd/system -N
 systemctl enable vigiclient
+systemctl enable socat
