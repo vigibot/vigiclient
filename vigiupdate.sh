@@ -91,12 +91,15 @@ then
 fi
 
 check $BASEDIR opencv.tar.gz
+check $BASEDIR frame.hpp
 
 if [ $updated == "yes" ]
 then
  cd $BASEDIR
  rm -rf opencv
  tar xvf opencv.tar.gz
+ cd opencv
+ ./make.sh
 fi
 
 trap - EXIT
