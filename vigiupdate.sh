@@ -72,10 +72,11 @@ check $BASEDIR package.json
 
 if [ $updated == "yes" ]
 then
+ trace "Purging node_modules directory"
  cd $BASEDIR
- rm -rf node_modules package-lock.json
- npm cache clean --force
- tar xvf node_modules.tar.gz
+ rm -rf node_modules
+ trace "Extracting node_modules.tar.gz"
+ tar xf node_modules.tar.gz
 fi
 
 check $BASEDIR clientrobotpi.js
@@ -84,9 +85,9 @@ check $BASEDIR trame.js
 
 if [ $updated == "yes" ]
 then
- trace "Purging client log"
+ trace "Purging vigiclient.log"
  rm -f /var/log/vigiclient.log
- trace "Restarting vigiclient"
+ trace "Restarting vigiclient service"
  systemctl restart vigiclient
 fi
 
@@ -95,9 +96,12 @@ check $BASEDIR frame.hpp
 
 if [ $updated == "yes" ]
 then
+ trace "Purging opencv directory"
  cd $BASEDIR
  rm -rf opencv
- tar xvf opencv.tar.gz
+ trace "Extracting opencv.tar.gz"
+ tar xf opencv.tar.gz
+ trace "Compiling opencv binaries"
  cd opencv
  ./make.sh
 fi
