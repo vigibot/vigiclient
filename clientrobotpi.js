@@ -33,7 +33,7 @@ let up = false;
 let engine = false;
 let upTimeout;
 
-let init = false;
+let initDone = false;
 let initVideo = false;
 let initUart = false;
 let initPca = 0;
@@ -137,7 +137,7 @@ setTimeout(function() {
 }, 1000);
 
 function setInit() {
- init = initUart && initVideo && initPca == hard.PCA9685ADDRESSES.length;
+ initDone = initUart && initVideo && initPca == hard.PCA9685ADDRESSES.length;
 }
 
 function map(n, inMin, inMax, outMin, outMax) {
@@ -224,7 +224,7 @@ function wake(server) {
  if(up)
   return;
 
- if(!init) {
+ if(!initDone) {
   trace("This robot is not initialized", true);
   return;
  }
@@ -635,7 +635,7 @@ USER.SERVERS.forEach(function(server, index) {
  });
 
  sockets[server].on("clientsrobottx", function(data) {
-  if(currentServer && server != currentServer || !init)
+  if(currentServer && server != currentServer || !initDone)
    return;
 
   if(data.data[0] != FRAME0 ||
@@ -1020,7 +1020,7 @@ setInterval(function() {
 }, SYS.SERVORATE);
 
 setInterval(function() {
- if(!init)
+ if(!initDone)
   return;
 
  let currCpus = OS.cpus();
@@ -1043,7 +1043,7 @@ setInterval(function() {
 }, SYS.CPURATE);
 
 setInterval(function() {
- if(!init)
+ if(!initDone)
   return;
 
  FS.readFile(SYS.TEMPFILE, function(err, data) {
@@ -1052,7 +1052,7 @@ setInterval(function() {
 }, SYS.TEMPRATE);
 
 setInterval(function() {
- if(!init)
+ if(!initDone)
   return;
 
  const STATS = RL.createInterface(FS.createReadStream(SYS.WIFIFILE));
@@ -1074,7 +1074,7 @@ function swapWord(word) {
 switch(gaugeType) {
  case "CW2015":
   setInterval(function() {
-   if(!init)
+   if(!initDone)
     return;
    i2c.readWord(SYS.CW2015ADDRESS, 0x02, function(err, microVolts305) {
     voltage = swapWord(microVolts305) * 305 / 1000000;
@@ -1087,7 +1087,7 @@ switch(gaugeType) {
 
  case "MAX17043":
   setInterval(function() {
-   if(!init)
+   if(!initDone)
     return;
    i2c.readWord(SYS.MAX17043ADDRESS, 0x02, function(err, volts12800) {
     voltage = swapWord(volts12800) / 12800;
@@ -1100,7 +1100,7 @@ switch(gaugeType) {
 
  case "BQ27441":
   setInterval(function() {
-   if(!init)
+   if(!initDone)
     return;
    i2c.readWord(SYS.BQ27441ADDRESS, 0x04, function(err, milliVolts) {
     voltage = milliVolts / 1000;
@@ -1148,7 +1148,7 @@ function setRxValues() {
 }
 
 setInterval(function() {
- if(up || !init)
+ if(up || !initDone)
   return;
 
  setRxCommandes();
@@ -1162,7 +1162,7 @@ setInterval(function() {
 }, SYS.BEACONRATE);
 
 setInterval(function() {
- if(up || !init || !hard.SNAPSHOTSINTERVAL)
+ if(up || !initDone || !hard.SNAPSHOTSINTERVAL)
   return;
 
  let date = new Date();
