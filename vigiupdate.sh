@@ -89,6 +89,8 @@ then
  rm -f /var/log/vigiclient.log
  trace "Restarting vigiclient service"
  systemctl restart vigiclient
+ trap - EXIT
+ exit 0
 fi
 
 check $BASEDIR opencv.tar.gz
