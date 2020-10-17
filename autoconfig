@@ -1,0 +1,43 @@
+# Ce script peut : Changer le hostname et hosts, Changer mot de passe, Tout installer correctement pour ENFUSE,
+# Crée une tache d'auto update tout les dimanche à 00H00, Changer ce qui faut dans frame.hpp pour faire fonctionner OpenCV
+echo "Change hostname by robot name"
+robot=$(grep NOM /boot/robot.json)
+robot=${robot:9:-2}
+sed -i '6s/.*/127.0.1.1       '$robot'/' /etc/hosts
+hostnamectl set-hostname "$robot"
+read -p "Change Password for pi ? (y/n) " PASS
+if [ "$PASS" = "y" ]; then
+  passwd
+else
+  echo "Ok the password is raspberry"
+fi
+
+read -p "Use HDR Capture (y/n) type N if it is already used" HDR
+if [ "$HDR" = "y" ]; then
+  apt install enfuse -y
+  sed -i  '1i tmpfs /tmp tmpfs defaults,noatime,nosuid,size=20m 0 0' /etc/fstab
+else
+  echo "Ok no HDR capture"
+fi
+
+read -p "Auto Update Debian every weekend ? (y/n) " UP
+if [ "$UP" = "y" ]; then
+  wget https://www.serveurlardon.com/vigibot/autoupdateweekly.sh -O /usr/local/autoupdateweekly.sh
+  wget https://www.serveurlardon.com/vigibot/autoupdatecron -O /etc/cron.d/autoupdatecron
+else
+  echo "Ok"
+fi
+
+read -p "Use OpenCV ? (y/n) " OPENCV
+if [ "$OPENCV" = "y" ]; then
+read -p "tx: " TX
+read -p "rx: " RX
+read -p "nbcommands: " NBCOMMANDS
+sed -i '5s/.*/#define REMOTEFRAMESIZE '$TX'/' /usr/local/vigiclient/frame.hpp
+sed -i '6s/.*/#define TELEMETRYFRAMESIZE '$RX'/' /usr/local/vigiclient/frame.hpp
+sed -i '8s/.*/#define NBCOMMANDS '$NBCOMMANDS'/' /usr/local/vigiclient/frame.hpp
+else
+  echo "Ok no OpenCV"
+fi
+
+echo "alsamixer & alsactlstore & wpa_supplicant with multiples WIFI"
