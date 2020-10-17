@@ -1,0 +1,73 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <opencv2/opencv.hpp>
+#include <opencv2/videoio.hpp>
+#include <wiringSerial.h>
+
+#define WIDTH 640
+#define HEIGHT 480
+#define FPS 30
+
+#define BINNING 2
+#define NBCOLORS 7
+#define THRESHOLD 60
+#define EPSILON 1.0
+#define MINVERTICES 3
+#define MINAREA 20.0
+#define MINCOLORDIST 2
+#define MINPOINTPOLYGONDIST -20.0
+
+#define TIMEOUT 30
+#define NEUTRAL 10
+#define KPX 3
+#define KDX 9
+#define KPY 2
+#define KDY 4
+#define XMIN -13500
+#define XMAX 13500
+#define YMIN -5500
+#define YMAX 5500
+#define KVY 200
+#define KPVZ 4
+#define KDVZ 2
+#define VMIN 16
+
+enum {
+ SELECTCAMERA,
+ SELECTCAMERASHORTS,
+ SELECTCONFTHRESHOLD,
+ SELECTCONFFIRSTCOLOR
+};
+
+const char *COLORS[] = {"Red", "Orange", "Yellow", "Green", "Cyan", "Blue", "Magenta"};
+const char *SHORTS[] = {"R", "O", "Y", "G", "C", "B", "M"};
+
+using namespace std;
+using namespace cv;
+
+typedef struct Feature {
+ int color;
+ vector<Point> polygon;
+ float area;
+ Point2f center;
+ Point circleCenter;
+ int circleRadius;
+ bool filtered;
+} Feature;
+
+int width;
+int height;
+int fps;
+
+volatile bool run = true;
+
+uchar hues[] = {7, 22, 37, 82, 97, 134, 164};
+
+uchar hueToColor[180];
+uchar colorToHue[NBCOLORS];
+Scalar hueToBgr[180];
+
+bool blacks[NBCOLORS] = {false};
+
+vector<Feature> features;
