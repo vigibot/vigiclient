@@ -13,7 +13,7 @@ then
 fi
 
 echo "Enable I2C"
-sed -i "s/#dtparam=i2c_arm=on/dtparam=i2c_arm=on/" /boot/config.txt
+sed -i "s/#dtparam=i2c_arm=on/dtparam=i2c_arm=on,i2c_arm_baudrate=400000/" /boot/config.txt
 fgrep i2c-dev /etc/modules || echo i2c-dev >> /etc/modules
 
 echo "Enable camera"
