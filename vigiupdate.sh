@@ -98,11 +98,9 @@ check $BASEDIR frame.hpp
 
 if [ $updated == "yes" ]
 then
- trace "Purging opencv directory"
  cd $BASEDIR
- rm -rf opencv
  trace "Extracting opencv.tar.gz"
- tar xf opencv.tar.gz
+ tar -x --keep-newer-files -f opencv.tar.gz
  trace "Compiling opencv binaries"
  cd opencv
  ./make.sh
