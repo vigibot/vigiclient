@@ -38,8 +38,8 @@ apt update
 echo "Node.js, pigpio, FFmpeg and eSpeak installation"
 apt install -y npm pigpio ffmpeg espeak
 
-echo "OpenCV, WiringPI and Socat installation"
-apt install -y libopencv-dev wiringpi socat
+echo "OpenCV, WiringPI, Socat and RTIMULib installation"
+apt install -y libopencv-dev wiringpi socat librtimulib-dev
 
 echo "Cleaning"
 rm -rf $BASEDIR

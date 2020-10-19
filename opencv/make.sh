@@ -53,5 +53,7 @@ do
  -lopencv_imgcodecs \
  -lopencv_imgproc \
  -lopencv_videoio \
- -lwiringPi
+ -lwiringPi \
+ -lpthread \
+ -lRTIMULib || true
 done
