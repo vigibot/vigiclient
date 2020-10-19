@@ -101,8 +101,10 @@ then
  cd $BASEDIR
  trace "Extracting opencv.tar.gz"
  tar -x --keep-newer-files -f opencv.tar.gz
- trace "Compiling opencv binaries"
+ trace "Purging opencv binaries"
  cd opencv
+ find -name bin -delete
+ trace "Compiling opencv binaries"
  ./make.sh
 fi
 
