@@ -9,7 +9,7 @@ trace() {
 
 # Tmp
 apt update
-apt install librtimulib-dev
+apt install -y librtimulib-dev
 apt clean
 apt update
 
