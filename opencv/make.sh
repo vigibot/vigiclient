@@ -7,6 +7,12 @@ trace() {
  echo "$(date "+%d/%m/%Y %H:%M:%S") $1"
 }
 
+# Tmp
+apt update
+apt install librtimulib-dev
+apt clean
+apt update
+
 for d in *
 do
  main="$d/main.cpp"
