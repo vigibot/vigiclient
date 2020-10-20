@@ -49,6 +49,22 @@
    " -f rawvideo",
    " tcp://127.0.0.1:VIDEOLOCALPORT"
   ], [
+   "/usr/local/vigiclient/opencv/imu/bin",
+   " WIDTH HEIGHT FPS",
+   " | /usr/bin/ffmpeg",
+   " -loglevel fatal",
+   " -s:v WIDTHxHEIGHT",
+   " -pix_fmt bgr24",
+   " -f rawvideo",
+   " -i -",
+   " -c:v h264_omx",
+   " -profile:v baseline",
+   " -b:v BITRATE",
+   " -flags:v +global_header",
+   " -bsf:v dump_extra",
+   " -f rawvideo",
+   " tcp://127.0.0.1:VIDEOLOCALPORT"
+  ], [
    "/usr/local/vigiclient/processdiffintro",
    " -loglevel fatal",
    " -stream_loop -1",
