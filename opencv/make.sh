@@ -21,7 +21,7 @@ do
 
  if [ -f "$bin" ]
  then
-  for f in "../frame.hpp" "$d/"*
+  for f in "frame.hpp" "$d/"*
   do
    if [ "$f" == "$bin" ]
    then
