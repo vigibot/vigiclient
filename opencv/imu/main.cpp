@@ -105,7 +105,7 @@ void imuThread() {
  }
 
  imu->IMUInit();
- imu->setSlerpPower(0.02);
+ imu->setSlerpPower(0.002);
  imu->setGyroEnable(true);
  imu->setAccelEnable(true);
  imu->setCompassEnable(false);
@@ -157,12 +157,29 @@ int main(int argc, char* argv[]) {
 
   double x = -imuData.fusionPose.x();
   double y = -imuData.fusionPose.y();
-  int offset = int(y * 300.0);
-  int x1 = width / 2 + sin(x - M_PI / 2) * 1000;
-  int y1 = height / 2 + cos(x - M_PI / 2) * 1000 + offset;
-  int x2 = width / 2 + sin(x + M_PI / 2) * 1000;
-  int y2 = height / 2 + cos(x + M_PI / 2) * 1000 + offset;
-  line(image, Point(x1, y1), Point(x2, y2), Scalar::all(255), 2, LINE_AA);
+  double z = imuData.fusionPose.z();
+
+  int xCenter1 = MARGIN + LINELEN;
+  int yCenter1 = height - MARGIN - LINELEN;
+
+  int xCenter2 = MARGIN * 2 + LINELEN * 3;
+  int yCenter2 = height - MARGIN - LINELEN;
+
+  int x1 = xCenter1 + sin(x - M_PI / 2) * LINELEN;
+  int y1 = yCenter1 + cos(x - M_PI / 2) * LINELEN;
+  int x2 = xCenter1 + sin(x + M_PI / 2) * LINELEN;
+  int y2 = yCenter1 + cos(x + M_PI / 2) * LINELEN;
+
+  int x3 = xCenter2 + sin(y - M_PI / 2) * LINELEN;
+  int y3 = yCenter2 + cos(y - M_PI / 2) * LINELEN;
+  int x4 = xCenter2 + sin(y + M_PI / 2) * LINELEN;
+  int y4 = yCenter2 + cos(y + M_PI / 2) * LINELEN;
+
+  circle(image, Point(xCenter1, yCenter1), LINELEN, Scalar(0, 255, 0), 1, LINE_AA);
+  line(image, Point(x1, y1), Point(x2, y2), Scalar::all(255), 1, LINE_AA);
+
+  circle(image, Point(xCenter2, yCenter2), LINELEN, Scalar(0, 0, 255), 1, LINE_AA);
+  line(image, Point(x3, y3), Point(x4, y4), Scalar::all(255), 1, LINE_AA);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {

@@ -11,6 +11,9 @@
 #define HEIGHT 480
 #define FPS 30
 
+#define MARGIN 10
+#define LINELEN 20
+
 using namespace std;
 using namespace cv;
 
