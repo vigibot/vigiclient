@@ -148,6 +148,10 @@ int main(int argc, char* argv[]) {
 
  VideoCapture capture;
  capture.open(0);
+ capture.set(CAP_PROP_FRAME_WIDTH, width);
+ capture.set(CAP_PROP_FRAME_HEIGHT, height);
+ capture.set(CAP_PROP_FPS, fps);
+ capture.set(CAP_PROP_FORMAT, CV_8UC3);
  while(run) {
   capture.read(image);
 
@@ -175,11 +179,11 @@ int main(int argc, char* argv[]) {
   int x4 = xCenter2 + sin(y + M_PI / 2) * LINELEN;
   int y4 = yCenter2 + cos(y + M_PI / 2) * LINELEN;
 
-  circle(image, Point(xCenter1, yCenter1), LINELEN, Scalar(0, 255, 0), 1, LINE_AA);
-  line(image, Point(x1, y1), Point(x2, y2), Scalar::all(255), 1, LINE_AA);
+  circle(image, Point(xCenter1, yCenter1), LINELEN + 2, Scalar(0, 255, 0), 2, LINE_AA);
+  line(image, Point(x1, y1), Point(x2, y2), Scalar::all(255), 2, LINE_AA);
 
-  circle(image, Point(xCenter2, yCenter2), LINELEN, Scalar(0, 0, 255), 1, LINE_AA);
-  line(image, Point(x3, y3), Point(x4, y4), Scalar::all(255), 1, LINE_AA);
+  circle(image, Point(xCenter2, yCenter2), LINELEN + 2, Scalar(0, 0, 255), 2, LINE_AA);
+  line(image, Point(x3, y3), Point(x4, y4), Scalar::all(255), 2, LINE_AA);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
