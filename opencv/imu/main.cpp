@@ -118,6 +118,13 @@ void imuThread() {
  }
 }
 
+void watch(Mat &image, double angle, Point center, Scalar color) {
+ int x = center.x + sin(angle) * LINELEN;
+ int y = center.y + cos(angle) * LINELEN;
+ circle(image, center, LINELEN + 2, color, 2, LINE_AA);
+ line(image, center, Point(x, y), Scalar::all(255), 2, LINE_AA);
+}
+
 int main(int argc, char* argv[]) {
  if(argc != 4) {
   width = WIDTH;
@@ -158,31 +165,14 @@ int main(int argc, char* argv[]) {
 
   //ui(image, updated);
 
-  double x = -imuData.fusionPose.x();
-  double y = -imuData.fusionPose.y();
-  double z = imuData.fusionPose.z();
+  int x1 = MARGIN + LINELEN;
+  int x2 = x1 + MARGIN + LINELEN * 2;
+  int x3 = x2 + MARGIN + LINELEN * 2;
+  int y = height - MARGIN - LINELEN;
 
-  int xCenter1 = MARGIN + LINELEN;
-  int yCenter1 = height - MARGIN - LINELEN;
-
-  int xCenter2 = MARGIN * 2 + LINELEN * 3;
-  int yCenter2 = height - MARGIN - LINELEN;
-
-  int x1 = xCenter1 + sin(x - M_PI / 2) * LINELEN;
-  int y1 = yCenter1 + cos(x - M_PI / 2) * LINELEN;
-  int x2 = xCenter1 + sin(x + M_PI / 2) * LINELEN;
-  int y2 = yCenter1 + cos(x + M_PI / 2) * LINELEN;
-
-  int x3 = xCenter2 + sin(y - M_PI / 2) * LINELEN;
-  int y3 = yCenter2 + cos(y - M_PI / 2) * LINELEN;
-  int x4 = xCenter2 + sin(y + M_PI / 2) * LINELEN;
-  int y4 = yCenter2 + cos(y + M_PI / 2) * LINELEN;
-
-  circle(image, Point(xCenter1, yCenter1), LINELEN + 2, Scalar(0, 255, 0), 2, LINE_AA);
-  line(image, Point(x1, y1), Point(x2, y2), Scalar::all(255), 2, LINE_AA);
-
-  circle(image, Point(xCenter2, yCenter2), LINELEN + 2, Scalar(0, 0, 255), 2, LINE_AA);
-  line(image, Point(x3, y3), Point(x4, y4), Scalar::all(255), 2, LINE_AA);
+  watch(image, imuData.fusionPose.x() * -4, Point(x1, y), Scalar(0, 0, 255));
+  watch(image, imuData.fusionPose.y() * 4, Point(x2, y), Scalar(0, 255, 0));
+  watch(image, imuData.fusionPose.z() * 4, Point(x3, y), Scalar(255, 0, 0));
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
