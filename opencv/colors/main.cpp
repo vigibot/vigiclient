@@ -1,4 +1,3 @@
-#include "../../frame.hpp"
 #include "main.hpp"
 
 void signal_callback_handler(int signum) {

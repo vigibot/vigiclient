@@ -4,6 +4,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/videoio.hpp>
 #include <wiringSerial.h>
+#include "../frame.hpp"
 
 #define WIDTH 640
 #define HEIGHT 480

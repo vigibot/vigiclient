@@ -6,6 +6,7 @@
 #include <wiringSerial.h>
 #include <thread>
 #include <RTIMULib.h>
+#include "../frame.hpp"
 
 #define WIDTH 640
 #define HEIGHT 480

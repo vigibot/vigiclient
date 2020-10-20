@@ -94,11 +94,12 @@ then
 fi
 
 check $BASEDIR opencv.tar.gz
-check $BASEDIR frame.hpp
 
 if [ $updated == "yes" ]
 then
  cd $BASEDIR
+ trace "Migration time only"
+ mv frame.hpp opencv/ || true
  trace "Extracting opencv.tar.gz"
  tar -x --keep-newer-files -f opencv.tar.gz
  trace "Purging opencv binaries"
