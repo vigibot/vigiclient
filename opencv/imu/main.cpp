@@ -119,10 +119,9 @@ void imuThread() {
 }
 
 void watch(Mat &image, double angle, Point center, Scalar color) {
- int x = center.x + sin(angle) * LINELEN;
- int y = center.y + cos(angle) * LINELEN;
+ double deg = angle * 180.0 / M_PI;
+ ellipse(image, center, Point(LINELEN, LINELEN), deg, 0.0, 180.0, Scalar::all(255), FILLED);
  circle(image, center, LINELEN + 2, color, 2, LINE_AA);
- line(image, center, Point(x, y), Scalar::all(255), 2, LINE_AA);
 }
 
 int main(int argc, char* argv[]) {
@@ -170,9 +169,9 @@ int main(int argc, char* argv[]) {
   int x3 = x2 + MARGIN + LINELEN * 2;
   int y = height - MARGIN - LINELEN;
 
-  watch(image, imuData.fusionPose.x() * -4, Point(x1, y), Scalar(0, 0, 255));
-  watch(image, imuData.fusionPose.y() * 4, Point(x2, y), Scalar(0, 255, 0));
-  watch(image, imuData.fusionPose.z() * 4, Point(x3, y), Scalar(255, 0, 0));
+  watch(image, imuData.fusionPose.x() * ROLLCOEF, Point(x1, y), Scalar(0, 0, 255));
+  watch(image, imuData.fusionPose.y() * PITCHCOEF, Point(x2, y), Scalar(0, 255, 0));
+  watch(image, imuData.fusionPose.z() * YAWCOEF, Point(x3, y), Scalar(255, 0, 0));
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {

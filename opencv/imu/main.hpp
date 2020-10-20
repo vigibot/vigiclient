@@ -13,7 +13,10 @@
 #define FPS 30
 
 #define MARGIN 10
-#define LINELEN 20
+#define LINELEN 15
+#define ROLLCOEF 4.0
+#define PITCHCOEF -4.0
+#define YAWCOEF 4.0
 
 using namespace std;
 using namespace cv;
