@@ -34,27 +34,6 @@ int constrain(int n, int min, int max) {
  return n;
 }
 
-void ui(Mat &image, bool &updated) {
- static bool buttonLess = false;
- static bool oldButtonLess = false;
- static bool buttonMore = false;
- static bool oldButtonMore = false;
- static bool buttonOk = false;
- static bool oldButtonOk = false;
-
- if(updated) {
-  buttonLess = remoteFrame.switchs & 0b00010000;
-  buttonMore = remoteFrame.switchs & 0b00100000;
-  buttonOk = remoteFrame.switchs & 0b10000000;
- }
-
- //
-
- oldButtonLess = buttonLess;
- oldButtonMore = buttonMore;
- oldButtonOk = buttonOk;
-}
-
 void imuThread() {
  int oldStdout = dup(fileno(stdout));
  dup2(fileno(stderr), fileno(stdout));
@@ -81,10 +60,36 @@ void imuThread() {
  }
 }
 
+void autopilot(double z) {
+ static int vz = 0;
+ static int oldPz = 0;
+
+ vz += remoteFrame.vz;
+ if(vz < -180 * DIVVZ)
+  vz += 360 * DIVVZ;
+ else if(vz >= 180 * DIVVZ)
+  vz -= 360 * DIVVZ;
+
+ int zDeg = int(z * 180.0 / M_PI);
+ int pz = vz / DIVVZ - zDeg;
+
+ if(pz < -180)
+  pz += 360;
+ else if(pz >= 180)
+  pz -= 360;
+
+ int dz = pz - oldPz;
+ oldPz = pz;
+ int autovz = pz * KPVZ + dz * KDVZ;
+ autovz = constrain(autovz, -127, 127);
+
+ telemetryFrame.vz = autovz;
+}
+
 void watch(Mat &image, double angle, Point center, int diam, Scalar color1, Scalar color2) {
- double deg = angle * 180.0 / M_PI;
- ellipse(image, center, Point(diam, diam), deg, 0.0, 180.0, color1, FILLED, LINE_AA);
- ellipse(image, center, Point(diam, diam), deg, 0.0, -180.0, color2, FILLED, LINE_AA);
+ double angleDeg = angle * 180.0 / M_PI;
+ ellipse(image, center, Point(diam, diam), angleDeg, 0.0, 180.0, color1, FILLED, LINE_AA);
+ ellipse(image, center, Point(diam, diam), angleDeg, 0.0, -180.0, color2, FILLED, LINE_AA);
 }
 
 int main(int argc, char* argv[]) {
@@ -125,8 +130,6 @@ int main(int argc, char* argv[]) {
 
   bool updated = readModem(fd, remoteFrame);
 
-  //ui(image, updated);
-
   double x = imuData.fusionPose.x() * DIRX + OFFSETX;
   double y = imuData.fusionPose.y() * DIRY + OFFSETY;
   double z = imuData.fusionPose.z() * DIRZ + OFFSETZ;
@@ -144,6 +147,8 @@ int main(int argc, char* argv[]) {
   watch(image, y * COEF2, Point(x2, y1), DIAM2, Scalar(0, 255, 0), Scalar::all(255));
   watch(image, z * COEF2, Point(x3, y1), DIAM2, Scalar(255, 0, 0), Scalar::all(255));
 
+  autopilot(z);
+
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
     telemetryFrame.xy[i][0] = remoteFrame.xy[i][0];
@@ -152,7 +157,6 @@ int main(int argc, char* argv[]) {
    telemetryFrame.z = remoteFrame.z;
    telemetryFrame.vx = remoteFrame.vx;
    telemetryFrame.vy = remoteFrame.vy;
-   telemetryFrame.vz = remoteFrame.vz;
    telemetryFrame.switchs = remoteFrame.switchs;
 
    writeModem(fd, telemetryFrame);

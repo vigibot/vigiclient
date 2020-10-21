@@ -4,7 +4,7 @@
 
 #define DIRX 1.0
 #define DIRY -1.0
-#define DIRZ 1.0
+#define DIRZ -1.0
 #define OFFSETX M_PI
 #define OFFSETY 0.0
 #define OFFSETZ 0.0
@@ -12,6 +12,10 @@
 #define DIAM1 20
 #define DIAM2 10
 #define COEF2 4.0
+
+#define DIVVZ 20
+#define KPVZ 3
+#define KDVZ 6
 
 int width;
 int height;
