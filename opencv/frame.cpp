@@ -1,6 +1,7 @@
+#include <wiringSerial.h>
 #include "frame.hpp"
 
-bool readModem(int fd) {
+bool readModem(int fd, RemoteFrame &remoteFrame) {
  uint8_t octet;
  static uint8_t pos = 0;
  uint8_t p;
@@ -44,7 +45,7 @@ bool readModem(int fd) {
  return false;
 }
 
-void writeModem(int fd) {
+void writeModem(int fd, TelemetryFrame &telemetryFrame) {
  for(int i = 0; i < TELEMETRYFRAMESIZE; i++)
   serialPutchar(fd, telemetryFrame.bytes[i]);
 }

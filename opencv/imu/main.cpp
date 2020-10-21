@@ -6,8 +6,8 @@
 #include <wiringSerial.h>
 #include <thread>
 #include <RTIMULib.h>
+#include "../frame.hpp"
 #include "main.hpp"
-#include "../frame.cpp"
 
 using namespace std;
 using namespace cv;
@@ -123,7 +123,7 @@ int main(int argc, char* argv[]) {
  while(run) {
   capture.read(image);
 
-  bool updated = readModem(fd);
+  bool updated = readModem(fd, remoteFrame);
 
   //ui(image, updated);
 
@@ -147,7 +147,7 @@ int main(int argc, char* argv[]) {
    telemetryFrame.vz = remoteFrame.vz;
    telemetryFrame.switchs = remoteFrame.switchs;
 
-   writeModem(fd);
+   writeModem(fd, telemetryFrame);
   }
 
   fwrite(image.data, size, 1, stdout);

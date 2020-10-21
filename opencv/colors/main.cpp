@@ -4,8 +4,8 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/videoio.hpp>
 #include <wiringSerial.h>
+#include "../frame.hpp"
 #include "main.hpp"
-#include "../frame.cpp"
 
 using namespace std;
 using namespace cv;
@@ -486,7 +486,7 @@ int main(int argc, char* argv[]) {
  while(run) {
   capture.read(image);
 
-  bool updated = readModem(fd);
+  bool updated = readModem(fd, remoteFrame);
 
   colorsEngine(image, threshold);
 
@@ -503,7 +503,7 @@ int main(int argc, char* argv[]) {
    telemetryFrame.vx = remoteFrame.vx;
    telemetryFrame.switchs = remoteFrame.switchs;
 
-   writeModem(fd);
+   writeModem(fd, telemetryFrame);
   }
 
   fwrite(image.data, size, 1, stdout);

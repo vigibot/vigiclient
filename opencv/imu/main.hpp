@@ -14,4 +14,7 @@ int fps;
 
 volatile bool run = true;
 
+RemoteFrame remoteFrame;
+TelemetryFrame telemetryFrame;
+
 RTIMU_DATA imuData;

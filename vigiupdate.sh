@@ -103,6 +103,9 @@ then
  trace "Purging opencv binaries"
  cd opencv
  find -name bin -delete
+ trace "Custom frame.hpp migration only"
+ sed -i "s/RemoteFrame remoteFrame;/bool readModem(int fd, RemoteFrame &remoteFrame);/" frame.hpp
+ sed -i "s/TelemetryFrame telemetryFrame;/void writeModem(int fd, TelemetryFrame &telemetryFrame);/" frame.hpp
  trace "Compiling opencv binaries"
  ./make.sh
 fi

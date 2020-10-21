@@ -52,6 +52,9 @@ int fps;
 
 volatile bool run = true;
 
+RemoteFrame remoteFrame;
+TelemetryFrame telemetryFrame;
+
 uchar hues[] = {7, 22, 37, 82, 97, 134, 164};
 
 uchar hueToColor[180];
