@@ -47,7 +47,7 @@ do
  fi
 
  trace "Compiling $main to $bin"
- g++ "$main" -o "$bin" \
+ g++ frame.cpp "$main" -o "$bin" \
  -O2 \
  -lopencv_core \
  -lopencv_imgcodecs \
