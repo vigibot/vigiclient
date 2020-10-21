@@ -36,8 +36,8 @@ void autopilot(Mat &image, bool enabled) {
  int id = -1;
  static Feature oldFeature;
  static int circleRadiusInit = -1;
- static int oldPx;
- static int oldPy;
+ static int oldPx = 0;
+ static int oldPy = 0;
  static int autox = 0;
  static int autoy = 0;
  static int autovy = 0;
