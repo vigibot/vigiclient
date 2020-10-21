@@ -81,10 +81,10 @@ void imuThread() {
  }
 }
 
-void watch(Mat &image, double angle, Point center, Scalar color) {
+void watch(Mat &image, double angle, Point center, int diam, Scalar color) {
  double deg = angle * 180.0 / M_PI;
- ellipse(image, center, Point(LINELEN, LINELEN), deg, 0.0, 180.0, Scalar::all(255), FILLED);
- circle(image, center, LINELEN + 2, color, 2, LINE_AA);
+ ellipse(image, center, Point(diam, diam), deg, 0.0, -180.0, Scalar::all(0), FILLED, LINE_AA);
+ ellipse(image, center, Point(diam, diam), deg, 0.0, 180.0, color, FILLED, LINE_AA);
 }
 
 int main(int argc, char* argv[]) {
@@ -127,14 +127,22 @@ int main(int argc, char* argv[]) {
 
   //ui(image, updated);
 
-  int x1 = MARGIN + LINELEN;
-  int x2 = x1 + MARGIN + LINELEN * 2;
-  int x3 = width - MARGIN - LINELEN;
-  int y = MARGIN + LINELEN;
+  int x1 = MARGIN + DIAM1;
+  int x2 = x1 + MARGIN + DIAM1 * 2;
+  int x3 = width - MARGIN - DIAM1;
+  int y1 = MARGIN + DIAM1;
 
-  watch(image, imuData.fusionPose.x() * ROLLCOEF, Point(x1, y), Scalar(0, 0, 255));
-  watch(image, imuData.fusionPose.y() * PITCHCOEF, Point(x2, y), Scalar(0, 255, 0));
-  watch(image, imuData.fusionPose.z() * YAWCOEF, Point(x3, y), Scalar(255, 0, 0));
+  double x = imuData.fusionPose.x() + M_PI;
+  double y = -imuData.fusionPose.y();
+  double z = imuData.fusionPose.z();
+
+  watch(image, x, Point(x1, y1), DIAM1, Scalar(0, 0, 255));
+  watch(image, y, Point(x2, y1), DIAM1, Scalar(0, 255, 0));
+  watch(image, z, Point(x3, y1), DIAM1, Scalar(255, 0, 0));
+
+  watch(image, x * COEF2, Point(x1, y1), DIAM2, Scalar(0, 0, 255));
+  watch(image, y * COEF2, Point(x2, y1), DIAM2, Scalar(0, 255, 0));
+  watch(image, z * COEF2, Point(x3, y1), DIAM2, Scalar(255, 0, 0));
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
