@@ -50,5 +50,5 @@ typedef struct {
  };
 } TelemetryFrame;
 
-RemoteFrame remoteFrame;
-TelemetryFrame telemetryFrame;
+bool readModem(int fd, RemoteFrame &remoteFrame);
+void writeModem(int fd, TelemetryFrame &telemetryFrame);
