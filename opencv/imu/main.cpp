@@ -1,57 +1,20 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <opencv2/opencv.hpp>
+#include <opencv2/videoio.hpp>
+#include <wiringSerial.h>
+#include <thread>
+#include <RTIMULib.h>
 #include "main.hpp"
+#include "../frame.cpp"
+
+using namespace std;
+using namespace cv;
 
 void signal_callback_handler(int signum) {
  fprintf(stderr, "Caught signal %d\n", signum);
  run = false;
-}
-
-bool readModem(int fd) {
- uint8_t octet;
- static uint8_t pos = 0;
- uint8_t p;
-
- while(serialDataAvail(fd)) {
-  octet = serialGetchar(fd);
-
-  switch(pos) {
-
-   case 0:
-    if(octet == '$')
-     pos = 1;
-    break;
-
-   case 1:
-    if(octet == 'S')
-     pos = 2;
-    else
-     pos = 0;
-    break;
-
-   case 2:
-   case 3:
-    if(octet == ' ')
-     pos++;
-    else
-     pos = 0;
-    break;
-
-   default:
-    remoteFrame.bytes[pos++] = octet;
-    if(pos == REMOTEFRAMESIZE) {
-     pos = 0;
-     serialFlush(fd);
-     return true;
-    }
-
-  }
- }
-
- return false;
-}
-
-void writeModem(int fd) {
- for(int i = 0; i < TELEMETRYFRAMESIZE; i++)
-  serialPutchar(fd, telemetryFrame.bytes[i]);
 }
 
 int mapInteger(int n, int inMin, int inMax, int outMin, int outMax) {
@@ -166,8 +129,8 @@ int main(int argc, char* argv[]) {
 
   int x1 = MARGIN + LINELEN;
   int x2 = x1 + MARGIN + LINELEN * 2;
-  int x3 = x2 + MARGIN + LINELEN * 2;
-  int y = height - MARGIN - LINELEN;
+  int x3 = width - MARGIN - LINELEN;
+  int y = MARGIN + LINELEN;
 
   watch(image, imuData.fusionPose.x() * ROLLCOEF, Point(x1, y), Scalar(0, 0, 255));
   watch(image, imuData.fusionPose.y() * PITCHCOEF, Point(x2, y), Scalar(0, 255, 0));

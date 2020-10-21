@@ -1,11 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <opencv2/opencv.hpp>
-#include <opencv2/videoio.hpp>
-#include <wiringSerial.h>
-#include "../frame.hpp"
-
 #define WIDTH 640
 #define HEIGHT 480
 #define FPS 30
@@ -44,15 +36,12 @@ enum {
 const char *COLORS[] = {"Red", "Orange", "Yellow", "Green", "Cyan", "Blue", "Magenta"};
 const char *SHORTS[] = {"R", "O", "Y", "G", "C", "B", "M"};
 
-using namespace std;
-using namespace cv;
-
 typedef struct Feature {
  int color;
- vector<Point> polygon;
+ std::vector<cv::Point> polygon;
  float area;
- Point2f center;
- Point circleCenter;
+ cv::Point2f center;
+ cv::Point circleCenter;
  int circleRadius;
  bool filtered;
 } Feature;
@@ -67,8 +56,8 @@ uchar hues[] = {7, 22, 37, 82, 97, 134, 164};
 
 uchar hueToColor[180];
 uchar colorToHue[NBCOLORS];
-Scalar hueToBgr[180];
+cv::Scalar hueToBgr[180];
 
 bool blacks[NBCOLORS] = {false};
 
-vector<Feature> features;
+std::vector<Feature> features;
