@@ -81,10 +81,10 @@ void imuThread() {
  }
 }
 
-void watch(Mat &image, double angle, Point center, int diam, Scalar color) {
+void watch(Mat &image, double angle, Point center, int diam, Scalar color1, Scalar color2) {
  double deg = angle * 180.0 / M_PI;
- ellipse(image, center, Point(diam, diam), deg, 0.0, -180.0, Scalar::all(255), FILLED, LINE_AA);
- ellipse(image, center, Point(diam, diam), deg, 0.0, 180.0, color, FILLED, LINE_AA);
+ ellipse(image, center, Point(diam, diam), deg, 0.0, 180.0, color1, FILLED, LINE_AA);
+ ellipse(image, center, Point(diam, diam), deg, 0.0, -180.0, color2, FILLED, LINE_AA);
 }
 
 int main(int argc, char* argv[]) {
@@ -136,13 +136,13 @@ int main(int argc, char* argv[]) {
   int x3 = width - MARGIN - DIAM1;
   int y1 = MARGIN + DIAM1;
 
-  watch(image, x, Point(x1, y1), DIAM1, Scalar(0, 0, 255));
-  watch(image, y, Point(x2, y1), DIAM1, Scalar(0, 255, 0));
-  watch(image, z, Point(x3, y1), DIAM1, Scalar(255, 0, 0));
+  watch(image, x, Point(x1, y1), DIAM1, Scalar(0, 0, 200), Scalar::all(200));
+  watch(image, y, Point(x2, y1), DIAM1, Scalar(0, 200, 0), Scalar::all(200));
+  watch(image, z, Point(x3, y1), DIAM1, Scalar(200, 0, 0), Scalar::all(200));
 
-  watch(image, x * COEF2, Point(x1, y1), DIAM2, Scalar(0, 0, 255));
-  watch(image, y * COEF2, Point(x2, y1), DIAM2, Scalar(0, 255, 0));
-  watch(image, z * COEF2, Point(x3, y1), DIAM2, Scalar(255, 0, 0));
+  watch(image, x * COEF2, Point(x1, y1), DIAM2, Scalar(0, 0, 255), Scalar::all(255));
+  watch(image, y * COEF2, Point(x2, y1), DIAM2, Scalar(0, 255, 0), Scalar::all(255));
+  watch(image, z * COEF2, Point(x3, y1), DIAM2, Scalar(255, 0, 0), Scalar::all(255));
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
