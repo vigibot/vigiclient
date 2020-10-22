@@ -64,13 +64,23 @@ void autopilot(double z) {
  static int vz = 0;
  static int oldPz = 0;
 
+ int zDeg = int(z * 180.0 / M_PI);
+
+ if(remoteFrame.vx == 0 &&
+    remoteFrame.vy == 0 &&
+    remoteFrame.vz == 0) {
+  vz = zDeg * DIVVZ;
+  oldPz = 0;
+  telemetryFrame.vz = 0;
+  return;
+ }
+
  vz += remoteFrame.vz;
  if(vz < -180 * DIVVZ)
   vz += 360 * DIVVZ;
  else if(vz >= 180 * DIVVZ)
   vz -= 360 * DIVVZ;
 
- int zDeg = int(z * 180.0 / M_PI);
  int pz = vz / DIVVZ - zDeg;
 
  if(pz < -180)
