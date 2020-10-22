@@ -11,6 +11,8 @@
 #define MINCOLORDIST 2
 #define MINPOINTPOLYGONDIST -20.0
 
+#define HEADPAN
+#define HEADTILT
 #define TIMEOUT 30
 #define NEUTRAL 10
 #define KPX 3

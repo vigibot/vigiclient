@@ -110,15 +110,24 @@ void autopilot(Mat &image, bool enabled) {
   oldPx = px;
   oldPy = py;
 
+#ifdef HEADPAN
   autox += px * KPX + dx * KDX;
-  autoy -= py * KPY + dy * KDY;
   autox = constrain(autox, XMIN, XMAX);
+#endif
+
+#ifdef HEADTILT
+  autoy -= py * KPY + dy * KDY;
   autoy = constrain(autoy, YMIN, YMAX);
+#endif
 
   autovy = (circleRadiusInit - features[id].circleRadius) * KVY / circleRadiusInit;
-  autovz = mapInteger(autox, -9000, 9000, -127, 127);
-  //autovz = px / KPVZ + dx / KDVZ;
   autovy = constrain(autovy, -127, 127);
+
+#ifdef HEADPAN
+  autovz = mapInteger(autox, -9000, 9000, -127, 127);
+#else
+  autovz = px / KPVZ + dx / KDVZ;
+#endif
   autovz = constrain(-autovz, -127, 127);
 
   vector<vector<Point>> polygon(1, features[id].polygon);
@@ -137,8 +146,13 @@ void autopilot(Mat &image, bool enabled) {
   putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
  }
 
+#ifdef HEADPAN
  telemetryFrame.xy[0][0] = mapInteger(autox, -18000, 18000, -32767, 32767);
+#endif
+
+#ifdef HEADTILT
  telemetryFrame.xy[0][1] = mapInteger(autoy, -18000, 18000, -32767, 32767);
+#endif
 
  if(timeout > 0) {
   timeout--;
