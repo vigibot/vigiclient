@@ -18,23 +18,6 @@ void signal_callback_handler(int signum) {
  run = false;
 }
 
-int mapInteger(int n, int inMin, int inMax, int outMin, int outMax) {
- return (n - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
-}
-
-float mapFloat(float n, float inMin, float inMax, float outMin, float outMax) {
- return (n - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
-}
-
-int constrain(int n, int min, int max) {
- if(n < min)
-  n = min;
- else if(n > max)
-  n = max;
-
- return n;
-}
-
 void imuThread() {
  int oldStdout = dup(fileno(stdout));
  dup2(fileno(stderr), fileno(stdout));
