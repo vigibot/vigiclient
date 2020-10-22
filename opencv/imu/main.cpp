@@ -66,9 +66,13 @@ void watch(Mat &image, double angle, Point center, int diam, Scalar color1, Scal
  ellipse(image, center, Point(diam, diam), angleDeg, 0.0, -180.0, color2, FILLED, LINE_AA);
 }
 
-void autopilot(Mat &image, double z) {
+void autopilot(Mat &image) {
  static int vz = 0;
  static int oldPz = 0;
+
+ double x = imuData.fusionPose.x() * DIRX + OFFSETX;
+ double y = imuData.fusionPose.y() * DIRY + OFFSETY;
+ double z = imuData.fusionPose.z() * DIRZ + OFFSETZ;
 
  int zDeg = int(z * 180.0 / M_PI);
 
@@ -101,11 +105,19 @@ void autopilot(Mat &image, double z) {
   telemetryFrame.vz = autovz;
  }
 
+ int x1 = MARGIN + DIAM1;
+ int x2 = x1 + MARGIN + DIAM1 * 2;
  int x3 = width - MARGIN - DIAM1;
- int y3 = MARGIN + DIAM1;
+ int y1 = MARGIN + DIAM1;
 
- watch(image, -z, Point(x3, y3), DIAM1, Scalar(200, 0, 0), Scalar::all(200));
- watch(image, -double(vz / DIVVZ) / 180.0 * M_PI, Point(x3, y3), DIAM2, Scalar(255, 0, 0), Scalar::all(255));
+ watch(image, x, Point(x1, y1), DIAM1, Scalar(0, 0, 200), Scalar::all(200));
+ watch(image, y, Point(x2, y1), DIAM1, Scalar(0, 200, 0), Scalar::all(200));
+
+ watch(image, x * COEF2, Point(x1, y1), DIAM2, Scalar(0, 0, 255), Scalar::all(255));
+ watch(image, y * COEF2, Point(x2, y1), DIAM2, Scalar(0, 255, 0), Scalar::all(255));
+
+ watch(image, -z, Point(x3, y1), DIAM1, Scalar(200, 0, 0), Scalar::all(200));
+ watch(image, -double(vz / DIVVZ) / 180.0 * M_PI, Point(x3, y1), DIAM2, Scalar(255, 0, 0), Scalar::all(255));
 }
 
 int main(int argc, char* argv[]) {
@@ -146,21 +158,7 @@ int main(int argc, char* argv[]) {
 
   bool updated = readModem(fd, remoteFrame);
 
-  double x = imuData.fusionPose.x() * DIRX + OFFSETX;
-  double y = imuData.fusionPose.y() * DIRY + OFFSETY;
-  double z = imuData.fusionPose.z() * DIRZ + OFFSETZ;
-
-  int x1 = MARGIN + DIAM1;
-  int x2 = x1 + MARGIN + DIAM1 * 2;
-  int y1 = MARGIN + DIAM1;
-
-  watch(image, x, Point(x1, y1), DIAM1, Scalar(0, 0, 200), Scalar::all(200));
-  watch(image, y, Point(x2, y1), DIAM1, Scalar(0, 200, 0), Scalar::all(200));
-
-  watch(image, x * COEF2, Point(x1, y1), DIAM2, Scalar(0, 0, 255), Scalar::all(255));
-  watch(image, y * COEF2, Point(x2, y1), DIAM2, Scalar(0, 255, 0), Scalar::all(255));
-
-  autopilot(image, z);
+  autopilot(image);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {

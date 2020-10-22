@@ -3,7 +3,7 @@
 #define FPS 30
 
 #define DIRX 1.0
-#define DIRY -1.0
+#define DIRY 1.0
 #define DIRZ -1.0
 #define OFFSETX M_PI
 #define OFFSETY 0.0
