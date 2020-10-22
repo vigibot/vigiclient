@@ -35,7 +35,7 @@ trap abnormal EXIT
 check $BASEDIR vigiupdate.sh
 check /etc/cron.d vigicron
 
-if [ $updated == "yes" ]
+if [ $updated == yes ]
 then
  trace "Purging updater log"
  rm -f /var/log/vigiupdate.log
@@ -47,7 +47,7 @@ fi
 check /etc/systemd/system vigiclient.service
 check /etc/systemd/system socat.service
 
-if [ $updated == "yes" ]
+if [ $updated == yes ]
 then
  trace "Rebooting"
  trap - EXIT
@@ -70,7 +70,7 @@ timedatectl status | fgrep "synchronized: yes" > /dev/null || {
 check $BASEDIR node_modules.tar.gz
 check $BASEDIR package.json
 
-if [ $updated == "yes" ]
+if [ $updated == yes ]
 then
  trace "Purging node_modules directory"
  cd $BASEDIR
@@ -83,7 +83,7 @@ check $BASEDIR clientrobotpi.js
 check $BASEDIR sys.json
 check $BASEDIR trame.js
 
-if [ $updated == "yes" ]
+if [ $updated == yes ]
 then
  trace "Purging vigiclient.log"
  rm -f /var/log/vigiclient.log
@@ -95,7 +95,7 @@ fi
 
 check $BASEDIR opencv.tar.gz
 
-if [ $updated == "yes" ]
+if [ $updated == yes ]
 then
  cd $BASEDIR
  trace "Extracting opencv.tar.gz"
