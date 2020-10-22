@@ -60,7 +60,13 @@ void imuThread() {
  }
 }
 
-void autopilot(double z) {
+void watch(Mat &image, double angle, Point center, int diam, Scalar color1, Scalar color2) {
+ double angleDeg = angle * 180.0 / M_PI;
+ ellipse(image, center, Point(diam, diam), angleDeg, 0.0, 180.0, color1, FILLED, LINE_AA);
+ ellipse(image, center, Point(diam, diam), angleDeg, 0.0, -180.0, color2, FILLED, LINE_AA);
+}
+
+void autopilot(Mat &image, double z) {
  static int vz = 0;
  static int oldPz = 0;
 
@@ -72,34 +78,34 @@ void autopilot(double z) {
   vz = zDeg * DIVVZ;
   oldPz = 0;
   telemetryFrame.vz = 0;
-  return;
+
+ } else {
+  vz += remoteFrame.vz;
+  if(vz < -180 * DIVVZ)
+   vz += 360 * DIVVZ;
+  else if(vz >= 180 * DIVVZ)
+   vz -= 360 * DIVVZ;
+
+  int pz = vz / DIVVZ - zDeg;
+
+  if(pz < -180)
+   pz += 360;
+  else if(pz >= 180)
+   pz -= 360;
+
+  int dz = pz - oldPz;
+  oldPz = pz;
+  int autovz = pz * KPVZ + dz * KDVZ;
+  autovz = constrain(autovz, -127, 127);
+
+  telemetryFrame.vz = autovz;
  }
 
- vz += remoteFrame.vz;
- if(vz < -180 * DIVVZ)
-  vz += 360 * DIVVZ;
- else if(vz >= 180 * DIVVZ)
-  vz -= 360 * DIVVZ;
+ int x3 = width - MARGIN - DIAM1;
+ int y3 = MARGIN + DIAM1;
 
- int pz = vz / DIVVZ - zDeg;
-
- if(pz < -180)
-  pz += 360;
- else if(pz >= 180)
-  pz -= 360;
-
- int dz = pz - oldPz;
- oldPz = pz;
- int autovz = pz * KPVZ + dz * KDVZ;
- autovz = constrain(autovz, -127, 127);
-
- telemetryFrame.vz = autovz;
-}
-
-void watch(Mat &image, double angle, Point center, int diam, Scalar color1, Scalar color2) {
- double angleDeg = angle * 180.0 / M_PI;
- ellipse(image, center, Point(diam, diam), angleDeg, 0.0, 180.0, color1, FILLED, LINE_AA);
- ellipse(image, center, Point(diam, diam), angleDeg, 0.0, -180.0, color2, FILLED, LINE_AA);
+ watch(image, -z, Point(x3, y3), DIAM1, Scalar(200, 0, 0), Scalar::all(200));
+ watch(image, -double(vz / DIVVZ) / 180.0 * M_PI, Point(x3, y3), DIAM2, Scalar(255, 0, 0), Scalar::all(255));
 }
 
 int main(int argc, char* argv[]) {
@@ -146,18 +152,15 @@ int main(int argc, char* argv[]) {
 
   int x1 = MARGIN + DIAM1;
   int x2 = x1 + MARGIN + DIAM1 * 2;
-  int x3 = width - MARGIN - DIAM1;
   int y1 = MARGIN + DIAM1;
 
   watch(image, x, Point(x1, y1), DIAM1, Scalar(0, 0, 200), Scalar::all(200));
   watch(image, y, Point(x2, y1), DIAM1, Scalar(0, 200, 0), Scalar::all(200));
-  watch(image, z, Point(x3, y1), DIAM1, Scalar(200, 0, 0), Scalar::all(200));
 
   watch(image, x * COEF2, Point(x1, y1), DIAM2, Scalar(0, 0, 255), Scalar::all(255));
   watch(image, y * COEF2, Point(x2, y1), DIAM2, Scalar(0, 255, 0), Scalar::all(255));
-  watch(image, z * COEF2, Point(x3, y1), DIAM2, Scalar(255, 0, 0), Scalar::all(255));
 
-  autopilot(z);
+  autopilot(image, z);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
