@@ -6,6 +6,7 @@
 #include <wiringSerial.h>
 #include <thread>
 #include <RTIMULib.h>
+#include "../common.hpp"
 #include "../frame.hpp"
 #include "main.hpp"
 

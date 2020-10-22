@@ -17,11 +17,11 @@ do
  fi
 
  bin="$d/bin"
- build="no"
+ build=no
 
  if [ -f "$bin" ]
  then
-  for f in "frame.hpp" "frame.cpp" "$d/"*
+  for f in common.hpp common.cpp frame.hpp frame.cpp "$d/"*
   do
    if [ "$f" == "$bin" ]
    then
@@ -31,23 +31,23 @@ do
    if [ "$f" -nt "$bin" ]
    then
     trace "$f is newer than $bin"
-    build="yes"
+    build=yes
    else
     trace "$f is older than $bin"
    fi
   done
  else
   trace "$bin is not found"
-  build="yes"
+  build=yes
  fi
 
- if [[ "$build" == "no" || ! -f "$main" ]]
+ if [[ $build == no || ! -f "$main" ]]
  then
   continue
  fi
 
  trace "Compiling $main to $bin"
- g++ frame.cpp "$main" -o "$bin" \
+ g++ common.cpp frame.cpp "$main" -o "$bin" \
  -O2 \
  -lopencv_core \
  -lopencv_imgcodecs \

@@ -4,6 +4,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/videoio.hpp>
 #include <wiringSerial.h>
+#include "../common.hpp"
 #include "../frame.hpp"
 #include "main.hpp"
 
