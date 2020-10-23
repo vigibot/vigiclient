@@ -53,11 +53,15 @@ void watch(Mat &image, double angle, Point center, int diam, Scalar color1, Scal
 void autopilot(Mat &image) {
  static int vz = 0;
  static int oldPz = 0;
-
+ bool buttonLeft = remoteFrame.switchs & 0b00010000;
+ bool buttonRight = remoteFrame.switchs & 0b00100000;
+ bool buttonHalf = remoteFrame.switchs & 0b10000000;
+ static bool oldButtonLeft = false;
+ static bool oldButtonRight = false;
+ static bool oldButtonHalf = false;
  double x = imuData.fusionPose.x() * DIRX + OFFSETX;
  double y = imuData.fusionPose.y() * DIRY + OFFSETY;
  double z = imuData.fusionPose.z() * DIRZ + OFFSETZ;
-
  int zDeg = int(z * 180.0 / M_PI);
 
  if(remoteFrame.vx == 0 &&
@@ -68,6 +72,16 @@ void autopilot(Mat &image) {
   telemetryFrame.vz = 0;
 
  } else {
+  if(!buttonLeft && oldButtonLeft)
+   vz += 90 * DIVVZ;
+  if(!buttonRight && oldButtonRight)
+   vz -= 90 * DIVVZ;
+  if(!buttonHalf && oldButtonHalf)
+   vz -= 180 * DIVVZ;
+  oldButtonLeft = buttonLeft;
+  oldButtonRight = buttonRight;
+  oldButtonHalf = buttonHalf;
+
   vz += remoteFrame.vz;
   if(vz < -180 * DIVVZ)
    vz += 360 * DIVVZ;
