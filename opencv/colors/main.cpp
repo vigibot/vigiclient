@@ -296,12 +296,12 @@ void colorsEngine(Mat &image, uchar &threshold) {
  //}), features.end());
 }
 
-bool ui(Mat &image, bool &updated, uchar &threshold) {
- static bool buttonLess = false;
+bool ui(Mat &image, uchar &threshold) {
+ bool buttonLess = remoteFrame.switchs & 0b00010000;
+ bool buttonMore = remoteFrame.switchs & 0b00100000;
+ bool buttonOk = remoteFrame.switchs & 0b10000000;
  static bool oldButtonLess = false;
- static bool buttonMore = false;
  static bool oldButtonMore = false;
- static bool buttonOk = false;
  static bool oldButtonOk = false;
  static int buttonOkCount = 0;
  static bool tune = false;
@@ -310,12 +310,6 @@ bool ui(Mat &image, bool &updated, uchar &threshold) {
  static bool enabled = false;
  static int oldRemoteFramex = 0;
  static int oldRemoteFramey = 0;
-
- if(updated) {
-  buttonLess = remoteFrame.switchs & 0b00010000;
-  buttonMore = remoteFrame.switchs & 0b00100000;
-  buttonOk = remoteFrame.switchs & 0b10000000;
- }
 
  if(!tune) {
   if(!buttonMore && oldButtonMore) {
@@ -488,7 +482,7 @@ int main(int argc, char* argv[]) {
 
   colorsEngine(image, threshold);
 
-  bool enabled = ui(image, updated, threshold);
+  bool enabled = ui(image, threshold);
 
   autopilot(image, enabled);
 
