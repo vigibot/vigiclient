@@ -53,6 +53,7 @@ void watch(Mat &image, double angle, Point center, int diam, Scalar color1, Scal
 void autopilot(Mat &image) {
  static int timeout = TIMEOUT;
  static int vz = 0;
+ static int iz = 0;
  static int oldPz = 0;
  bool buttonLeft90 = remoteFrame.switchs & 0b00010000;
  bool buttonRight90 = remoteFrame.switchs & 0b00100000;
@@ -104,14 +105,22 @@ void autopilot(Mat &image) {
   else if(pz >= 180)
    pz -= 360;
 
+  iz += pz;
+  if(pz >= 0 && oldPz < 0 ||
+     pz <= 0 && oldPz > 0) {
+   iz = 0;
+  }
+
   int dz = pz - oldPz;
   oldPz = pz;
-  int autovz = pz * KPVZ + dz * KDVZ;
+
+  int autovz = pz * KPVZ + dz * KDVZ + iz / KIVZ;
   autovz = constrain(autovz, -127, 127);
   telemetryFrame.vz = autovz;
 
  } else {
   vz = zDeg * DIVVZ;
+  iz = 0;
   oldPz = 0;
   telemetryFrame.vz = 0;
  }
