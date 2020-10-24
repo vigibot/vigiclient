@@ -8,7 +8,7 @@
 #define OFFSETX M_PI
 #define OFFSETY 0.0
 #define OFFSETZ 0.0
-#define TIMEOUT 300
+#define TIMEOUT 60
 #define DIVVZ 20
 #define KPVZ 3
 #define KIVZ 20
