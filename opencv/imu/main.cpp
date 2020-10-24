@@ -51,6 +51,7 @@ void watch(Mat &image, double angle, Point center, int diam, Scalar color1, Scal
 }
 
 void autopilot(Mat &image) {
+ static int timeout = TIMEOUT;
  static int vz = 0;
  static int oldPz = 0;
  bool buttonLeft = remoteFrame.switchs & 0b00010000;
@@ -64,19 +65,21 @@ void autopilot(Mat &image) {
  double z = imuData.fusionPose.z() * DIRZ + OFFSETZ;
  int zDeg = int(z * 180.0 / M_PI);
 
- if(remoteFrame.vx == 0 &&
-    remoteFrame.vy == 0 &&
-    remoteFrame.vz == 0) {
-  vz = zDeg * DIVVZ;
-  oldPz = 0;
-  telemetryFrame.vz = 0;
+ if(remoteFrame.vx != 0 ||
+    remoteFrame.vy != 0 ||
+    remoteFrame.vz != 0 ||
+    buttonLeft || buttonRight || buttonHalf) {
+  timeout = TIMEOUT;
+ }
 
- } else {
-  if(!buttonLeft && oldButtonLeft)
+ if(timeout > 0) {
+  timeout--;
+
+  if(buttonLeft && !oldButtonLeft)
    vz += 90 * DIVVZ;
-  if(!buttonRight && oldButtonRight)
+  if(buttonRight && !oldButtonRight)
    vz -= 90 * DIVVZ;
-  if(!buttonHalf && oldButtonHalf)
+  if(buttonHalf && !oldButtonHalf)
    vz -= 180 * DIVVZ;
   oldButtonLeft = buttonLeft;
   oldButtonRight = buttonRight;
@@ -99,8 +102,12 @@ void autopilot(Mat &image) {
   oldPz = pz;
   int autovz = pz * KPVZ + dz * KDVZ;
   autovz = constrain(autovz, -127, 127);
-
   telemetryFrame.vz = autovz;
+
+ } else {
+  vz = zDeg * DIVVZ;
+  oldPz = 0;
+  telemetryFrame.vz = 0;
  }
 
  int x1 = MARGIN + DIAM1;
