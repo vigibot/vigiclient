@@ -54,12 +54,14 @@ void autopilot(Mat &image) {
  static int timeout = TIMEOUT;
  static int vz = 0;
  static int oldPz = 0;
- bool buttonLeft = remoteFrame.switchs & 0b00010000;
- bool buttonRight = remoteFrame.switchs & 0b00100000;
- bool buttonHalf = remoteFrame.switchs & 0b10000000;
- static bool oldButtonLeft = false;
- static bool oldButtonRight = false;
- static bool oldButtonHalf = false;
+ bool buttonLeft90 = remoteFrame.switchs & 0b00010000;
+ bool buttonRight90 = remoteFrame.switchs & 0b00100000;
+ bool buttonLeft45 = remoteFrame.switchs & 0b01000000;
+ bool buttonRight45 = remoteFrame.switchs & 0b10000000;
+ static bool oldButtonLeft90 = false;
+ static bool oldButtonRight90 = false;
+ static bool oldButtonLeft45 = false;
+ static bool oldButtonRight45 = false;
  double x = imuData.fusionPose.x() * DIRX + OFFSETX;
  double y = imuData.fusionPose.y() * DIRY + OFFSETY;
  double z = imuData.fusionPose.z() * DIRZ + OFFSETZ;
@@ -68,22 +70,26 @@ void autopilot(Mat &image) {
  if(remoteFrame.vx != 0 ||
     remoteFrame.vy != 0 ||
     remoteFrame.vz != 0 ||
-    buttonLeft || buttonRight || buttonHalf) {
+    buttonLeft90 || buttonRight90 ||
+    buttonLeft45 || buttonRight45) {
   timeout = TIMEOUT;
  }
 
  if(timeout > 0) {
   timeout--;
 
-  if(buttonLeft && !oldButtonLeft)
+  if(buttonLeft90 && !oldButtonLeft90)
    vz += 90 * DIVVZ;
-  if(buttonRight && !oldButtonRight)
+  if(buttonRight90 && !oldButtonRight90)
    vz -= 90 * DIVVZ;
-  if(buttonHalf && !oldButtonHalf)
-   vz -= 180 * DIVVZ;
-  oldButtonLeft = buttonLeft;
-  oldButtonRight = buttonRight;
-  oldButtonHalf = buttonHalf;
+  if(buttonLeft45 && !oldButtonLeft45)
+   vz += 45 * DIVVZ;
+  if(buttonRight45 && !oldButtonRight45)
+   vz -= 45 * DIVVZ;
+  oldButtonLeft90 = buttonLeft90;
+  oldButtonRight90 = buttonRight90;
+  oldButtonLeft45 = buttonLeft45;
+  oldButtonRight45 = buttonRight45;
 
   vz += remoteFrame.vz;
   if(vz < -180 * DIVVZ)
