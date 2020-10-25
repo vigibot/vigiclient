@@ -51,10 +51,14 @@ void watch(Mat &image, double angle, Point center, int diam, Scalar color1, Scal
 }
 
 void autopilot(Mat &image) {
+#ifdef BODYPAN
+ int x = mapInteger(remoteFrame.xy[0][0], -32767, 32767, -180, 180);
+ static int oldx = 0;
+#endif
  static int timeout = TIMEOUT;
- static int vz = 0;
- static int iz = 0;
- static int oldPz = 0;
+ static int setPoint = 0;
+ static int integ = 0;
+ static int oldProp = 0;
  bool buttonLeft90 = remoteFrame.switchs & 0b00010000;
  bool buttonRight90 = remoteFrame.switchs & 0b00100000;
  bool buttonLeft45 = remoteFrame.switchs & 0b01000000;
@@ -63,11 +67,22 @@ void autopilot(Mat &image) {
  static bool oldButtonRight90 = false;
  static bool oldButtonLeft45 = false;
  static bool oldButtonRight45 = false;
- double x = imuData.fusionPose.x() * DIRX + OFFSETX;
- double y = imuData.fusionPose.y() * DIRY + OFFSETY;
- double z = imuData.fusionPose.z() * DIRZ + OFFSETZ;
- int zDeg = int(z * 180.0 / M_PI);
+ double imux = imuData.fusionPose.x() * DIRX + OFFSETX;
+ double imuy = imuData.fusionPose.y() * DIRY + OFFSETY;
+ double imuTheta = imuData.fusionPose.z() * DIRZ + OFFSETZ;
+ int imuThetaDeg = int(imuTheta * 180.0 / M_PI);
 
+#ifdef BODYPAN
+ if(x != oldx ||
+    remoteFrame.vx != 0 ||
+    remoteFrame.vy != 0 ||
+    remoteFrame.vz != 0 ||
+    buttonLeft90 || buttonRight90 ||
+    buttonLeft45 || buttonRight45) {
+  timeout = TIMEOUT;
+ }
+ oldx = x;
+#else
  if(remoteFrame.vx != 0 ||
     remoteFrame.vy != 0 ||
     remoteFrame.vz != 0 ||
@@ -75,53 +90,58 @@ void autopilot(Mat &image) {
     buttonLeft45 || buttonRight45) {
   timeout = TIMEOUT;
  }
+#endif
 
  if(timeout > 0) {
   timeout--;
 
   if(buttonLeft90 && !oldButtonLeft90)
-   vz += 90 * DIVVZ;
+   setPoint += 90 * DIVVZ;
   if(buttonRight90 && !oldButtonRight90)
-   vz -= 90 * DIVVZ;
+   setPoint -= 90 * DIVVZ;
   if(buttonLeft45 && !oldButtonLeft45)
-   vz += 45 * DIVVZ;
+   setPoint += 45 * DIVVZ;
   if(buttonRight45 && !oldButtonRight45)
-   vz -= 45 * DIVVZ;
+   setPoint -= 45 * DIVVZ;
   oldButtonLeft90 = buttonLeft90;
   oldButtonRight90 = buttonRight90;
   oldButtonLeft45 = buttonLeft45;
   oldButtonRight45 = buttonRight45;
 
-  vz += remoteFrame.vz;
-  if(vz < -180 * DIVVZ)
-   vz += 360 * DIVVZ;
-  else if(vz >= 180 * DIVVZ)
-   vz -= 360 * DIVVZ;
+  setPoint += remoteFrame.vz;
+  if(setPoint < -180 * DIVVZ)
+   setPoint += 360 * DIVVZ;
+  else if(setPoint >= 180 * DIVVZ)
+   setPoint -= 360 * DIVVZ;
 
-  int pz = vz / DIVVZ - zDeg;
+#ifdef BODYPAN
+  int prop = -x + setPoint / DIVVZ - imuThetaDeg;
+#else
+  int prop = setPoint / DIVVZ - imuThetaDeg;
+#endif
 
-  if(pz < -180)
-   pz += 360;
-  else if(pz >= 180)
-   pz -= 360;
+  if(prop < -180)
+   prop += 360;
+  else if(prop >= 180)
+   prop -= 360;
 
-  iz += pz;
-  if(pz >= 0 && oldPz < 0 ||
-     pz <= 0 && oldPz > 0) {
-   iz = 0;
+  integ += prop;
+  if(prop >= 0 && oldProp < 0 ||
+     prop <= 0 && oldProp > 0) {
+   integ = 0;
   }
 
-  int dz = pz - oldPz;
-  oldPz = pz;
+  int deriv = prop - oldProp;
+  oldProp = prop;
 
-  int autovz = pz * KPVZ + dz * KDVZ + iz / KIVZ;
+  int autovz = prop * KPVZ + integ / KIVZ + deriv * KDVZ;
   autovz = constrain(autovz, -127, 127);
   telemetryFrame.vz = autovz;
 
  } else {
-  vz = zDeg * DIVVZ;
-  iz = 0;
-  oldPz = 0;
+  setPoint = imuThetaDeg * DIVVZ;
+  integ = 0;
+  oldProp = 0;
   telemetryFrame.vz = 0;
  }
 
@@ -130,14 +150,18 @@ void autopilot(Mat &image) {
  int x3 = width - MARGIN - DIAM1;
  int y1 = MARGIN + DIAM1;
 
- watch(image, x, Point(x1, y1), DIAM1, Scalar(0, 0, 200), Scalar::all(200));
- watch(image, y, Point(x2, y1), DIAM1, Scalar(0, 200, 0), Scalar::all(200));
+ watch(image, imux, Point(x1, y1), DIAM1, Scalar(0, 0, 200), Scalar::all(200));
+ watch(image, imuy, Point(x2, y1), DIAM1, Scalar(0, 200, 0), Scalar::all(200));
 
- watch(image, x * COEF2, Point(x1, y1), DIAM2, Scalar(0, 0, 255), Scalar::all(255));
- watch(image, y * COEF2, Point(x2, y1), DIAM2, Scalar(0, 255, 0), Scalar::all(255));
+ watch(image, imux * COEF2, Point(x1, y1), DIAM2, Scalar(0, 0, 255), Scalar::all(255));
+ watch(image, imuy * COEF2, Point(x2, y1), DIAM2, Scalar(0, 255, 0), Scalar::all(255));
 
- watch(image, -z, Point(x3, y1), DIAM1, Scalar(200, 0, 0), Scalar::all(200));
- watch(image, -double(vz / DIVVZ) / 180.0 * M_PI, Point(x3, y1), DIAM2, Scalar(255, 0, 0), Scalar::all(255));
+ watch(image, -imuTheta, Point(x3, y1), DIAM1, Scalar(200, 0, 0), Scalar::all(200));
+#ifdef BODYPAN
+ watch(image, -double(-x + setPoint / DIVVZ) / 180.0 * M_PI, Point(x3, y1), DIAM2, Scalar(255, 0, 0), Scalar::all(255));
+#else
+ watch(image, -double(setPoint / DIVVZ) / 180.0 * M_PI, Point(x3, y1), DIAM2, Scalar(255, 0, 0), Scalar::all(255));
+#endif
 }
 
 int main(int argc, char* argv[]) {

@@ -2,6 +2,7 @@
 #define HEIGHT 480
 #define FPS 30
 
+//#define BODYPAN
 #define DIRX 1.0
 #define DIRY 1.0
 #define DIRZ -1.0
