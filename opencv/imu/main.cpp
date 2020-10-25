@@ -100,15 +100,15 @@ void autopilot(Mat &image) {
  }
 #endif
 
- if(timeout > 0 || select) {
+ if(timeout > 0) {
   timeout--;
 
   if(select == 0)
    setPoint += remoteFrame.vz;
   else {
-   if(remoteFrame.vz > 0 && oldVz == 0)
+   if(remoteFrame.vz >= TRIGGERVX && oldVz < TRIGGERVX)
     setPoint += select * 45 * DIVVZ;
-   else if(remoteFrame.vz < 0 && oldVz == 0)
+   else if(remoteFrame.vz <= -TRIGGERVX && oldVz > -TRIGGERVX)
     setPoint -= select * 45 * DIVVZ;
   }
   oldVz = remoteFrame.vz;
@@ -143,7 +143,6 @@ void autopilot(Mat &image) {
   telemetryFrame.vz = autovz;
 
  } else {
-  setPoint = imuThetaDeg * DIVVZ;
   integ = 0;
   oldProp = 0;
   telemetryFrame.vz = 0;
