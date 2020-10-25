@@ -51,6 +51,11 @@ void watch(Mat &image, double angle, Point center, int diam, Scalar color1, Scal
 }
 
 void autopilot(Mat &image) {
+ bool buttonLess = remoteFrame.switchs & 0b00010000;
+ bool buttonMore = remoteFrame.switchs & 0b00100000;
+ static bool oldButtonLess = false;
+ static bool oldButtonMore = false;
+ static uchar select = 0;
 #ifdef BODYPAN
  int x = mapInteger(remoteFrame.xy[0][0], -32767, 32767, -180, 180);
  static int oldx = 0;
@@ -59,56 +64,55 @@ void autopilot(Mat &image) {
  static int setPoint = 0;
  static int integ = 0;
  static int oldProp = 0;
- bool buttonLeft90 = remoteFrame.switchs & 0b00010000;
- bool buttonRight90 = remoteFrame.switchs & 0b00100000;
- bool buttonLeft45 = remoteFrame.switchs & 0b01000000;
- bool buttonRight45 = remoteFrame.switchs & 0b10000000;
- static bool oldButtonLeft90 = false;
- static bool oldButtonRight90 = false;
- static bool oldButtonLeft45 = false;
- static bool oldButtonRight45 = false;
+ static int oldVz = 0;
  double imux = imuData.fusionPose.x() * DIRX + OFFSETX;
  double imuy = imuData.fusionPose.y() * DIRY + OFFSETY;
  double imuTheta = imuData.fusionPose.z() * DIRZ + OFFSETZ;
  int imuThetaDeg = int(imuTheta * 180.0 / M_PI);
 
+ if(!buttonMore && oldButtonMore) {
+  if(select < 2)
+   select++;
+  else
+   select = 0;
+ } else if(!buttonLess && oldButtonLess) {
+  if(select > 0)
+   select--;
+  else
+   select = 2;
+ }
+ oldButtonLess = buttonLess;
+ oldButtonMore = buttonMore;
+
 #ifdef BODYPAN
  if(x != oldx ||
     remoteFrame.vx != 0 ||
     remoteFrame.vy != 0 ||
-    remoteFrame.vz != 0 ||
-    buttonLeft90 || buttonRight90 ||
-    buttonLeft45 || buttonRight45) {
+    remoteFrame.vz != 0) {
   timeout = TIMEOUT;
  }
  oldx = x;
 #else
  if(remoteFrame.vx != 0 ||
     remoteFrame.vy != 0 ||
-    remoteFrame.vz != 0 ||
-    buttonLeft90 || buttonRight90 ||
-    buttonLeft45 || buttonRight45) {
+    remoteFrame.vz != 0) {
   timeout = TIMEOUT;
  }
 #endif
 
- if(timeout > 0) {
+ if(timeout > 0 || select) {
   timeout--;
 
-  if(buttonLeft90 && !oldButtonLeft90)
-   setPoint += 90 * DIVVZ;
-  if(buttonRight90 && !oldButtonRight90)
-   setPoint -= 90 * DIVVZ;
-  if(buttonLeft45 && !oldButtonLeft45)
-   setPoint += 45 * DIVVZ;
-  if(buttonRight45 && !oldButtonRight45)
-   setPoint -= 45 * DIVVZ;
-  oldButtonLeft90 = buttonLeft90;
-  oldButtonRight90 = buttonRight90;
-  oldButtonLeft45 = buttonLeft45;
-  oldButtonRight45 = buttonRight45;
+  if(select == 0)
+   setPoint += remoteFrame.vz;
+  else {
+   if(remoteFrame.vz > 0 && oldVz == 0)
+    setPoint += select * 45 * DIVVZ;
+   else if(remoteFrame.vz < 0 && oldVz == 0)
+    setPoint -= select * 45 * DIVVZ;
+  }
+  oldVz = remoteFrame.vz;
 
-  setPoint += remoteFrame.vz;
   if(setPoint < -180 * DIVVZ)
    setPoint += 360 * DIVVZ;
   else if(setPoint >= 180 * DIVVZ)
@@ -162,6 +166,9 @@ void autopilot(Mat &image) {
 #else
  watch(image, -double(setPoint / DIVVZ) / 180.0 * M_PI, Point(x3, y1), DIAM2, Scalar(255, 0, 0), Scalar::all(255));
 #endif
+
+ if(select)
+  circle(image, Point(x3, y1), DIAM1 + select, Scalar::all(255), select, LINE_AA);
 }
 
 int main(int argc, char* argv[]) {
