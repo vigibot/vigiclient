@@ -96,7 +96,11 @@ void autopilot(Mat &image) {
  oldButtonMore = buttonMore;
 
  if(select == -1) {
+#ifdef BODYPAN
+  setPoint = (x + imuThetaDeg) * DIVVZ;
+#else
   setPoint = imuThetaDeg * DIVVZ;
+#endif
   integ = 0;
   oldProp = 0;
   telemetryFrame.vz = remoteFrame.vz;
