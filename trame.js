@@ -1,5 +1,5 @@
-const TRAME0 = "$".charCodeAt();
-const TRAME1R = "R".charCodeAt();
+const FRAME0 = "$".charCodeAt();
+const FRAME1R = "R".charCodeAt();
 
 function constrain(n, nMin, nMax) {
  if(n > nMax)
@@ -22,11 +22,11 @@ class Tx {
  constructor(conftx) {
   this.conftx = conftx;
 
-  let nb32 = conftx.COMMANDES32.length;
-  let nb16 = conftx.COMMANDES16.length;
-  let nb8 = conftx.SYNC.length + conftx.CHOIXCAMERAS.length + conftx.COMMANDES8.length;
+  let nb32 = conftx.COMMANDS32.length;
+  let nb16 = conftx.COMMANDS16.length;
+  let nb8 = conftx.SYNC.length + conftx.CAMERACHOICES.length + conftx.COMMANDS8.length;
 
-  this.byteLength = nb32 * 4 + nb16 * 2 + nb8 + Math.ceil(conftx.COMMANDES1.length / 8);
+  this.byteLength = nb32 * 4 + nb16 * 2 + nb8 + Math.ceil(conftx.COMMANDS1.length / 8);
   this.arrayBuffer = new ArrayBuffer(this.byteLength);
 
   let p = 0;
@@ -35,203 +35,203 @@ class Tx {
   for(let i = 0; i < conftx.SYNC.length; i++)
    this.sync[i] = conftx.SYNC[i].charCodeAt();
 
-  this.commandesUint32 = new Uint32Array(this.arrayBuffer, p, conftx.COMMANDES32.length);
-  this.commandesInt32 = new Int32Array(this.arrayBuffer, p, conftx.COMMANDES32.length);
-  p += this.commandesUint32.byteLength;
-  for(let i = 0; i < conftx.COMMANDES32.length; i++)
-   this.setFloatCommande32(i, conftx.COMMANDES32[i].INIT);
+  this.commandsUint32 = new Uint32Array(this.arrayBuffer, p, conftx.COMMANDS32.length);
+  this.commandsInt32 = new Int32Array(this.arrayBuffer, p, conftx.COMMANDS32.length);
+  p += this.commandsUint32.byteLength;
+  for(let i = 0; i < conftx.COMMANDS32.length; i++)
+   this.setFloatCommand32(i, conftx.COMMANDS32[i].INIT);
 
-  this.commandesUint16 = new Uint16Array(this.arrayBuffer, p, conftx.COMMANDES16.length);
-  this.commandesInt16 = new Int16Array(this.arrayBuffer, p, conftx.COMMANDES16.length);
-  p += this.commandesUint16.byteLength;
-  for(let i = 0; i < conftx.COMMANDES16.length; i++)
-   this.setFloatCommande16(i, conftx.COMMANDES16[i].INIT);
+  this.commandsUint16 = new Uint16Array(this.arrayBuffer, p, conftx.COMMANDS16.length);
+  this.commandsInt16 = new Int16Array(this.arrayBuffer, p, conftx.COMMANDS16.length);
+  p += this.commandsUint16.byteLength;
+  for(let i = 0; i < conftx.COMMANDS16.length; i++)
+   this.setFloatCommand16(i, conftx.COMMANDS16[i].INIT);
 
-  this.choixCameras = new Uint8Array(this.arrayBuffer, p, conftx.CHOIXCAMERAS.length);
-  p += this.choixCameras.byteLength;
-  for(let i = 0; i < conftx.CHOIXCAMERAS.length; i++)
-   this.choixCameras[i] = conftx.CHOIXCAMERAS[i];
+  this.cameraChoices = new Uint8Array(this.arrayBuffer, p, conftx.CAMERACHOICES.length);
+  p += this.cameraChoices.byteLength;
+  for(let i = 0; i < conftx.CAMERACHOICES.length; i++)
+   this.cameraChoices[i] = conftx.CAMERACHOICES[i];
 
-  this.commandesUint8 = new Uint8Array(this.arrayBuffer, p, conftx.COMMANDES8.length);
-  this.commandesInt8 = new Int8Array(this.arrayBuffer, p, conftx.COMMANDES8.length);
-  p += this.commandesUint8.byteLength;
-  for(let i = 0; i < conftx.COMMANDES8.length; i++)
-   this.setFloatCommande8(i, conftx.COMMANDES8[i].INIT);
+  this.commandsUint8 = new Uint8Array(this.arrayBuffer, p, conftx.COMMANDS8.length);
+  this.commandsInt8 = new Int8Array(this.arrayBuffer, p, conftx.COMMANDS8.length);
+  p += this.commandsUint8.byteLength;
+  for(let i = 0; i < conftx.COMMANDS8.length; i++)
+   this.setFloatCommand8(i, conftx.COMMANDS8[i].INIT);
 
-  this.commandes1 = new Uint8Array(this.arrayBuffer, p, Math.ceil(conftx.COMMANDES1.length / 8));
-  p += this.commandes1.byteLength;
-  for(let i = 0; i < conftx.COMMANDES1.length; i++)
-   this.setCommande1(i, conftx.COMMANDES1[i].INIT);
+  this.commands1 = new Uint8Array(this.arrayBuffer, p, Math.ceil(conftx.COMMANDS1.length / 8));
+  p += this.commands1.byteLength;
+  for(let i = 0; i < conftx.COMMANDS1.length; i++)
+   this.setCommand1(i, conftx.COMMANDS1[i].INIT);
 
   this.bytes = new Uint8Array(this.arrayBuffer);
  }
 
- setCommande32(id, valeur) {
-  if(this.conftx.COMMANDES32[id].SIGNE)
-   this.commandesInt32[id] = valeur;
+ setCommand32(id, value) {
+  if(this.conftx.COMMANDS32[id].SIGNED)
+   this.commandsInt32[id] = value;
   else
-   this.commandesUint32[id] = valeur;
+   this.commandsUint32[id] = value;
  }
 
- setCommande16(id, valeur) {
-  if(this.conftx.COMMANDES16[id].SIGNE)
-   this.commandesInt16[id] = valeur;
+ setCommand16(id, value) {
+  if(this.conftx.COMMANDS16[id].SIGNED)
+   this.commandsInt16[id] = value;
   else
-   this.commandesUint16[id] = valeur;
+   this.commandsUint16[id] = value;
  }
 
- setCommande8(id, valeur) {
-  if(this.conftx.COMMANDES8[id].SIGNE)
-   this.commandesInt8[id] = valeur;
+ setCommand8(id, value) {
+  if(this.conftx.COMMANDS8[id].SIGNED)
+   this.commandsInt8[id] = value;
   else
-   this.commandesUint8[id] = valeur;
+   this.commandsUint8[id] = value;
  }
 
- setCommande1(id, valeur) {
+ setCommand1(id, value) {
   let pos = Math.trunc(id / 8);
 
-  if(valeur)
-   this.commandes1[pos] |= 1 << id % 8;
+  if(value)
+   this.commands1[pos] |= 1 << id % 8;
   else
-   this.commandes1[pos] &= ~(1 << id % 8);
+   this.commands1[pos] &= ~(1 << id % 8);
  }
 
- getCommande32(id) {
-  let valeur;
+ getCommand32(id) {
+  let value;
 
-  if(this.conftx.COMMANDES32[id].SIGNE)
-   valeur = this.commandesInt32[id];
+  if(this.conftx.COMMANDS32[id].SIGNED)
+   value = this.commandsInt32[id];
   else
-   valeur = this.commandesUint32[id];
+   value = this.commandsUint32[id];
 
-  return valeur;
+  return value;
  }
 
- getCommande16(id) {
-  let valeur;
+ getCommand16(id) {
+  let value;
 
-  if(this.conftx.COMMANDES16[id].SIGNE)
-   valeur = this.commandesInt16[id];
+  if(this.conftx.COMMANDS16[id].SIGNED)
+   value = this.commandsInt16[id];
   else
-   valeur = this.commandesUint16[id];
+   value = this.commandsUint16[id];
 
-  return valeur;
+  return value;
  }
 
- getCommande8(id) {
-  let valeur;
+ getCommand8(id) {
+  let value;
 
-  if(this.conftx.COMMANDES8[id].SIGNE)
-   valeur = this.commandesInt8[id];
+  if(this.conftx.COMMANDS8[id].SIGNED)
+   value = this.commandsInt8[id];
   else
-   valeur = this.commandesUint8[id];
+   value = this.commandsUint8[id];
 
-  return valeur;
+  return value;
  }
 
- getCommande1(id) {
+ getCommand1(id) {
   let pos = Math.trunc(id / 8);
 
-  return this.commandes1[pos] >> id % 8 & 1;
+  return this.commands1[pos] >> id % 8 & 1;
  }
 
- computeRawCommande32(id, valeur) {
+ computeRawCommand32(id, value) {
   let min;
   let max;
 
-  if(this.conftx.COMMANDES32[id].SIGNE) {
+  if(this.conftx.COMMANDS32[id].SIGNED) {
    min = -2147483647;
    max = 2147483647;
   } else {
    min = 0;
    max = 4294967295;
   }
-  valeur = constrain(valeur, this.conftx.COMMANDES32[id].ECHELLEMIN, this.conftx.COMMANDES32[id].ECHELLEMAX);
-  valeur = mapTrunc(valeur, this.conftx.COMMANDES32[id].ECHELLEMIN, this.conftx.COMMANDES32[id].ECHELLEMAX, min, max);
+  value = constrain(value, this.conftx.COMMANDS32[id].SCALEMIN, this.conftx.COMMANDS32[id].SCALEMAX);
+  value = mapTrunc(value, this.conftx.COMMANDS32[id].SCALEMIN, this.conftx.COMMANDS32[id].SCALEMAX, min, max);
 
-  return valeur;
+  return value;
  }
 
- computeRawCommande16(id, valeur) {
+ computeRawCommand16(id, value) {
   let min;
   let max;
 
-  if(this.conftx.COMMANDES16[id].SIGNE) {
+  if(this.conftx.COMMANDS16[id].SIGNED) {
    min = -32767;
    max = 32767;
   } else {
    min = 0;
    max = 65535;
   }
-  valeur = constrain(valeur, this.conftx.COMMANDES16[id].ECHELLEMIN, this.conftx.COMMANDES16[id].ECHELLEMAX);
-  valeur = mapTrunc(valeur, this.conftx.COMMANDES16[id].ECHELLEMIN, this.conftx.COMMANDES16[id].ECHELLEMAX, min, max);
+  value = constrain(value, this.conftx.COMMANDS16[id].SCALEMIN, this.conftx.COMMANDS16[id].SCALEMAX);
+  value = mapTrunc(value, this.conftx.COMMANDS16[id].SCALEMIN, this.conftx.COMMANDS16[id].SCALEMAX, min, max);
 
-  return valeur;
+  return value;
  }
 
- computeRawCommande8(id, valeur) {
+ computeRawCommand8(id, value) {
   let min;
   let max;
 
-  if(this.conftx.COMMANDES8[id].SIGNE) {
+  if(this.conftx.COMMANDS8[id].SIGNED) {
    min = -127;
    max = 127;
   } else {
    min = 0;
    max = 255;
   }
-  valeur = constrain(valeur, this.conftx.COMMANDES8[id].ECHELLEMIN, this.conftx.COMMANDES8[id].ECHELLEMAX);
-  valeur = mapTrunc(valeur, this.conftx.COMMANDES8[id].ECHELLEMIN, this.conftx.COMMANDES8[id].ECHELLEMAX, min, max);
+  value = constrain(value, this.conftx.COMMANDS8[id].SCALEMIN, this.conftx.COMMANDS8[id].SCALEMAX);
+  value = mapTrunc(value, this.conftx.COMMANDS8[id].SCALEMIN, this.conftx.COMMANDS8[id].SCALEMAX, min, max);
 
-  return valeur;
+  return value;
  }
 
- setFloatCommande32(id, valeur) {
-  valeur = this.computeRawCommande32(id, valeur);
-  this.setCommande32(id, valeur);
+ setFloatCommand32(id, value) {
+  value = this.computeRawCommand32(id, value);
+  this.setCommand32(id, value);
  }
 
- setFloatCommande16(id, valeur) {
-  valeur = this.computeRawCommande16(id, valeur);
-  this.setCommande16(id, valeur);
+ setFloatCommand16(id, value) {
+  value = this.computeRawCommand16(id, value);
+  this.setCommand16(id, value);
  }
 
- setFloatCommande8(id, valeur) {
-  valeur = this.computeRawCommande8(id, valeur);
-  this.setCommande8(id, valeur);
+ setFloatCommand8(id, value) {
+  value = this.computeRawCommand8(id, value);
+  this.setCommand8(id, value);
  }
 
- getFloatCommande32(id) {
-  let valeur;
+ getFloatCommand32(id) {
+  let value;
 
-  if(this.conftx.COMMANDES32[id].SIGNE)
-   valeur = mapFloat(this.commandesInt32[id], -2147483648, 2147483648, this.conftx.COMMANDES32[id].ECHELLEMIN, this.conftx.COMMANDES32[id].ECHELLEMAX);
+  if(this.conftx.COMMANDS32[id].SIGNED)
+   value = mapFloat(this.commandsInt32[id], -2147483648, 2147483648, this.conftx.COMMANDS32[id].SCALEMIN, this.conftx.COMMANDS32[id].SCALEMAX);
   else
-   valeur = mapFloat(this.commandesUint32[id], 0, 4294967295, this.conftx.COMMANDES32[id].ECHELLEMIN, this.conftx.COMMANDES32[id].ECHELLEMAX);
+   value = mapFloat(this.commandsUint32[id], 0, 4294967295, this.conftx.COMMANDS32[id].SCALEMIN, this.conftx.COMMANDS32[id].SCALEMAX);
 
-  return valeur;
+  return value;
  }
 
- getFloatCommande16(id) {
-  let valeur;
+ getFloatCommand16(id) {
+  let value;
 
-  if(this.conftx.COMMANDES16[id].SIGNE)
-   valeur = mapFloat(this.commandesInt16[id], -32768, 32768, this.conftx.COMMANDES16[id].ECHELLEMIN, this.conftx.COMMANDES16[id].ECHELLEMAX);
+  if(this.conftx.COMMANDS16[id].SIGNED)
+   value = mapFloat(this.commandsInt16[id], -32768, 32768, this.conftx.COMMANDS16[id].SCALEMIN, this.conftx.COMMANDS16[id].SCALEMAX);
   else
-   valeur = mapFloat(this.commandesUint16[id], 0, 65535, this.conftx.COMMANDES16[id].ECHELLEMIN, this.conftx.COMMANDES16[id].ECHELLEMAX);
+   value = mapFloat(this.commandsUint16[id], 0, 65535, this.conftx.COMMANDS16[id].SCALEMIN, this.conftx.COMMANDS16[id].SCALEMAX);
 
-  return valeur;
+  return value;
  }
 
- getFloatCommande8(id) {
-  let valeur;
+ getFloatCommand8(id) {
+  let value;
 
-  if(this.conftx.COMMANDES8[id].SIGNE)
-   valeur = mapFloat(this.commandesInt8[id], -128, 128, this.conftx.COMMANDES8[id].ECHELLEMIN, this.conftx.COMMANDES8[id].ECHELLEMAX);
+  if(this.conftx.COMMANDS8[id].SIGNED)
+   value = mapFloat(this.commandsInt8[id], -128, 128, this.conftx.COMMANDS8[id].SCALEMIN, this.conftx.COMMANDS8[id].SCALEMAX);
   else
-   valeur = mapFloat(this.commandesUint8[id], 0, 255, this.conftx.COMMANDES8[id].ECHELLEMIN, this.conftx.COMMANDES8[id].ECHELLEMAX);
+   value = mapFloat(this.commandsUint8[id], 0, 255, this.conftx.COMMANDS8[id].SCALEMIN, this.conftx.COMMANDS8[id].SCALEMAX);
 
-  return valeur;
+  return value;
  }
 }
 
@@ -241,12 +241,12 @@ class Rx {
   this.confrx = confrx;
   this.pos = 0;
 
-  let nb32 = conftx.COMMANDES32.length + confrx.VALEURS32.length;
-  let nb16 = conftx.COMMANDES16.length + confrx.VALEURS16.length;
-  let nb8 = confrx.SYNC.length + conftx.CHOIXCAMERAS.length +
-            conftx.COMMANDES8.length + confrx.VALEURS8.length;
+  let nb32 = conftx.COMMANDS32.length + confrx.VALUES32.length;
+  let nb16 = conftx.COMMANDS16.length + confrx.VALUES16.length;
+  let nb8 = confrx.SYNC.length + conftx.CAMERACHOICES.length +
+            conftx.COMMANDS8.length + confrx.VALUES8.length;
 
-  this.byteLength = nb32 * 4 + nb16 * 2 + nb8 + Math.ceil(conftx.COMMANDES1.length / 8);
+  this.byteLength = nb32 * 4 + nb16 * 2 + nb8 + Math.ceil(conftx.COMMANDS1.length / 8);
   this.arrayBuffer = new ArrayBuffer(this.byteLength);
 
   let p = 0;
@@ -255,51 +255,51 @@ class Rx {
   for(let i = 0; i < confrx.SYNC.length; i++)
    this.sync[i] = confrx.SYNC[i].charCodeAt();
 
-  this.commandesUint32 = new Uint32Array(this.arrayBuffer, p, conftx.COMMANDES32.length);
-  this.commandesInt32 = new Int32Array(this.arrayBuffer, p, conftx.COMMANDES32.length);
-  p += this.commandesUint32.byteLength;
-  for(let i = 0; i < conftx.COMMANDES32.length; i++)
-   this.setFloatCommande32(i, conftx.COMMANDES32[i].INIT);
+  this.commandsUint32 = new Uint32Array(this.arrayBuffer, p, conftx.COMMANDS32.length);
+  this.commandsInt32 = new Int32Array(this.arrayBuffer, p, conftx.COMMANDS32.length);
+  p += this.commandsUint32.byteLength;
+  for(let i = 0; i < conftx.COMMANDS32.length; i++)
+   this.setFloatCommand32(i, conftx.COMMANDS32[i].INIT);
 
-  this.valeursUint32 = new Uint32Array(this.arrayBuffer, p, confrx.VALEURS32.length);
-  this.valeursInt32 = new Int32Array(this.arrayBuffer, p, confrx.VALEURS32.length);
-  p += this.valeursUint32.byteLength;
-  for(let i = 0; i < confrx.VALEURS32.length; i++)
-   this.setFloatValeur32(i, confrx.VALEURS32[i].INIT);
+  this.valuesUint32 = new Uint32Array(this.arrayBuffer, p, confrx.VALUES32.length);
+  this.valuesInt32 = new Int32Array(this.arrayBuffer, p, confrx.VALUES32.length);
+  p += this.valuesUint32.byteLength;
+  for(let i = 0; i < confrx.VALUES32.length; i++)
+   this.setFloatValue32(i, confrx.VALUES32[i].INIT);
 
-  this.commandesUint16 = new Uint16Array(this.arrayBuffer, p, conftx.COMMANDES16.length);
-  this.commandesInt16 = new Int16Array(this.arrayBuffer, p, conftx.COMMANDES16.length);
-  p += this.commandesUint16.byteLength;
-  for(let i = 0; i < conftx.COMMANDES16.length; i++)
-   this.setFloatCommande16(i, conftx.COMMANDES16[i].INIT);
+  this.commandsUint16 = new Uint16Array(this.arrayBuffer, p, conftx.COMMANDS16.length);
+  this.commandsInt16 = new Int16Array(this.arrayBuffer, p, conftx.COMMANDS16.length);
+  p += this.commandsUint16.byteLength;
+  for(let i = 0; i < conftx.COMMANDS16.length; i++)
+   this.setFloatCommand16(i, conftx.COMMANDS16[i].INIT);
 
-  this.valeursUint16 = new Uint16Array(this.arrayBuffer, p, confrx.VALEURS16.length);
-  this.valeursInt16 = new Int16Array(this.arrayBuffer, p, confrx.VALEURS16.length);
-  p += this.valeursUint16.byteLength;
-  for(let i = 0; i < confrx.VALEURS16.length; i++)
-   this.setFloatValeur16(i, confrx.VALEURS16[i].INIT);
+  this.valuesUint16 = new Uint16Array(this.arrayBuffer, p, confrx.VALUES16.length);
+  this.valuesInt16 = new Int16Array(this.arrayBuffer, p, confrx.VALUES16.length);
+  p += this.valuesUint16.byteLength;
+  for(let i = 0; i < confrx.VALUES16.length; i++)
+   this.setFloatValue16(i, confrx.VALUES16[i].INIT);
 
-  this.choixCameras = new Uint8Array(this.arrayBuffer, p, conftx.CHOIXCAMERAS.length);
-  p += this.choixCameras.byteLength;
-  for(let i = 0; i < conftx.CHOIXCAMERAS.length; i++)
-   this.choixCameras[i] = conftx.CHOIXCAMERAS[i];
+  this.cameraChoices = new Uint8Array(this.arrayBuffer, p, conftx.CAMERACHOICES.length);
+  p += this.cameraChoices.byteLength;
+  for(let i = 0; i < conftx.CAMERACHOICES.length; i++)
+   this.cameraChoices[i] = conftx.CAMERACHOICES[i];
 
-  this.commandesUint8 = new Uint8Array(this.arrayBuffer, p, conftx.COMMANDES8.length);
-  this.commandesInt8 = new Int8Array(this.arrayBuffer, p, conftx.COMMANDES8.length);
-  p += this.commandesUint8.byteLength;
-  for(let i = 0; i < conftx.COMMANDES8.length; i++)
-   this.setFloatCommande8(i, conftx.COMMANDES8[i].INIT);
+  this.commandsUint8 = new Uint8Array(this.arrayBuffer, p, conftx.COMMANDS8.length);
+  this.commandsInt8 = new Int8Array(this.arrayBuffer, p, conftx.COMMANDS8.length);
+  p += this.commandsUint8.byteLength;
+  for(let i = 0; i < conftx.COMMANDS8.length; i++)
+   this.setFloatCommand8(i, conftx.COMMANDS8[i].INIT);
 
-  this.commandes1 = new Uint8Array(this.arrayBuffer, p, Math.ceil(conftx.COMMANDES1.length / 8));
-  p += this.commandes1.byteLength;
-  for(let i = 0; i < conftx.COMMANDES1.length; i++)
-   this.setCommande1(i, conftx.COMMANDES1[i].INIT);
+  this.commands1 = new Uint8Array(this.arrayBuffer, p, Math.ceil(conftx.COMMANDS1.length / 8));
+  p += this.commands1.byteLength;
+  for(let i = 0; i < conftx.COMMANDS1.length; i++)
+   this.setCommand1(i, conftx.COMMANDS1[i].INIT);
 
-  this.valeursUint8 = new Uint8Array(this.arrayBuffer, p, confrx.VALEURS8.length);
-  this.valeursInt8 = new Int8Array(this.arrayBuffer, p, confrx.VALEURS8.length);
-  p += this.valeursUint8.byteLength;
-  for(let i = 0; i < confrx.VALEURS8.length; i++)
-   this.setFloatValeur8(i, confrx.VALEURS8[i].INIT);
+  this.valuesUint8 = new Uint8Array(this.arrayBuffer, p, confrx.VALUES8.length);
+  this.valuesInt8 = new Int8Array(this.arrayBuffer, p, confrx.VALUES8.length);
+  p += this.valuesUint8.byteLength;
+  for(let i = 0; i < confrx.VALUES8.length; i++)
+   this.setFloatValue8(i, confrx.VALUES8[i].INIT);
 
   this.bytes = new Uint8Array(this.arrayBuffer);
  }
@@ -310,14 +310,14 @@ class Rx {
 
    switch(this.pos) {
     case 0:
-     if(data[i] == TRAME0)
+     if(data[i] == FRAME0)
       this.pos++;
      else
       err("Premier octet de la trame télémétrique invalide");
      break;
 
     case 1:
-     if(data[i] == TRAME1R)
+     if(data[i] == FRAME1R)
       this.pos++;
      else {
       this.pos = 0;
@@ -338,356 +338,356 @@ class Rx {
   }
  }
 
- setCommande32(id, valeur) {
-  if(this.conftx.COMMANDES32[id].SIGNE)
-   this.commandesInt32[id] = valeur;
+ setCommand32(id, value) {
+  if(this.conftx.COMMANDS32[id].SIGNED)
+   this.commandsInt32[id] = value;
   else
-   this.commandesUint32[id] = valeur;
+   this.commandsUint32[id] = value;
  }
 
- setCommande16(id, valeur) {
-  if(this.conftx.COMMANDES16[id].SIGNE)
-   this.commandesInt16[id] = valeur;
+ setCommand16(id, value) {
+  if(this.conftx.COMMANDS16[id].SIGNED)
+   this.commandsInt16[id] = value;
   else
-   this.commandesUint16[id] = valeur;
+   this.commandsUint16[id] = value;
  }
 
- setCommande8(id, valeur) {
-  if(this.conftx.COMMANDES8[id].SIGNE)
-   this.commandesInt8[id] = valeur;
+ setCommand8(id, value) {
+  if(this.conftx.COMMANDS8[id].SIGNED)
+   this.commandsInt8[id] = value;
   else
-   this.commandesUint8[id] = valeur;
+   this.commandsUint8[id] = value;
  }
 
- setCommande1(id, valeur) {
+ setCommand1(id, value) {
   let pos = Math.trunc(id / 8);
 
-  if(valeur)
-   this.commandes1[pos] |= 1 << id % 8;
+  if(value)
+   this.commands1[pos] |= 1 << id % 8;
   else
-   this.commandes1[pos] &= ~(1 << id % 8);
+   this.commands1[pos] &= ~(1 << id % 8);
  }
 
- getCommande32(id) {
-  let valeur;
+ getCommand32(id) {
+  let value;
 
-  if(this.conftx.COMMANDES32[id].SIGNE)
-   valeur = this.commandesInt32[id];
+  if(this.conftx.COMMANDS32[id].SIGNED)
+   value = this.commandsInt32[id];
   else
-   valeur = this.commandesUint32[id];
+   value = this.commandsUint32[id];
 
-  return valeur;
+  return value;
  }
 
- getCommande16(id) {
-  let valeur;
+ getCommand16(id) {
+  let value;
 
-  if(this.conftx.COMMANDES16[id].SIGNE)
-   valeur = this.commandesInt16[id];
+  if(this.conftx.COMMANDS16[id].SIGNED)
+   value = this.commandsInt16[id];
   else
-   valeur = this.commandesUint16[id];
+   value = this.commandsUint16[id];
 
-  return valeur;
+  return value;
  }
 
- getCommande8(id) {
-  let valeur;
+ getCommand8(id) {
+  let value;
 
-  if(this.conftx.COMMANDES8[id].SIGNE)
-   valeur = this.commandesInt8[id];
+  if(this.conftx.COMMANDS8[id].SIGNED)
+   value = this.commandsInt8[id];
   else
-   valeur = this.commandesUint8[id];
+   value = this.commandsUint8[id];
 
-  return valeur;
+  return value;
  }
 
- getCommande1(id) {
+ getCommand1(id) {
   let pos = Math.trunc(id / 8);
 
-  return this.commandes1[pos] >> id % 8 & 1;
+  return this.commands1[pos] >> id % 8 & 1;
  }
 
- computeRawCommande32(id, valeur) {
+ computeRawCommand32(id, value) {
   let min;
   let max;
 
-  if(this.conftx.COMMANDES32[id].SIGNE) {
+  if(this.conftx.COMMANDS32[id].SIGNED) {
    min = -2147483647;
    max = 2147483647;
   } else {
    min = 0;
    max = 4294967295;
   }
-  valeur = constrain(valeur, this.conftx.COMMANDES32[id].ECHELLEMIN, this.conftx.COMMANDES32[id].ECHELLEMAX);
-  valeur = mapTrunc(valeur, this.conftx.COMMANDES32[id].ECHELLEMIN, this.conftx.COMMANDES32[id].ECHELLEMAX, min, max);
+  value = constrain(value, this.conftx.COMMANDS32[id].SCALEMIN, this.conftx.COMMANDS32[id].SCALEMAX);
+  value = mapTrunc(value, this.conftx.COMMANDS32[id].SCALEMIN, this.conftx.COMMANDS32[id].SCALEMAX, min, max);
 
-  return valeur;
+  return value;
  }
 
- computeRawCommande16(id, valeur) {
+ computeRawCommand16(id, value) {
   let min;
   let max;
 
-  if(this.conftx.COMMANDES16[id].SIGNE) {
+  if(this.conftx.COMMANDS16[id].SIGNED) {
    min = -32767;
    max = 32767;
   } else {
    min = 0;
    max = 65535;
   }
-  valeur = constrain(valeur, this.conftx.COMMANDES16[id].ECHELLEMIN, this.conftx.COMMANDES16[id].ECHELLEMAX);
-  valeur = mapTrunc(valeur, this.conftx.COMMANDES16[id].ECHELLEMIN, this.conftx.COMMANDES16[id].ECHELLEMAX, min, max);
+  value = constrain(value, this.conftx.COMMANDS16[id].SCALEMIN, this.conftx.COMMANDS16[id].SCALEMAX);
+  value = mapTrunc(value, this.conftx.COMMANDS16[id].SCALEMIN, this.conftx.COMMANDS16[id].SCALEMAX, min, max);
 
-  return valeur;
+  return value;
  }
 
- computeRawCommande8(id, valeur) {
+ computeRawCommand8(id, value) {
   let min;
   let max;
 
-  if(this.conftx.COMMANDES8[id].SIGNE) {
+  if(this.conftx.COMMANDS8[id].SIGNED) {
    min = -127;
    max = 127;
   } else {
    min = 0;
    max = 255;
   }
-  valeur = constrain(valeur, this.conftx.COMMANDES8[id].ECHELLEMIN, this.conftx.COMMANDES8[id].ECHELLEMAX);
-  valeur = mapTrunc(valeur, this.conftx.COMMANDES8[id].ECHELLEMIN, this.conftx.COMMANDES8[id].ECHELLEMAX, min, max);
+  value = constrain(value, this.conftx.COMMANDS8[id].SCALEMIN, this.conftx.COMMANDS8[id].SCALEMAX);
+  value = mapTrunc(value, this.conftx.COMMANDS8[id].SCALEMIN, this.conftx.COMMANDS8[id].SCALEMAX, min, max);
 
-  return valeur;
+  return value;
  }
 
- setFloatCommande32(id, valeur) {
-  valeur = this.computeRawCommande32(id, valeur);
-  this.setCommande32(id, valeur);
+ setFloatCommand32(id, value) {
+  value = this.computeRawCommand32(id, value);
+  this.setCommand32(id, value);
  }
 
- setFloatCommande16(id, valeur) {
-  valeur = this.computeRawCommande16(id, valeur);
-  this.setCommande16(id, valeur);
+ setFloatCommand16(id, value) {
+  value = this.computeRawCommand16(id, value);
+  this.setCommand16(id, value);
  }
 
- setFloatCommande8(id, valeur) {
-  valeur = this.computeRawCommande8(id, valeur);
-  this.setCommande8(id, valeur);
+ setFloatCommand8(id, value) {
+  value = this.computeRawCommand8(id, value);
+  this.setCommand8(id, value);
  }
 
- getFloatCommande32(id) {
-  let valeur;
+ getFloatCommand32(id) {
+  let value;
 
-  if(this.conftx.COMMANDES32[id].SIGNE)
-   valeur = mapFloat(this.commandesInt32[id], -2147483648, 2147483648, this.conftx.COMMANDES32[id].ECHELLEMIN, this.conftx.COMMANDES32[id].ECHELLEMAX);
+  if(this.conftx.COMMANDS32[id].SIGNED)
+   value = mapFloat(this.commandsInt32[id], -2147483648, 2147483648, this.conftx.COMMANDS32[id].SCALEMIN, this.conftx.COMMANDS32[id].SCALEMAX);
   else
-   valeur = mapFloat(this.commandesUint32[id], 0, 4294967295, this.conftx.COMMANDES32[id].ECHELLEMIN, this.conftx.COMMANDES32[id].ECHELLEMAX);
+   value = mapFloat(this.commandsUint32[id], 0, 4294967295, this.conftx.COMMANDS32[id].SCALEMIN, this.conftx.COMMANDS32[id].SCALEMAX);
 
-  return valeur;
+  return value;
  }
 
- getFloatCommande16(id) {
-  let valeur;
+ getFloatCommand16(id) {
+  let value;
 
-  if(this.conftx.COMMANDES16[id].SIGNE)
-   valeur = mapFloat(this.commandesInt16[id], -32768, 32768, this.conftx.COMMANDES16[id].ECHELLEMIN, this.conftx.COMMANDES16[id].ECHELLEMAX);
+  if(this.conftx.COMMANDS16[id].SIGNED)
+   value = mapFloat(this.commandsInt16[id], -32768, 32768, this.conftx.COMMANDS16[id].SCALEMIN, this.conftx.COMMANDS16[id].SCALEMAX);
   else
-   valeur = mapFloat(this.commandesUint16[id], 0, 65535, this.conftx.COMMANDES16[id].ECHELLEMIN, this.conftx.COMMANDES16[id].ECHELLEMAX);
+   value = mapFloat(this.commandsUint16[id], 0, 65535, this.conftx.COMMANDS16[id].SCALEMIN, this.conftx.COMMANDS16[id].SCALEMAX);
 
-  return valeur;
+  return value;
  }
 
- getFloatCommande8(id) {
-  let valeur;
+ getFloatCommand8(id) {
+  let value;
 
-  if(this.conftx.COMMANDES8[id].SIGNE)
-   valeur = mapFloat(this.commandesInt8[id], -128, 128, this.conftx.COMMANDES8[id].ECHELLEMIN, this.conftx.COMMANDES8[id].ECHELLEMAX);
+  if(this.conftx.COMMANDS8[id].SIGNED)
+   value = mapFloat(this.commandsInt8[id], -128, 128, this.conftx.COMMANDS8[id].SCALEMIN, this.conftx.COMMANDS8[id].SCALEMAX);
   else
-   valeur = mapFloat(this.commandesUint8[id], 0, 255, this.conftx.COMMANDES8[id].ECHELLEMIN, this.conftx.COMMANDES8[id].ECHELLEMAX);
+   value = mapFloat(this.commandsUint8[id], 0, 255, this.conftx.COMMANDS8[id].SCALEMIN, this.conftx.COMMANDS8[id].SCALEMAX);
 
-  return valeur;
+  return value;
  }
 
- getTexteCommande32(id) {
-  return this.getFloatCommande32(id).toFixed(this.conftx.COMMANDES32[id].NBCHIFFRES) + this.conftx.COMMANDES32[id].UNITE;
+ getTextCommand32(id) {
+  return this.getFloatCommand32(id).toFixed(this.conftx.COMMANDS32[id].NBDIGITS) + this.conftx.COMMANDS32[id].UNIT;
  }
 
- getTexteCommande16(id) {
-  return this.getFloatCommande16(id).toFixed(this.conftx.COMMANDES16[id].NBCHIFFRES) + this.conftx.COMMANDES16[id].UNITE;
+ getTextCommand16(id) {
+  return this.getFloatCommand16(id).toFixed(this.conftx.COMMANDS16[id].NBDIGITS) + this.conftx.COMMANDS16[id].UNIT;
  }
 
- getTexteCommande8(id) {
-  return this.getFloatCommande8(id).toFixed(this.conftx.COMMANDES8[id].NBCHIFFRES) + this.conftx.COMMANDES8[id].UNITE;
+ getTextCommand8(id) {
+  return this.getFloatCommand8(id).toFixed(this.conftx.COMMANDS8[id].NBDIGITS) + this.conftx.COMMANDS8[id].UNIT;
  }
 
- getTexteCommande1(id) {
-  if(this.getCommande1(id))
+ getTextCommand1(id) {
+  if(this.getCommand1(id))
    return "On";
   else
    return "Off";
  }
 
- setValeur32(id, valeur) {
-  if(this.confrx.VALEURS32[id].SIGNE)
-   this.valeursInt32[id] = valeur;
+ setValue32(id, value) {
+  if(this.confrx.VALUES32[id].SIGNED)
+   this.valuesInt32[id] = value;
   else
-   this.valeursUint32[id] = valeur;
+   this.valuesUint32[id] = value;
  }
 
- setValeur16(id, valeur) {
-  if(this.confrx.VALEURS16[id].SIGNE)
-   this.valeursInt16[id] = valeur;
+ setValue16(id, value) {
+  if(this.confrx.VALUES16[id].SIGNED)
+   this.valuesInt16[id] = value;
   else
-   this.valeursUint16[id] = valeur;
+   this.valuesUint16[id] = value;
  }
 
- setValeur8(id, valeur) {
-  if(this.confrx.VALEURS8[id].SIGNE)
-   this.valeursInt8[id] = valeur;
+ setValue8(id, value) {
+  if(this.confrx.VALUES8[id].SIGNED)
+   this.valuesInt8[id] = value;
   else
-   this.valeursUint8[id] = valeur;
+   this.valuesUint8[id] = value;
  }
 
- getValeur32(id) {
-  let valeur;
+ getValue32(id) {
+  let value;
 
-  if(this.confrx.VALEURS32[id].SIGNE)
-   valeur = this.valeursInt32[id];
+  if(this.confrx.VALUES32[id].SIGNED)
+   value = this.valuesInt32[id];
   else
-   valeur = this.valeursUint32[id];
+   value = this.valuesUint32[id];
 
-  return valeur;
+  return value;
  }
 
- getValeur16(id) {
-  let valeur;
+ getValue16(id) {
+  let value;
 
-  if(this.confrx.VALEURS16[id].SIGNE)
-   valeur = this.valeursInt16[id];
+  if(this.confrx.VALUES16[id].SIGNED)
+   value = this.valuesInt16[id];
   else
-   valeur = this.valeursUint16[id];
+   value = this.valuesUint16[id];
 
-  return valeur;
+  return value;
  }
 
- getValeur8(id) {
-  let valeur;
+ getValue8(id) {
+  let value;
 
-  if(this.confrx.VALEURS8[id].SIGNE)
-   valeur = this.valeursInt8[id];
+  if(this.confrx.VALUES8[id].SIGNED)
+   value = this.valuesInt8[id];
   else
-   valeur = this.valeursUint8[id];
+   value = this.valuesUint8[id];
 
-  return valeur;
+  return value;
  }
 
- computeRawValeur32(id, valeur) {
+ computeRawValue32(id, value) {
   let min;
   let max;
 
-  if(this.confrx.VALEURS32[id].SIGNE) {
+  if(this.confrx.VALUES32[id].SIGNED) {
    min = -2147483647;
    max = 2147483647;
   } else {
    min = 0;
    max = 4294967295;
   }
-  valeur = constrain(valeur, this.confrx.VALEURS32[id].ECHELLEMIN, this.confrx.VALEURS32[id].ECHELLEMAX);
-  valeur = mapTrunc(valeur, this.confrx.VALEURS32[id].ECHELLEMIN, this.confrx.VALEURS32[id].ECHELLEMAX, min, max);
+  value = constrain(value, this.confrx.VALUES32[id].SCALEMIN, this.confrx.VALUES32[id].SCALEMAX);
+  value = mapTrunc(value, this.confrx.VALUES32[id].SCALEMIN, this.confrx.VALUES32[id].SCALEMAX, min, max);
 
-  return valeur;
+  return value;
  }
 
- computeRawValeur16(id, valeur) {
+ computeRawValue16(id, value) {
   let min;
   let max;
 
-  if(this.confrx.VALEURS16[id].SIGNE) {
+  if(this.confrx.VALUES16[id].SIGNED) {
    min = -32767;
    max = 32767;
   } else {
    min = 0;
    max = 65535;
   }
-  valeur = constrain(valeur, this.confrx.VALEURS16[id].ECHELLEMIN, this.confrx.VALEURS16[id].ECHELLEMAX);
-  valeur = mapTrunc(valeur, this.confrx.VALEURS16[id].ECHELLEMIN, this.confrx.VALEURS16[id].ECHELLEMAX, min, max);
+  value = constrain(value, this.confrx.VALUES16[id].SCALEMIN, this.confrx.VALUES16[id].SCALEMAX);
+  value = mapTrunc(value, this.confrx.VALUES16[id].SCALEMIN, this.confrx.VALUES16[id].SCALEMAX, min, max);
 
-  return valeur;
+  return value;
  }
 
- computeRawValeur8(id, valeur) {
+ computeRawValue8(id, value) {
   let min;
   let max;
 
-  if(this.confrx.VALEURS8[id].SIGNE) {
+  if(this.confrx.VALUES8[id].SIGNED) {
    min = -127;
    max = 127;
   } else {
    min = 0;
    max = 255;
   }
-  valeur = constrain(valeur, this.confrx.VALEURS8[id].ECHELLEMIN, this.confrx.VALEURS8[id].ECHELLEMAX);
-  valeur = mapTrunc(valeur, this.confrx.VALEURS8[id].ECHELLEMIN, this.confrx.VALEURS8[id].ECHELLEMAX, min, max);
+  value = constrain(value, this.confrx.VALUES8[id].SCALEMIN, this.confrx.VALUES8[id].SCALEMAX);
+  value = mapTrunc(value, this.confrx.VALUES8[id].SCALEMIN, this.confrx.VALUES8[id].SCALEMAX, min, max);
 
-  return valeur;
+  return value;
  }
 
- setFloatValeur32(id, valeur) {
-  valeur = this.computeRawValeur32(id, valeur);
-  this.setValeur32(id, valeur);
+ setFloatValue32(id, value) {
+  value = this.computeRawValue32(id, value);
+  this.setValue32(id, value);
  }
 
- setFloatValeur16(id, valeur) {
-  valeur = this.computeRawValeur16(id, valeur);
-  this.setValeur16(id, valeur);
+ setFloatValue16(id, value) {
+  value = this.computeRawValue16(id, value);
+  this.setValue16(id, value);
  }
 
- setFloatValeur8(id, valeur) {
-  valeur = this.computeRawValeur8(id, valeur);
-  this.setValeur8(id, valeur);
+ setFloatValue8(id, value) {
+  value = this.computeRawValue8(id, value);
+  this.setValue8(id, value);
  }
 
- getFloatValeur32(id) {
-  let valeur;
+ getFloatValue32(id) {
+  let value;
 
-  if(this.confrx.VALEURS32[id].SIGNE)
-   valeur = mapFloat(this.valeursInt32[id], -2147483648, 2147483648, this.confrx.VALEURS32[id].ECHELLEMIN, this.confrx.VALEURS32[id].ECHELLEMAX);
+  if(this.confrx.VALUES32[id].SIGNED)
+   value = mapFloat(this.valuesInt32[id], -2147483648, 2147483648, this.confrx.VALUES32[id].SCALEMIN, this.confrx.VALUES32[id].SCALEMAX);
   else
-   valeur = mapFloat(this.valeursUint32[id], 0, 4294967295, this.confrx.VALEURS32[id].ECHELLEMIN, this.confrx.VALEURS32[id].ECHELLEMAX);
+   value = mapFloat(this.valuesUint32[id], 0, 4294967295, this.confrx.VALUES32[id].SCALEMIN, this.confrx.VALUES32[id].SCALEMAX);
 
-  return valeur;
+  return value;
  }
 
- getFloatValeur16(id) {
-  let valeur;
+ getFloatValue16(id) {
+  let value;
 
-  if(this.confrx.VALEURS16[id].SIGNE)
-   valeur = mapFloat(this.valeursInt16[id], -32768, 32768, this.confrx.VALEURS16[id].ECHELLEMIN, this.confrx.VALEURS16[id].ECHELLEMAX);
+  if(this.confrx.VALUES16[id].SIGNED)
+   value = mapFloat(this.valuesInt16[id], -32768, 32768, this.confrx.VALUES16[id].SCALEMIN, this.confrx.VALUES16[id].SCALEMAX);
   else
-   valeur = mapFloat(this.valeursUint16[id], 0, 65535, this.confrx.VALEURS16[id].ECHELLEMIN, this.confrx.VALEURS16[id].ECHELLEMAX);
+   value = mapFloat(this.valuesUint16[id], 0, 65535, this.confrx.VALUES16[id].SCALEMIN, this.confrx.VALUES16[id].SCALEMAX);
 
-  return valeur;
+  return value;
  }
 
- getFloatValeur8(id) {
-  let valeur;
+ getFloatValue8(id) {
+  let value;
 
-  if(this.confrx.VALEURS8[id].SIGNE)
-   valeur = mapFloat(this.valeursInt8[id], -128, 128, this.confrx.VALEURS8[id].ECHELLEMIN, this.confrx.VALEURS8[id].ECHELLEMAX);
+  if(this.confrx.VALUES8[id].SIGNED)
+   value = mapFloat(this.valuesInt8[id], -128, 128, this.confrx.VALUES8[id].SCALEMIN, this.confrx.VALUES8[id].SCALEMAX);
   else
-   valeur = mapFloat(this.valeursUint8[id], 0, 255, this.confrx.VALEURS8[id].ECHELLEMIN, this.confrx.VALEURS8[id].ECHELLEMAX);
+   value = mapFloat(this.valuesUint8[id], 0, 255, this.confrx.VALUES8[id].SCALEMIN, this.confrx.VALUES8[id].SCALEMAX);
 
-  return valeur;
+  return value;
  }
 
- getTexteValeur32(id) {
-  return this.getFloatValeur32(id).toFixed(this.confrx.VALEURS32[id].NBCHIFFRES) + this.confrx.VALEURS32[id].UNITE;
+ getTextValue32(id) {
+  return this.getFloatValue32(id).toFixed(this.confrx.VALUES32[id].NBDIGITS) + this.confrx.VALUES32[id].UNIT;
  }
 
- getTexteValeur16(id) {
-  return this.getFloatValeur16(id).toFixed(this.confrx.VALEURS16[id].NBCHIFFRES) + this.confrx.VALEURS16[id].UNITE;
+ getTextValue16(id) {
+  return this.getFloatValue16(id).toFixed(this.confrx.VALUES16[id].NBDIGITS) + this.confrx.VALUES16[id].UNIT;
  }
 
- getTexteValeur8(id) {
-  return this.getFloatValeur8(id).toFixed(this.confrx.VALEURS8[id].NBCHIFFRES) + this.confrx.VALEURS8[id].UNITE;
+ getTextValue8(id) {
+  return this.getFloatValue8(id).toFixed(this.confrx.VALUES8[id].NBDIGITS) + this.confrx.VALUES8[id].UNIT;
  }
 }
 

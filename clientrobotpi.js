@@ -272,17 +272,17 @@ function sleep() {
 
  trace("Robot sleep", false);
 
- for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
+ for(let i = 0; i < conf.TX.COMMANDS16.length; i++)
   if(hard.COMMANDS16[i].SLEEP)
-   floatTargets16[i] = conf.TX.COMMANDES16[i].INIT;
+   floatTargets16[i] = conf.TX.COMMANDS16[i].INIT;
 
- for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
+ for(let i = 0; i < conf.TX.COMMANDS8.length; i++)
   if(hard.COMMANDS8[i].SLEEP)
-   floatTargets8[i] = conf.TX.COMMANDES8[i].INIT;
+   floatTargets8[i] = conf.TX.COMMANDS8[i].INIT;
 
- for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
+ for(let i = 0; i < conf.TX.COMMANDS1.length; i++)
   if(hard.COMMANDS1[i].SLEEP)
-   floatTargets1[i] = conf.TX.COMMANDES1[i].INIT;
+   floatTargets1[i] = conf.TX.COMMANDS1[i].INIT;
 
  sigterms(function() {
  });
@@ -348,16 +348,16 @@ function diffAudio() {
 }
 
 function actions(trx) {
- for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-  floatTargets16[i] = trx.getFloatCommande16(i);
+ for(let i = 0; i < conf.TX.COMMANDS16.length; i++)
+  floatTargets16[i] = trx.getFloatCommand16(i);
 
- for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-  floatTargets8[i] = trx.getFloatCommande8(i);
+ for(let i = 0; i < conf.TX.COMMANDS8.length; i++)
+  floatTargets8[i] = trx.getFloatCommand8(i);
 
- for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
-  floatTargets1[i] = trx.getCommande1(i);
+ for(let i = 0; i < conf.TX.COMMANDS1.length; i++)
+  floatTargets1[i] = trx.getCommand1(i);
 
- contrastBoost = trx.getCommande1(hard.CONTRASTBOOSTSWITCH);
+ contrastBoost = trx.getCommand1(hard.CONTRASTBOOSTSWITCH);
  if(contrastBoost != oldContrastBoost) {
   if(contrastBoost) {
    exec("v4l2-ctl", SYS.V4L2 + " -c brightness=" + confVideo.BRIGHTNESSBOOST +
@@ -413,20 +413,20 @@ function initOutputs() {
   }
  }
 
- for(let i = 0; i < conf.TX.COMMANDES16.length; i++) {
-  floatTargets16[i] = conf.TX.COMMANDES16[i].INIT;
+ for(let i = 0; i < conf.TX.COMMANDS16.length; i++) {
+  floatTargets16[i] = conf.TX.COMMANDS16[i].INIT;
   floatCommands16[i] = floatTargets16[i];
-  margins16[i] = (conf.TX.COMMANDES16[i].ECHELLEMAX - conf.TX.COMMANDES16[i].ECHELLEMIN) / 65535;
+  margins16[i] = (conf.TX.COMMANDS16[i].SCALEMAX - conf.TX.COMMANDS16[i].SCALEMIN) / 65535;
  }
 
- for(let i = 0; i < conf.TX.COMMANDES8.length; i++) {
-  floatTargets8[i] = conf.TX.COMMANDES8[i].INIT;
+ for(let i = 0; i < conf.TX.COMMANDS8.length; i++) {
+  floatTargets8[i] = conf.TX.COMMANDS8[i].INIT;
   floatCommands8[i] = floatTargets8[i];
-  margins8[i] = (conf.TX.COMMANDES8[i].ECHELLEMAX - conf.TX.COMMANDES8[i].ECHELLEMIN) / 255;
+  margins8[i] = (conf.TX.COMMANDS8[i].SCALEMAX - conf.TX.COMMANDS8[i].SCALEMIN) / 255;
  }
 
- for(let i = 0; i < conf.TX.COMMANDES1.length; i++) {
-  floatTargets1[i] = conf.TX.COMMANDES1[i].INIT;
+ for(let i = 0; i < conf.TX.COMMANDS1.length; i++) {
+  floatTargets1[i] = conf.TX.COMMANDS1[i].INIT;
   floatCommands1[i] = floatTargets1[i];
  }
 
@@ -543,7 +543,7 @@ USER.SERVERS.forEach(function(server, index) {
 
        rx.update(data, function() {
 
-        if(hard.CAMERAS[rx.choixCameras[0]].TYPE == "Autopilot")
+        if(hard.CAMERAS[rx.cameraChoices[0]].TYPE == "Autopilot")
          actions(rx);
 
         setRxValues();
@@ -651,7 +651,7 @@ USER.SERVERS.forEach(function(server, index) {
    return;
   lastFrame = now;
 
-  lastTimestamp = data.boucleVideoCommande;
+  lastTimestamp = data.boucleVideoCommand;
 
   if(hard.WRITEUSERDEVICE != SYS.UNUSED)
    serial.write(data.data);
@@ -660,10 +660,10 @@ USER.SERVERS.forEach(function(server, index) {
    for(let i = 0; i < tx.byteLength; i++)
     tx.bytes[i] = data.data[i];
 
-   if(hard.CAMERAS[tx.choixCameras[0]].TYPE != "Autopilot")
+   if(hard.CAMERAS[tx.cameraChoices[0]].TYPE != "Autopilot")
     actions(tx);
 
-   confVideo = hard.CAMERAS[tx.choixCameras[0]];
+   confVideo = hard.CAMERAS[tx.cameraChoices[0]];
    if(confVideo != oldConfVideo &&
       JSON.stringify(confVideo) != JSON.stringify(oldConfVideo)) {
     if(up) {
@@ -689,8 +689,8 @@ USER.SERVERS.forEach(function(server, index) {
   }, SYS.UPTIMEOUT);
 
   if(hard.READUSERDEVICE == SYS.UNUSED ||
-     autopilot && hard.CAMERAS[tx.choixCameras[0]].TYPE != "Autopilot") {
-   setRxCommandes();
+     autopilot && hard.CAMERAS[tx.cameraChoices[0]].TYPE != "Autopilot") {
+   setRxCommands();
    setRxValues();
    sockets[server].emit("serveurrobotrx", {
     timestamp: now,
@@ -919,27 +919,27 @@ setInterval(function() {
  }
 
  if(latencyAlarm) {
-  for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
+  for(let i = 0; i < conf.TX.COMMANDS16.length; i++)
    if(hard.COMMANDS16[i].FAILSAFE)
-    floatTargets16[i] = conf.TX.COMMANDES16[i].INIT;
+    floatTargets16[i] = conf.TX.COMMANDS16[i].INIT;
 
-  for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
+  for(let i = 0; i < conf.TX.COMMANDS8.length; i++)
    if(hard.COMMANDS8[i].FAILSAFE)
-    floatTargets8[i] = conf.TX.COMMANDES8[i].INIT;
+    floatTargets8[i] = conf.TX.COMMANDS8[i].INIT;
 
-  for(let i = 0; i < conf.TX.COMMANDES1.length; i++)
+  for(let i = 0; i < conf.TX.COMMANDS1.length; i++)
    if(hard.COMMANDS1[i].FAILSAFE)
-    floatTargets1[i] = conf.TX.COMMANDES1[i].INIT;
+    floatTargets1[i] = conf.TX.COMMANDS1[i].INIT;
  }
 
- for(let i = 0; i < conf.TX.COMMANDES16.length; i++) {
+ for(let i = 0; i < conf.TX.COMMANDS16.length; i++) {
   if(floatCommands16[i] == floatTargets16[i])
    continue;
   change = true;
 
   let delta;
   let target = floatTargets16[i];
-  let init = conf.TX.COMMANDES16[i].INIT;
+  let init = conf.TX.COMMANDS16[i].INIT;
 
   if(Math.abs(target - init) <= margins16[i])
    delta = hard.COMMANDS16[i].RAMPINIT;
@@ -961,14 +961,14 @@ setInterval(function() {
    floatCommands16[i] = target;
  }
 
- for(let i = 0; i < conf.TX.COMMANDES8.length; i++) {
+ for(let i = 0; i < conf.TX.COMMANDS8.length; i++) {
   if(floatCommands8[i] == floatTargets8[i])
    continue;
   change = true;
 
   let delta;
   let target = floatTargets8[i];
-  let init = conf.TX.COMMANDES8[i].INIT;
+  let init = conf.TX.COMMANDS8[i].INIT;
 
   if(Math.abs(target - init) <= margins8[i])
    delta = hard.COMMANDS8[i].RAMPINIT;
@@ -990,13 +990,13 @@ setInterval(function() {
    floatCommands8[i] = target;
  }
 
- for(let i = 0; i < conf.TX.COMMANDES1.length; i++) {
+ for(let i = 0; i < conf.TX.COMMANDS1.length; i++) {
   if(floatCommands1[i] == floatTargets1[i])
    continue;
   change = true;
 
   let delta;
-  if(Math.abs(floatTargets1[i] - conf.TX.COMMANDES1[i].INIT) < 1)
+  if(Math.abs(floatTargets1[i] - conf.TX.COMMANDS1[i].INIT) < 1)
    delta = hard.COMMANDS1[i].RAMPINIT;
   else
    delta = hard.COMMANDS1[i].RAMPUP;
@@ -1112,38 +1112,38 @@ switch(gaugeType) {
   break;
 }
 
-function setRxCommandes() {
- for(let i = 0; i < conf.TX.COMMANDES16.length; i++)
-  rx.commandesInt16[i] = tx.computeRawCommande16(i, floatCommands16[i]);
- rx.choixCameras[0] = tx.choixCameras[0];
- for(let i = 0; i < conf.TX.COMMANDES8.length; i++)
-  rx.commandesInt8[i] = tx.computeRawCommande8(i, floatCommands8[i]);
- for(let i = 0; i < conf.TX.COMMANDES1.length / 8; i++) {
+function setRxCommands() {
+ for(let i = 0; i < conf.TX.COMMANDS16.length; i++)
+  rx.commandsInt16[i] = tx.computeRawCommand16(i, floatCommands16[i]);
+ rx.cameraChoices[0] = tx.cameraChoices[0];
+ for(let i = 0; i < conf.TX.COMMANDS8.length; i++)
+  rx.commandsInt8[i] = tx.computeRawCommand8(i, floatCommands8[i]);
+ for(let i = 0; i < conf.TX.COMMANDS1.length / 8; i++) {
   let commande1 = 0;
   for(let j = 0; j < 8; j++)
    if(floatCommands1[i * 8 + j] > 0)
     commande1 += 1 << j;
-  rx.commandes1[i] = commande1;
+  rx.commands1[i] = commande1;
  }
 }
 
 function setRxValues() {
  if(hard.ENABLEGPS != SYS.UNUSED && gps.state.lat !== null) {
-  rx.setFloatValeur32(0, gps.state.lat);
-  rx.setFloatValeur32(1, gps.state.lon);
+  rx.setFloatValue32(0, gps.state.lat);
+  rx.setFloatValue32(1, gps.state.lon);
  }
- rx.setFloatValeur16(0, voltage);
- rx.setFloatValeur16(1, battery);
- rx.setFloatValeur8(0, cpuLoad);
- rx.setFloatValeur8(1, socTemp);
- rx.setFloatValeur8(2, link);
- rx.setFloatValeur8(3, rssi);
+ rx.setFloatValue16(0, voltage);
+ rx.setFloatValue16(1, battery);
+ rx.setFloatValue8(0, cpuLoad);
+ rx.setFloatValue8(1, socTemp);
+ rx.setFloatValue8(2, link);
+ rx.setFloatValue8(3, rssi);
  if(hard.ENABLEGPS != SYS.UNUSED) {
   if(typeof gps.state.satsActive !== "undefined")
-   rx.setFloatValeur8(4, gps.state.satsActive.length);
-  rx.setFloatValeur8(5, gps.state.speed);
+   rx.setFloatValue8(4, gps.state.satsActive.length);
+  rx.setFloatValue8(5, gps.state.speed);
   if(gps.state.track !== null)
-   rx.setFloatValeur8(6, gps.state.track);
+   rx.setFloatValue8(6, gps.state.track);
  }
 }
 
@@ -1151,7 +1151,7 @@ setInterval(function() {
  if(up || !initDone)
   return;
 
- setRxCommandes();
+ setRxCommands();
  setRxValues();
  USER.SERVERS.forEach(function(server) {
   sockets[server].emit("serveurrobotrx", {
