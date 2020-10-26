@@ -55,7 +55,7 @@ void autopilot(Mat &image) {
  bool buttonMore = remoteFrame.switchs & 0b00100000;
  static bool oldButtonLess = false;
  static bool oldButtonMore = false;
- static uchar select = 0;
+ static int select = -1;
 #ifdef BODYPAN
  int x = mapInteger(remoteFrame.xy[0][0], -32767, 32767, -180, 180);
  static int oldx = 0;
@@ -70,19 +70,38 @@ void autopilot(Mat &image) {
  double imuTheta = imuData.fusionPose.z() * DIRZ + OFFSETZ;
  int imuThetaDeg = int(imuTheta * 180.0 / M_PI);
 
+ int x1 = MARGIN + DIAM1;
+ int x2 = x1 + MARGIN + DIAM1 * 2;
+ int x3 = width - MARGIN - DIAM1;
+ int y1 = MARGIN + DIAM1;
+
+ watch(image, imux, Point(x1, y1), DIAM1, Scalar(0, 0, 200), Scalar::all(200));
+ watch(image, imuy, Point(x2, y1), DIAM1, Scalar(0, 200, 0), Scalar::all(200));
+
+ watch(image, imux * COEF2, Point(x1, y1), DIAM2, Scalar(0, 0, 255), Scalar::all(255));
+ watch(image, imuy * COEF2, Point(x2, y1), DIAM2, Scalar(0, 255, 0), Scalar::all(255));
+
  if(!buttonMore && oldButtonMore) {
   if(select < 2)
    select++;
   else
-   select = 0;
+   select = -1;
  } else if(!buttonLess && oldButtonLess) {
-  if(select > 0)
+  if(select > -1)
    select--;
   else
    select = 2;
  }
  oldButtonLess = buttonLess;
  oldButtonMore = buttonMore;
+
+ if(select == -1) {
+  setPoint = imuThetaDeg * DIVVZ;
+  integ = 0;
+  oldProp = 0;
+  telemetryFrame.vz = remoteFrame.vz;
+  return;
+ }
 
 #ifdef BODYPAN
  if(x != oldx ||
@@ -147,17 +166,6 @@ void autopilot(Mat &image) {
   oldProp = 0;
   telemetryFrame.vz = 0;
  }
-
- int x1 = MARGIN + DIAM1;
- int x2 = x1 + MARGIN + DIAM1 * 2;
- int x3 = width - MARGIN - DIAM1;
- int y1 = MARGIN + DIAM1;
-
- watch(image, imux, Point(x1, y1), DIAM1, Scalar(0, 0, 200), Scalar::all(200));
- watch(image, imuy, Point(x2, y1), DIAM1, Scalar(0, 200, 0), Scalar::all(200));
-
- watch(image, imux * COEF2, Point(x1, y1), DIAM2, Scalar(0, 0, 255), Scalar::all(255));
- watch(image, imuy * COEF2, Point(x2, y1), DIAM2, Scalar(0, 255, 0), Scalar::all(255));
 
  watch(image, -imuTheta, Point(x3, y1), DIAM1, Scalar(200, 0, 0), Scalar::all(200));
 #ifdef BODYPAN
