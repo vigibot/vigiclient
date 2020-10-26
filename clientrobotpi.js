@@ -3,7 +3,7 @@
 const USER = require("/boot/robot.json");
 const SYS = require("./sys.json");
 
-const TRAME = require("./trame.js");
+const FRAME = require("./trame.js");
 
 const OS = require("os");
 const FS = require("fs");
@@ -52,7 +52,7 @@ let oldContrastBoost = false;
 let autopilot;
 
 let lastTimestamp = Date.now();
-let lastTrame = Date.now();
+let lastFrame = Date.now();
 let latencyAlarm = false;
 
 let floatTargets16 = [];
@@ -482,8 +482,8 @@ USER.SERVERS.forEach(function(server, index) {
    conf = data.conf;
    hard = data.hard;
 
-   tx = new TRAME.Tx(conf.TX);
-   rx = new TRAME.Rx(conf.TX, conf.RX);
+   tx = new FRAME.Tx(conf.TX);
+   rx = new FRAME.Rx(conf.TX, conf.RX);
 
    confVideo = hard.CAMERAS[conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA];
    oldConfVideo = confVideo;
@@ -647,9 +647,9 @@ USER.SERVERS.forEach(function(server, index) {
 
   // Reject bursts
   let now = Date.now();
-  if(now - lastTrame < SYS.TXRATE / 2)
+  if(now - lastFrame < SYS.TXRATE / 2)
    return;
-  lastTrame = now;
+  lastFrame = now;
 
   lastTimestamp = data.boucleVideoCommande;
 
