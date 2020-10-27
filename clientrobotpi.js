@@ -485,7 +485,7 @@ USER.SERVERS.forEach(function(server, index) {
    tx = new FRAME.Tx(conf.TX);
    rx = new FRAME.Rx(conf.TX, conf.RX);
 
-   confVideo = hard.CAMERAS[conf.COMMANDES[conf.DEFAUTCOMMANDE].CAMERA];
+   confVideo = hard.CAMERAS[conf.COMMANDS[conf.DEFAULTCOMMAND].CAMERA];
    oldConfVideo = confVideo;
    contrastBoost = false;
    oldContrastBoost = false;
