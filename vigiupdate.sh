@@ -107,4 +107,6 @@ then
  ./make.sh
 fi
 
+sed -i 's/"NOM"/"NAME"/' /boot/robot.json
+
 trap - EXIT
