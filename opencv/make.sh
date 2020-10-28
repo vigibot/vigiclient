@@ -21,7 +21,7 @@ do
 
  if [ -f "$bin" ]
  then
-  for f in common.hpp common.cpp frame.hpp frame.cpp "$d/"*
+  for f in common.hpp common.cpp frame.hpp frame.cpp "$d"/*
   do
    if [ "$f" == "$bin" ]
    then
@@ -41,13 +41,14 @@ do
   build=yes
  fi
 
- if [[ $build == no || ! -f "$main" ]]
+ if [ $build == no ]
  then
   continue
  fi
 
- trace "Compiling $main to $bin"
- g++ common.cpp frame.cpp "$main" -o "$bin" \
+ all="$d"/*.cpp
+ trace "Compiling $all to $bin"
+ g++ common.cpp frame.cpp $all -o "$bin" \
  -O2 \
  -lopencv_core \
  -lopencv_imgcodecs \
