@@ -474,7 +474,6 @@ int main(int argc, char* argv[]) {
  capture.set(CAP_PROP_FRAME_WIDTH, width);
  capture.set(CAP_PROP_FRAME_HEIGHT, height);
  capture.set(CAP_PROP_FPS, fps);
- capture.set(CAP_PROP_FORMAT, CV_8UC3);
  while(run) {
   capture.read(image);
 
