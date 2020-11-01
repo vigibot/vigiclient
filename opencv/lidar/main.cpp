@@ -427,8 +427,12 @@ int main(int argc, char* argv[]) {
   putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
   putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
 
-  //for(int i = 0; i < pointsMap.size(); i++)
-   //line(image, pointCenter, pointCenter + pointsMap[i] / 10, Scalar::all(64), 1, LINE_AA);
+  /*for(int i = 0; i < pointsMap.size(); i++) {
+   Point point = pointsMap[i];
+   point.x /= 10;
+   point.y /= -10;
+   line(image, pointCenter, pointCenter + point, Scalar::all(64), 1, LINE_AA);
+  }*/
 
   for(int i = 0; i < lines.size(); i++) {
    Point point1 = (lines[i][0] + lines[i][1]) / 2;

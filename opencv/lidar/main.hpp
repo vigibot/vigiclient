@@ -24,9 +24,9 @@
 #define ROBOTYMIN (-ROBOTHEIGHT / 2)
 #define ROBOTYMAX (ROBOTHEIGHT / 2)
 
-#define EPSILON 30.0
-#define NBPOINTSMIN 4
-#define SQDISTMAX 30000
+#define EPSILON 60.0
+#define NBPOINTSMIN 6
+#define SQDISTMAX (200 * 200)
 
 typedef struct PointPolar {
  int distance;
