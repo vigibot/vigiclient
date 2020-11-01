@@ -2,18 +2,26 @@
 #define HEIGHT 480
 #define FPS 30
 
-#define NBITERATIONSSYNCHRO 3
-#define NBMESURESCABINES 32
+#define LIDARPORT "/dev/serial0"
+
+#define LDLIDAR
+#define LIDARRATE 230400
+#define NBMEASURESPACK 12
+
+//#define RPLIDAR
+//#define LIDARRATE 115200
+#define NBSYNC 3
+#define NBMEASURESCABIN 32
 #define UNTOURQ6 (360 << 6)
 
 #define LIDARX 0
 #define LIDARY 0
-#define ROBOTWIDTH 300
-#define ROBOTHEIGHT 300
+#define ROBOTWIDTH 10
+#define ROBOTHEIGHT 10
 
-#define ROBOTXMIN -(ROBOTWIDTH / 2)
+#define ROBOTXMIN (-ROBOTWIDTH / 2)
 #define ROBOTXMAX (ROBOTWIDTH / 2)
-#define ROBOTYMIN -(ROBOTHEIGHT / 2)
+#define ROBOTYMIN (-ROBOTHEIGHT / 2)
 #define ROBOTYMAX (ROBOTHEIGHT / 2)
 
 #define EPSILON 30.0

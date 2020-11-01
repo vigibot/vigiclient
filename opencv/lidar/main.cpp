@@ -46,24 +46,137 @@ void imuThread() {
  }
 }
 
-bool readRpLidar(int ld, vector<PointPolar> &pointsOut) {
+#ifdef LDLIDAR
+bool readLidar(int ld, vector<PointPolar> &pointsOut) {
+ uint8_t current;
+ static uint8_t n = 0;
+ static uint8_t o = 0;
+ static uint8_t p = 0;
+ static uint16_t motorSpeed;
+ static uint16_t startAngle;
+ static uint16_t distances[NBMEASURESPACK];
+ static uint8_t confidences[NBMEASURESPACK];
+ static uint16_t endAngle;
+ static uint16_t timestamp;
+ static vector<PointPolar> points;
+ bool done = false;
+
+ while(serialDataAvail(ld)) {
+  current = serialGetchar(ld);
+
+  switch(n) {
+
+   case 0:
+    if(current == 0x54)
+     n = 1;
+    break;
+
+   case 1:
+    if(current == 0x2c)
+     n = 2;
+    else
+     n = 0;
+    break;
+
+   case 2:
+    motorSpeed = current;
+    n = 3;
+    break;
+
+   case 3:
+    motorSpeed |= current << 8;
+    n = 4;
+    break;
+
+   case 4:
+    startAngle = current;
+    n = 5;
+    break;
+
+   case 5:
+    startAngle |= current << 8;
+    n = 6;
+    break;
+
+   default:
+    switch(o) {
+     case 0:
+      distances[p] = current;
+      o = 1;
+      break;
+     case 1:
+      distances[p] |= current << 8;
+      o = 2;
+      break;
+     case 2:
+      confidences[p] = current;
+      o = 0;
+      p++;
+      break;
+    }
+    n++;
+    break;
+
+   case 42: // 6 + NBMEASURESPACK * 3
+    endAngle = current;
+    n = 43;
+    break;
+
+   case 43: {
+    endAngle |= current << 8;
+    uint16_t diff = (endAngle + 36000 - startAngle) % 36000;
+
+    for(uint8_t i = 0; i < NBMEASURESPACK; i++) {
+     uint16_t angle = startAngle + diff * i / (NBMEASURESPACK - 1);
+     angle = angle * 65536 / 36000;
+     points.push_back({distances[i], angle});
+    }
+
+    if(points.size() >= NBMEASURESPACK * 26) {
+     pointsOut = points;
+     points.clear();
+     done = true;
+    }
+
+    n = 44;
+   } break;
+
+   case 44:
+    timestamp = current;
+    n = 45;
+    break;
+
+   case 45:
+    timestamp |= current << 8;
+    n = 46;
+    break;
+
+   case 46: // CRC
+    n = 0;
+    p = 0;
+    break;
+
+  }
+ }
+
+ return done;
+}
+#endif
+
+#ifdef RPLIDAR
+bool readLidar(int ld, vector<PointPolar> &pointsOut) {
  static uint8_t init = 0;
  uint8_t current;
  static uint8_t n = 0;
  static uint8_t checksum;
  static uint8_t sum = 0;
  static uint16_t startAngleQ6;
- bool start;
- static uint16_t diffAngleQ6;
  static uint16_t oldStartAngleQ6 = 0;
- int32_t diffAngleTotalQ6;
- int32_t angleBrutQ6;
- static int32_t oldAngleBrutQ6;
- int32_t angle;
- static uint8_t deltaAnglesQ3[NBMESURESCABINES];
- static uint16_t distances[NBMESURESCABINES];
- static uint8_t m = 0;
- static uint8_t s = 0;
+ static int32_t oldAngleBrutQ6 = 0;
+ static uint8_t deltaAnglesQ3[NBMEASURESCABIN];
+ static uint16_t distances[NBMEASURESCABIN];
+ static uint8_t o = 0;
+ static uint8_t p = 0;
  static uint16_t j = 0;
  static vector<PointPolar> points;
  bool done = false;
@@ -73,7 +186,7 @@ bool readRpLidar(int ld, vector<PointPolar> &pointsOut) {
 
   switch(n) {
 
-   case 0:                                                                             // Début de réception de l'en-tête
+   case 0:                                                   // Début de réception de l'en-tête
     if(current >> 4 == 0xA) {
      checksum = current & 0xF;
      n = 1;
@@ -94,39 +207,40 @@ bool readRpLidar(int ld, vector<PointPolar> &pointsOut) {
     n = 3;
     break;
 
-   case 3:
+   case 3: {
     sum ^= current;
     startAngleQ6 |= (current & 0x7F) << 8;
-    start = current >> 7;                                                              // Fin de réception de l'en-tête
+    bool start = current >> 7;                               // Fin de réception de l'en-tête
     if(start)
      fprintf(stderr, "Start\n");
 
-    if(init < NBITERATIONSSYNCHRO) {                                                   // Ne pas calculer pendant la synchronisation ou sans les cabines
+    if(init < NBSYNC) {                                      // Ne pas calculer pendant la synchronisation ou sans les cabines
      init++;
      n = 4;
      break;
     }
 
-    diffAngleQ6 = startAngleQ6 - oldStartAngleQ6;                                      // Calculer l'angle entre deux mesures de référence
+    uint16_t diffAngleQ6 = startAngleQ6 - oldStartAngleQ6;   // Calculer l'angle entre deux mesures de référence
     if(oldStartAngleQ6 > startAngleQ6)
      diffAngleQ6 += UNTOURQ6;
 
-    diffAngleTotalQ6 = 0;
-    for(uint8_t i = 0; i < NBMESURESCABINES; i++) {
+    int32_t diffAngleTotalQ6 = 0;
+    for(uint8_t i = 0; i < NBMEASURESCABIN; i++) {
 
-     angleBrutQ6 = (oldStartAngleQ6 + diffAngleTotalQ6 / NBMESURESCABINES) % UNTOURQ6; // Calculer l'angle non compensé
+     // Calculer l'angle non compensé
+     int32_t angleBrutQ6 = (oldStartAngleQ6 + diffAngleTotalQ6 / NBMEASURESCABIN) % UNTOURQ6;
      diffAngleTotalQ6 += diffAngleQ6;
 
-     if(oldAngleBrutQ6 > angleBrutQ6) {                                                // Détection du passage par zéro de l'angle non compensé
+     if(oldAngleBrutQ6 > angleBrutQ6) {                      // Détection du passage par zéro de l'angle non compensé
       pointsOut = points;
       points.clear();
       done = true;
      }
      oldAngleBrutQ6 = angleBrutQ6;
 
-     if(distances[i]) {                                                                // Si la lecture est valide et si il reste de la place dans les tableaux
-      angle = angleBrutQ6 - (deltaAnglesQ3[i] << 3);                                   // Calculer l'angle compensé
-      angle = angle * 65536 / UNTOURQ6;                                                // Remise à l'échelle de l'angle
+     if(distances[i]) {                                      // Si la lecture est valide et si il reste de la place dans les tableaux
+      int32_t angle = angleBrutQ6 - (deltaAnglesQ3[i] << 3); // Calculer l'angle compensé
+      angle = angle * 65536 / UNTOURQ6;                      // Remise à l'échelle de l'angle
       points.push_back({distances[i], uint16_t(angle)});
      }
 
@@ -134,42 +248,42 @@ bool readRpLidar(int ld, vector<PointPolar> &pointsOut) {
     oldStartAngleQ6 = startAngleQ6;
 
     n = 4;
-    break;
+   } break;
 
-   default:                                                                            // Début de réception des cabines
+   default:                                                  // Début de réception des cabines
     sum ^= current;
-    switch(m) {
+    switch(o) {
      case 0:
-      deltaAnglesQ3[s] = (current & 0b11) << 4;
-      distances[s] = current >> 2;
-      m = 1;
+      deltaAnglesQ3[p] = (current & 0b11) << 4;
+      distances[p] = current >> 2;
+      o = 1;
       break;
      case 1:
-      distances[s] |= current << 6;
-      m = 2;
+      distances[p] |= current << 6;
+      o = 2;
       break;
      case 2:
-      deltaAnglesQ3[s + 1] = (current & 0b11) << 4;
-      distances[s + 1] = current >> 2;
-      m = 3;
+      deltaAnglesQ3[p + 1] = (current & 0b11) << 4;
+      distances[p + 1] = current >> 2;
+      o = 3;
       break;
      case 3:
-      distances[s + 1] |= current << 6;
-      m = 4;
+      distances[p + 1] |= current << 6;
+      o = 4;
       break;
      case 4:
-      deltaAnglesQ3[s] |= current & 0b1111;
-      deltaAnglesQ3[s + 1] |= current >> 4;
-      m = 0;
-      s += 2;
-      if(s == NBMESURESCABINES) {
+      deltaAnglesQ3[p] |= current & 0b1111;
+      deltaAnglesQ3[p + 1] |= current >> 4;
+      o = 0;
+      p += 2;
+      if(p == NBMEASURESCABIN) {
        if(sum != checksum) {
-        if(init == NBITERATIONSSYNCHRO)
+        if(init == NBSYNC)
          fprintf(stderr, "Checksum\n");
-        init = NBITERATIONSSYNCHRO - 1;                                                // Ne pas faire les calculs pour ces cabines
+        init = NBSYNC - 1;                                   // Ne pas faire les calculs pour ces cabines
        }
        n = 0;
-       s = 0;
+       p = 0;
        sum = 0;
       }
       break;
@@ -181,6 +295,7 @@ bool readRpLidar(int ld, vector<PointPolar> &pointsOut) {
 
  return done;
 }
+#endif
 
 void extractLines(vector<Point> &pointsIn, vector<vector<Point>> &lines) {
  vector<Point> pointsDp;
@@ -251,7 +366,7 @@ int main(int argc, char* argv[]) {
   return 1;
  }
 
- int ld = serialOpen("/dev/serial0", 115200);
+ int ld = serialOpen(LIDARPORT, LIDARRATE);
  if(ld == -1) {
   fprintf(stderr, "Error opening serial port\n");
   return 1;
@@ -291,13 +406,13 @@ int main(int argc, char* argv[]) {
  capture.set(CAP_PROP_FRAME_WIDTH, width);
  capture.set(CAP_PROP_FRAME_HEIGHT, height);
  capture.set(CAP_PROP_FPS, fps);
- capture.set(CAP_PROP_FORMAT, CV_8UC3);
  while(run) {
   capture.read(image);
+  //image = Mat::zeros(Size(width, height), CV_8UC3);
 
   bool updated = readModem(fd, remoteFrame);
 
-  if(readRpLidar(ld, pointsPolar)) {
+  if(readLidar(ld, pointsPolar)) {
    pointsRobot.clear();
    pointsMap.clear();
    lines.clear();
@@ -312,12 +427,18 @@ int main(int argc, char* argv[]) {
   putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
   putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
 
-  for(int i = 0; i < pointsMap.size(); i++)
-   line(image, pointCenter, pointCenter + pointsMap[i] / 10, Scalar::all(64), 1, LINE_AA);
+  //for(int i = 0; i < pointsMap.size(); i++)
+   //line(image, pointCenter, pointCenter + pointsMap[i] / 10, Scalar::all(64), 1, LINE_AA);
 
   for(int i = 0; i < lines.size(); i++) {
-   Point point1 = pointCenter + (lines[i][0] + lines[i][1]) / 20;
-   Point point2 = pointCenter + (lines[i][lines[i].size() - 1] + lines[i][lines[i].size() - 2]) / 20;
+   Point point1 = (lines[i][0] + lines[i][1]) / 2;
+   Point point2 = (lines[i][lines[i].size() - 1] + lines[i][lines[i].size() - 2]) / 2;
+   point1.x /= 10;
+   point2.x /= 10;
+   point1.y /= -10;
+   point2.y /= -10;
+   point1 += pointCenter;
+   point2 += pointCenter;
    line(image, point1, point2, Scalar::all(255), 1, LINE_AA);
   }
 
