@@ -2,6 +2,8 @@
 #define HEIGHT 480
 #define FPS 30
 
+#define DIRZ -1
+
 #define LIDARPORT "/dev/serial0"
 
 #define LDLIDAR
@@ -24,9 +26,9 @@
 #define ROBOTYMIN (-ROBOTHEIGHT / 2)
 #define ROBOTYMAX (ROBOTHEIGHT / 2)
 
-#define EPSILON 60.0
-#define NBPOINTSMIN 6
-#define SQDISTMAX (200 * 200)
+#define EPSILON 30.0
+#define NBPOINTSMIN 4
+#define SQDISTMAX (150 * 150)
 
 typedef struct PointPolar {
  int distance;

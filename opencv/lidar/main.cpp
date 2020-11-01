@@ -372,6 +372,7 @@ int main(int argc, char* argv[]) {
   return 1;
  }
 
+#ifdef RPLIDAR
  serialPutchar(ld, 0xa5);
  serialPutchar(ld, 0x82);
  serialPutchar(ld, 0x05);
@@ -381,6 +382,7 @@ int main(int argc, char* argv[]) {
  serialPutchar(ld, 0x00);
  serialPutchar(ld, 0x00);
  serialPutchar(ld, 0x22);
+#endif
 
  thread imuThr(imuThread);
 
@@ -392,14 +394,12 @@ int main(int argc, char* argv[]) {
  telemetryFrame.header[2] = ' ';
  telemetryFrame.header[3] = ' ';
 
- Point pointOdometry = Point(0, 0);
- uint16_t theta;
-
  Point pointCenter = Point(width / 2, height / 2);
  vector<PointPolar> pointsPolar;
  vector<Point> pointsRobot;
  vector<Point> pointsMap;
- vector<vector<Point>> lines;
+ vector<vector<Point>> linesRobot;
+ vector<vector<Point>> linesMap;
 
  VideoCapture capture;
  capture.open(0);
@@ -415,32 +415,43 @@ int main(int argc, char* argv[]) {
   if(readLidar(ld, pointsPolar)) {
    pointsRobot.clear();
    pointsMap.clear();
-   lines.clear();
+   linesRobot.clear();
+   linesMap.clear();
 
    lidarToRobot(pointsPolar, pointsRobot);
+   extractLines(pointsRobot, linesRobot);
+
+   Point pointOdometry = Point(0, 0); // TODO
+
+   uint16_t theta = int(imuData.fusionPose.z() * double(PI16) / M_PI) * DIRZ;
    robotToMap(pointsRobot, pointsMap, pointOdometry, theta);
-   extractLines(pointsMap, lines);
+   extractLines(pointsMap, linesMap);
+
+   // TODO
   }
 
   char text[80];
-  sprintf(text, "%d %d", pointsMap.size(), lines.size());
+  sprintf(text, "%d %d", pointsRobot.size(), linesRobot.size());
   putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
   putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
 
-  /*for(int i = 0; i < pointsMap.size(); i++) {
-   Point point = pointsMap[i];
-   point.x /= 10;
-   point.y /= -10;
-   line(image, pointCenter, pointCenter + point, Scalar::all(64), 1, LINE_AA);
-  }*/
+  uint8_t zoom = 5;
 
-  for(int i = 0; i < lines.size(); i++) {
-   Point point1 = (lines[i][0] + lines[i][1]) / 2;
-   Point point2 = (lines[i][lines[i].size() - 1] + lines[i][lines[i].size() - 2]) / 2;
-   point1.x /= 10;
-   point2.x /= 10;
-   point1.y /= -10;
-   point2.y /= -10;
+  for(int i = 0; i < pointsRobot.size(); i++) {
+   Point point = pointsRobot[i];
+   point.x /= zoom;
+   point.y /= -zoom;
+   //line(image, pointCenter, pointCenter + point, Scalar::all(64), 1, LINE_AA);
+   circle(image, pointCenter + point, 1, Scalar::all(128), 1, LINE_AA);
+  }
+
+  for(int i = 0; i < linesRobot.size(); i++) {
+   Point point1 = (linesRobot[i][0] + linesRobot[i][1]) / 2;
+   Point point2 = (linesRobot[i][linesRobot[i].size() - 1] + linesRobot[i][linesRobot[i].size() - 2]) / 2;
+   point1.x /= zoom;
+   point2.x /= zoom;
+   point1.y /= -zoom;
+   point2.y /= -zoom;
    point1 += pointCenter;
    point2 += pointCenter;
    line(image, point1, point2, Scalar::all(255), 1, LINE_AA);
@@ -463,7 +474,10 @@ int main(int argc, char* argv[]) {
   fwrite(image.data, size, 1, stdout);
  }
 
+#ifdef RPLIDAR
  serialPutchar(ld, 0xa5);
  serialPutchar(ld, 0x25);
+#endif
+
  return 0;
 }
