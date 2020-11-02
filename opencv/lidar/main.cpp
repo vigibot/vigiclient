@@ -107,7 +107,7 @@ void drawPoints(Mat &image, vector<Point> &pointsIn, int mapDiv, bool beams) {
   point.y /= -mapDiv;
   if(beams)
    line(image, pointCenter, pointCenter + point, Scalar::all(i ? 64 : 255), 1, LINE_AA);
-  circle(image, pointCenter + point, 1, Scalar::all(128), 1, LINE_AA);
+  circle(image, pointCenter + point, i ? 1 : 3, Scalar::all(i ? 128 : 255), 1, LINE_AA);
  }
 }
 
@@ -128,8 +128,8 @@ void drawLines(Mat &image, vector<vector<Point>> &linesIn, int mapDiv) {
 }
 
 void ui(Mat &image, vector<Point> &pointsRobot,
-                    vector<Point> &pointsMap,
                     vector<vector<Point>> &linesRobot,
+                    vector<Point> &pointsMap,
                     vector<vector<Point>> &linesMap) {
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -173,19 +173,19 @@ void ui(Mat &image, vector<Point> &pointsRobot,
  if(select == SELECTNONE)
   return;
 
- if(select == SELECTROBOTBEAM) {
-  char text[80];
-  sprintf(text, "mapDiv %d", mapDiv);
-  putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1 + tune);
-  putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1 + tune);
- }
-
  if(select == SELECTMAP) {
   drawPoints(image, pointsMap, mapDiv, false);
   drawLines(image, linesMap, mapDiv);
  } else {
   drawPoints(image, pointsRobot, mapDiv, select == SELECTROBOTBEAM);
   drawLines(image, linesRobot, mapDiv);
+ }
+
+ if(select == SELECTROBOTBEAM) {
+  char text[80];
+  sprintf(text, "%d mm per pixel", mapDiv);
+  putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1 + tune);
+  putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1 + tune);
  }
 }
 
@@ -262,7 +262,7 @@ int main(int argc, char* argv[]) {
    extractLines(pointsMap, linesMap);
   }
 
-  ui(image, pointsRobot, pointsMap, linesRobot, linesMap);
+  ui(image, pointsRobot, linesRobot, pointsMap, linesMap);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {

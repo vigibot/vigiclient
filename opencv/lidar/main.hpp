@@ -18,8 +18,8 @@
 #define NBPOINTSMIN 4
 #define SQDISTMAX (80 * 80)
 
-#define MAPDIVMIN 1
-#define MAPDIVMAX 20
+#define MAPDIVMIN 5
+#define MAPDIVMAX 50
 
 enum {
  SELECTNONE,
