@@ -189,9 +189,7 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
    case 3: {
     sum ^= current;
     startAngleQ6 |= (current & 0x7F) << 8;
-    bool start = current >> 7;                               // Fin de réception de l'en-tête
-    if(start)
-     fprintf(stderr, "Start\n");
+    //bool start = current >> 7;                             // Fin de réception de l'en-tête
 
     if(init < NBSYNC) {                                      // Ne pas calculer pendant la synchronisation ou sans les cabines
      init++;
@@ -256,11 +254,8 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
       o = 0;
       p += 2;
       if(p == NBMEASURESCABIN) {
-       if(sum != checksum) {
-        if(init == NBSYNC)
-         fprintf(stderr, "Checksum\n");
+       if(sum != checksum)
         init = NBSYNC - 1;                                   // Ne pas faire les calculs pour ces cabines
-       }
        n = 0;
        p = 0;
        sum = 0;
