@@ -21,8 +21,7 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
  static uint16_t endAngle;
  static uint16_t timestamp;
  static uint8_t crc = 0;
- static uint16_t bads = 0;
- static std::vector<PointPolar> points;
+ static uint8_t packs = 0;
  bool done = false;
 
  while(serialDataAvail(ld)) {
@@ -105,30 +104,25 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
     break;
 
    case 46:
-    if(current != crc)
-     bads += NBMEASURESPACK;
-
-    else {
+    if(current == crc) {
      uint16_t diff = (endAngle + 36000 - startAngle) % 36000;
 
      for(uint8_t i = 0; i < NBMEASURESPACK; i++) {
-      if(confidences[i] < CONFIDENCEMIN) {
-       bads++;
+      if(confidences[i] < CONFIDENCEMIN)
        continue;
-      }
 
       uint16_t angle = startAngle + diff * i / (NBMEASURESPACK - 1);
       angle = angle * 65536 / 36000;
-      points.push_back({distances[i], angle});
+      pointsOut.push_back({distances[i], angle});
      }
     }
 
-    if(points.size() >= NBMEASURESPACK * 26 - bads) {
-     pointsOut = points;
-     points.clear();
-     bads = 0;
+    if(packs == 26) {
+     packs = 0;
+     pointsOut.clear();
      done = true;
     }
+    packs++;
 
     n = 0;
     p = 0;
@@ -174,7 +168,6 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
  static uint8_t o = 0;
  static uint8_t p = 0;
  static uint16_t j = 0;
- static std::vector<PointPolar> points;
  bool done = false;
 
  while(serialDataAvail(ld)) {
@@ -225,17 +218,14 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
      int32_t angleBrutQ6 = (oldStartAngleQ6 + diffAngleTotalQ6 / NBMEASURESCABIN) % FULLTURNQ6;
      diffAngleTotalQ6 += diffAngleQ6;
 
-     if(oldAngleBrutQ6 > angleBrutQ6 && points.size()) {     // Détection du passage par zéro de l'angle non compensé
-      pointsOut = points;
-      points.clear();
+     if(oldAngleBrutQ6 > angleBrutQ6 && points.size())       // Détection du passage par zéro de l'angle non compensé
       done = true;
-     }
      oldAngleBrutQ6 = angleBrutQ6;
 
      if(distances[i]) {                                      // Si la lecture est valide et si il reste de la place dans les tableaux
       int32_t angle = angleBrutQ6 - (deltaAnglesQ3[i] << 3); // Calculer l'angle compensé
       angle = angle * 65536 / FULLTURNQ6;                    // Remise à l'échelle de l'angle
-      points.push_back({distances[i], uint16_t(angle)});
+      pointsOut.push_back({distances[i], uint16_t(angle)});
      }
 
     }
