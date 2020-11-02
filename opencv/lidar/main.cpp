@@ -233,8 +233,8 @@ int main(int argc, char* argv[]) {
  uint16_t theta;
  vector<PointPolar> pointsPolar;
  vector<Point> pointsRobot;
- vector<Point> pointsMap;
  vector<vector<Point>> linesRobot;
+ vector<Point> pointsMap;
  vector<vector<Point>> linesMap;
 
  VideoCapture capture;
@@ -256,8 +256,8 @@ int main(int argc, char* argv[]) {
 
   if(readLidar(ld, pointsPolar)) {
    pointsRobot.clear();
-   pointsMap.clear();
    linesRobot.clear();
+   pointsMap.clear();
    linesMap.clear();
 
    lidarToRobot(pointsPolar, pointsRobot);

@@ -109,7 +109,7 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
      uint16_t diff = (endAngle + 36000 - startAngle) % 36000;
 
      for(uint8_t i = 0; i < NBMEASURESPACK; i++) {
-      if(confidences[i] < CONFIDENCEMIN)
+      if(!distances[i] || confidences[i] < CONFIDENCEMIN)
        continue;
 
       uint16_t angle = startAngle + diff * i / (NBMEASURESPACK - 1);
@@ -119,7 +119,7 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
     }
     packs++;
 
-    if(packs == 26 && points.size()) {
+    if(packs == 26 && !points.empty()) {
      packs = 0;
      pointsOut = points;
      points.clear();
@@ -221,7 +221,7 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
      int32_t angleBrutQ6 = (oldStartAngleQ6 + diffAngleTotalQ6 / NBMEASURESCABIN) % FULLTURNQ6;
      diffAngleTotalQ6 += diffAngleQ6;
 
-     if(oldAngleBrutQ6 > angleBrutQ6 && points.size()) {     // Détection du passage par zéro de l'angle non compensé
+     if(oldAngleBrutQ6 > angleBrutQ6 && !points.empty()) {   // Détection du passage par zéro de l'angle non compensé
       pointsOut = points;
       points.clear();
       done = true;
