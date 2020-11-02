@@ -46,7 +46,7 @@ void imuThread() {
  }
 }
 
-void extractLines(vector<Point> &pointsIn, vector<vector<Point>> &lines) {
+void extractLines(vector<Point> &pointsIn, vector<vector<Point>> &linesOut) {
  vector<Point> pointsDp;
  vector<Point> pointsNoDp;
  Point oldPoint;
@@ -70,7 +70,7 @@ void extractLines(vector<Point> &pointsIn, vector<vector<Point>> &lines) {
 
   if(dp || sqDist > SQDISTMAX) {
    if(pointsNoDp.size() >= NBPOINTSMIN && i > pointsNoDp.size() + 1) {
-    lines.push_back(pointsNoDp);
+    linesOut.push_back(pointsNoDp);
     if(i > ii)
      break;
    }
@@ -96,6 +96,97 @@ void robotToMap(vector<Point> &pointsIn, vector<Point> &pointsOut, Point pointOd
  for(int i = 0; i < pointsIn.size(); i++)
   pointsOut.push_back(Point(pointOdometry.x + (pointsIn[i].x * cos16(theta) - pointsIn[i].y * sin16(theta)) / UN16,
                             pointOdometry.y + (pointsIn[i].x * sin16(theta) + pointsIn[i].y * cos16(theta)) / UN16));
+}
+
+void drawPoints(Mat &image, vector<Point> &pointsIn, int mapDiv, bool beams) {
+ Point pointCenter = Point(width / 2, height / 2);
+
+ for(int i = 0; i < pointsIn.size(); i++) {
+  Point point = pointsIn[i];
+  point.x /= mapDiv;
+  point.y /= -mapDiv;
+  if(beams)
+   line(image, pointCenter, pointCenter + point, Scalar::all(i ? 64 : 255), 1, LINE_AA);
+  circle(image, pointCenter + point, 1, Scalar::all(128), 1, LINE_AA);
+ }
+}
+
+void drawLines(Mat &image, vector<vector<Point>> &linesIn, int mapDiv) {
+ Point pointCenter = Point(width / 2, height / 2);
+
+ for(int i = 0; i < linesIn.size(); i++) {
+  Point point1 = (linesIn[i][0] + linesIn[i][1]) / 2;
+  Point point2 = (linesIn[i][linesIn[i].size() - 1] + linesIn[i][linesIn[i].size() - 2]) / 2;
+  point1.x /= mapDiv;
+  point2.x /= mapDiv;
+  point1.y /= -mapDiv;
+  point2.y /= -mapDiv;
+  point1 += pointCenter;
+  point2 += pointCenter;
+  line(image, point1, point2, Scalar::all(255), 1, LINE_AA);
+ }
+}
+
+void ui(Mat &image, vector<Point> &pointsRobot,
+                    vector<Point> &pointsMap,
+                    vector<vector<Point>> &linesRobot,
+                    vector<vector<Point>> &linesMap) {
+ bool buttonLess = remoteFrame.switchs & 0b00010000;
+ bool buttonMore = remoteFrame.switchs & 0b00100000;
+ bool buttonOk = remoteFrame.switchs & 0b10000000;
+ static bool oldButtonLess = false;
+ static bool oldButtonMore = false;
+ static bool oldButtonOk = false;
+ static bool tune = false;
+ static int select = 1;
+ static int mapDiv = 5;
+
+ if(!tune) {
+  if(!buttonMore && oldButtonMore) {
+   if(select < SELECTMAP)
+    select++;
+   else
+    select = SELECTNONE;
+  } else if(!buttonLess && oldButtonLess) {
+   if(select > SELECTNONE)
+    select--;
+   else
+    select = SELECTMAP;
+  }
+ }
+
+ if(select == SELECTROBOTBEAM) {
+  if(!buttonOk && oldButtonOk)
+   tune = !tune;
+
+  if(tune) {
+   if(buttonLess && mapDiv < MAPDIVMAX)
+    mapDiv++;
+   else if(buttonMore && mapDiv > MAPDIVMIN)
+    mapDiv--;
+  }
+ }
+ oldButtonLess = buttonLess;
+ oldButtonMore = buttonMore;
+ oldButtonOk = buttonOk;
+
+ if(select == SELECTNONE)
+  return;
+
+ if(select == SELECTROBOTBEAM) {
+  char text[80];
+  sprintf(text, "mapDiv %d", mapDiv);
+  putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1 + tune);
+  putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1 + tune);
+ }
+
+ if(select == SELECTMAP) {
+  drawPoints(image, pointsMap, mapDiv, false);
+  drawLines(image, linesMap, mapDiv);
+ } else {
+  drawPoints(image, pointsRobot, mapDiv, select == SELECTROBOTBEAM);
+  drawLines(image, linesRobot, mapDiv);
+ }
 }
 
 int main(int argc, char* argv[]) {
@@ -133,7 +224,8 @@ int main(int argc, char* argv[]) {
  telemetryFrame.header[2] = ' ';
  telemetryFrame.header[3] = ' ';
 
- Point pointCenter = Point(width / 2, height / 2);
+ Point pointOdometry;
+ uint16_t theta;
  vector<PointPolar> pointsPolar;
  vector<Point> pointsRobot;
  vector<Point> pointsMap;
@@ -151,6 +243,12 @@ int main(int argc, char* argv[]) {
 
   bool updated = readModem(fd, remoteFrame);
 
+  if(updated) {
+   pointOdometry.x = 0;
+   pointOdometry.y = 0;
+   theta = int(imuData.fusionPose.z() * double(PI16) / M_PI) * DIRZ;
+  }
+
   if(readLidar(ld, pointsPolar)) {
    pointsRobot.clear();
    pointsMap.clear();
@@ -160,41 +258,11 @@ int main(int argc, char* argv[]) {
    lidarToRobot(pointsPolar, pointsRobot);
    extractLines(pointsRobot, linesRobot);
 
-   Point pointOdometry = Point(0, 0); // TODO
-
-   uint16_t theta = int(imuData.fusionPose.z() * double(PI16) / M_PI) * DIRZ;
    robotToMap(pointsRobot, pointsMap, pointOdometry, theta);
    extractLines(pointsMap, linesMap);
-
-   // TODO
   }
 
-  char text[80];
-  sprintf(text, "%d %d", pointsRobot.size(), linesRobot.size());
-  putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
-  putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
-
-  uint8_t zoom = 5;
-
-  for(int i = 0; i < pointsRobot.size(); i++) {
-   Point point = pointsRobot[i];
-   point.x /= zoom;
-   point.y /= -zoom;
-   //line(image, pointCenter, pointCenter + point, Scalar::all(64), 1, LINE_AA);
-   circle(image, pointCenter + point, 1, Scalar::all(128), 1, LINE_AA);
-  }
-
-  for(int i = 0; i < linesRobot.size(); i++) {
-   Point point1 = (linesRobot[i][0] + linesRobot[i][1]) / 2;
-   Point point2 = (linesRobot[i][linesRobot[i].size() - 1] + linesRobot[i][linesRobot[i].size() - 2]) / 2;
-   point1.x /= zoom;
-   point2.x /= zoom;
-   point1.y /= -zoom;
-   point2.y /= -zoom;
-   point1 += pointCenter;
-   point2 += pointCenter;
-   line(image, point1, point2, Scalar::all(255), 1, LINE_AA);
-  }
+  ui(image, pointsRobot, pointsMap, linesRobot, linesMap);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {

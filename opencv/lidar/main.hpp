@@ -18,6 +18,16 @@
 #define NBPOINTSMIN 4
 #define SQDISTMAX (80 * 80)
 
+#define MAPDIVMIN 1
+#define MAPDIVMAX 20
+
+enum {
+ SELECTNONE,
+ SELECTROBOT,
+ SELECTROBOTBEAM,
+ SELECTMAP
+};
+
 int width;
 int height;
 int fps;
