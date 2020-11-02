@@ -5,12 +5,13 @@
 #define LDLIDAR
 #define LIDARRATE 230400
 #define NBMEASURESPACK 12
+#define CONFIDENCEMIN 10
 
 //#define RPLIDAR
 //#define LIDARRATE 115200
-//#define NBSYNC 3
+//#define NBINITS 3
 //#define NBMEASURESCABIN 32
-//#define UNTOURQ6 (360 << 6)
+//#define FULLTURNQ6 (360 << 6)
 
 const uint8_t LDCRC[] = {
  0x00, 0x4d, 0x9a, 0xd7, 0x79, 0x34, 0xe3, 0xae,

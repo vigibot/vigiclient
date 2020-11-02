@@ -20,15 +20,16 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
  static uint8_t confidences[NBMEASURESPACK];
  static uint16_t endAngle;
  static uint16_t timestamp;
- //static uint8_t crc = 0;
+ static uint8_t crc = 0;
+ static uint16_t bads = 0;
  static std::vector<PointPolar> points;
  bool done = false;
 
  while(serialDataAvail(ld)) {
   current = serialGetchar(ld);
 
-  //if(n < 46)
-   //crc = LDCRC[crc ^ current];
+  if(n < 46)
+   crc = LDCRC[crc ^ current];
 
   switch(n) {
 
@@ -104,25 +105,34 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
     break;
 
    case 46:
-    //if(current != crc)
+    if(current != crc)
+     bads += NBMEASURESPACK;
 
-    uint16_t diff = (endAngle + 36000 - startAngle) % 36000;
+    else {
+     uint16_t diff = (endAngle + 36000 - startAngle) % 36000;
 
-    for(uint8_t i = 0; i < NBMEASURESPACK; i++) {
-     uint16_t angle = startAngle + diff * i / (NBMEASURESPACK - 1);
-     angle = angle * 65536 / 36000;
-     points.push_back({distances[i], angle});
+     for(uint8_t i = 0; i < NBMEASURESPACK; i++) {
+      if(confidences[i] < CONFIDENCEMIN) {
+       bads++;
+       continue;
+      }
+
+      uint16_t angle = startAngle + diff * i / (NBMEASURESPACK - 1);
+      angle = angle * 65536 / 36000;
+      points.push_back({distances[i], angle});
+     }
     }
 
-    if(points.size() >= NBMEASURESPACK * 26) {
+    if(points.size() >= NBMEASURESPACK * 26 - bads) {
      pointsOut = points;
      points.clear();
+     bads = 0;
      done = true;
     }
 
-    //crc = 0;
     n = 0;
     p = 0;
+    crc = 0;
     break;
 
   }
@@ -198,7 +208,7 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
     startAngleQ6 |= (current & 0x7F) << 8;
     //bool start = current >> 7;                             // Fin de réception de l'en-tête
 
-    if(init < NBSYNC) {                                      // Ne pas calculer pendant la synchronisation ou sans les cabines
+    if(init < NBINITS) {                                     // Ne pas calculer pendant la synchronisation ou sans les cabines
      init++;
      n = 4;
      break;
@@ -206,16 +216,16 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
 
     uint16_t diffAngleQ6 = startAngleQ6 - oldStartAngleQ6;   // Calculer l'angle entre deux mesures de référence
     if(oldStartAngleQ6 > startAngleQ6)
-     diffAngleQ6 += UNTOURQ6;
+     diffAngleQ6 += FULLTURNQ6;
 
     int32_t diffAngleTotalQ6 = 0;
     for(uint8_t i = 0; i < NBMEASURESCABIN; i++) {
 
      // Calculer l'angle non compensé
-     int32_t angleBrutQ6 = (oldStartAngleQ6 + diffAngleTotalQ6 / NBMEASURESCABIN) % UNTOURQ6;
+     int32_t angleBrutQ6 = (oldStartAngleQ6 + diffAngleTotalQ6 / NBMEASURESCABIN) % FULLTURNQ6;
      diffAngleTotalQ6 += diffAngleQ6;
 
-     if(oldAngleBrutQ6 > angleBrutQ6) {                      // Détection du passage par zéro de l'angle non compensé
+     if(oldAngleBrutQ6 > angleBrutQ6 && points.size()) {     // Détection du passage par zéro de l'angle non compensé
       pointsOut = points;
       points.clear();
       done = true;
@@ -224,7 +234,7 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
 
      if(distances[i]) {                                      // Si la lecture est valide et si il reste de la place dans les tableaux
       int32_t angle = angleBrutQ6 - (deltaAnglesQ3[i] << 3); // Calculer l'angle compensé
-      angle = angle * 65536 / UNTOURQ6;                      // Remise à l'échelle de l'angle
+      angle = angle * 65536 / FULLTURNQ6;                    // Remise à l'échelle de l'angle
       points.push_back({distances[i], uint16_t(angle)});
      }
 
@@ -262,7 +272,7 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
       p += 2;
       if(p == NBMEASURESCABIN) {
        if(sum != checksum)
-        init = NBSYNC - 1;                                   // Ne pas faire les calculs pour ces cabines
+        init = NBINITS - 1;                                  // Ne pas faire les calculs pour ces cabines
        n = 0;
        p = 0;
        sum = 0;

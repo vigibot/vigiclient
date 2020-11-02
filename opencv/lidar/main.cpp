@@ -83,8 +83,8 @@ void extractLines(vector<Point> &pointsIn, vector<vector<Point>> &linesOut) {
 
 void lidarToRobot(vector<PointPolar> &pointsIn, vector<Point> &pointsOut) {
  for(int i = 0; i < pointsIn.size(); i++) {
-  int x = LIDARX + pointsIn[i].distance * sin16(pointsIn[i].theta) / UN16;
-  int y = LIDARY + pointsIn[i].distance * cos16(pointsIn[i].theta) / UN16;
+  int x = LIDARX + pointsIn[i].distance * sin16(pointsIn[i].theta) / ONE16;
+  int y = LIDARY + pointsIn[i].distance * cos16(pointsIn[i].theta) / ONE16;
 
   if(x > ROBOTXMAX || x < ROBOTXMIN ||
      y > ROBOTYMAX || y < ROBOTYMIN)
@@ -94,8 +94,8 @@ void lidarToRobot(vector<PointPolar> &pointsIn, vector<Point> &pointsOut) {
 
 void robotToMap(vector<Point> &pointsIn, vector<Point> &pointsOut, Point pointOdometry, uint16_t theta) {
  for(int i = 0; i < pointsIn.size(); i++)
-  pointsOut.push_back(Point(pointOdometry.x + (pointsIn[i].x * cos16(theta) - pointsIn[i].y * sin16(theta)) / UN16,
-                            pointOdometry.y + (pointsIn[i].x * sin16(theta) + pointsIn[i].y * cos16(theta)) / UN16));
+  pointsOut.push_back(Point(pointOdometry.x + (pointsIn[i].x * cos16(theta) - pointsIn[i].y * sin16(theta)) / ONE16,
+                            pointOdometry.y + (pointsIn[i].x * sin16(theta) + pointsIn[i].y * cos16(theta)) / ONE16));
 }
 
 void drawPoints(Mat &image, vector<Point> &pointsIn, int mapDiv, bool beams) {
@@ -184,6 +184,11 @@ void ui(Mat &image, vector<Point> &pointsRobot,
  if(select == SELECTROBOTBEAMS) {
   char text[80];
   sprintf(text, "%d mm per pixel", mapDiv);
+  putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1 + tune);
+  putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1 + tune);
+ } else {
+  char text[80];
+  sprintf(text, "%d points %d lines", pointsRobot.size(), linesRobot.size());
   putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1 + tune);
   putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1 + tune);
  }
