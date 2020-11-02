@@ -20,11 +20,15 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
  static uint8_t confidences[NBMEASURESPACK];
  static uint16_t endAngle;
  static uint16_t timestamp;
+ //static uint8_t crc = 0;
  static std::vector<PointPolar> points;
  bool done = false;
 
  while(serialDataAvail(ld)) {
   current = serialGetchar(ld);
+
+  //if(n < 46)
+   //crc = LDCRC[crc ^ current];
 
   switch(n) {
 
@@ -86,6 +90,22 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
 
    case 43: {
     endAngle |= current << 8;
+    n = 44;
+   } break;
+
+   case 44:
+    timestamp = current;
+    n = 45;
+    break;
+
+   case 45:
+    timestamp |= current << 8;
+    n = 46;
+    break;
+
+   case 46:
+    //if(current != crc)
+
     uint16_t diff = (endAngle + 36000 - startAngle) % 36000;
 
     for(uint8_t i = 0; i < NBMEASURESPACK; i++) {
@@ -100,20 +120,7 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
      done = true;
     }
 
-    n = 44;
-   } break;
-
-   case 44:
-    timestamp = current;
-    n = 45;
-    break;
-
-   case 45:
-    timestamp |= current << 8;
-    n = 46;
-    break;
-
-   case 46: // CRC
+    //crc = 0;
     n = 0;
     p = 0;
     break;
