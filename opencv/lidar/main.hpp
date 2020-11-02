@@ -16,7 +16,7 @@
 
 #define EPSILON 30.0
 #define NBPOINTSMIN 4
-#define SQDISTMAX (150 * 150)
+#define SQDISTMAX (80 * 80)
 
 int width;
 int height;
