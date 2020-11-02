@@ -138,8 +138,8 @@ void ui(Mat &image, vector<Point> &pointsRobot,
  static bool oldButtonMore = false;
  static bool oldButtonOk = false;
  static bool tune = false;
- static int select = 1;
- static int mapDiv = 5;
+ static int select = SELECTROBOT;
+ static int mapDiv = MAPDIVMIN;
 
  if(!tune) {
   if(!buttonMore && oldButtonMore) {
@@ -155,7 +155,7 @@ void ui(Mat &image, vector<Point> &pointsRobot,
   }
  }
 
- if(select == SELECTROBOTBEAM) {
+ if(select == SELECTROBOTBEAMS) {
   if(!buttonOk && oldButtonOk)
    tune = !tune;
 
@@ -177,11 +177,11 @@ void ui(Mat &image, vector<Point> &pointsRobot,
   drawPoints(image, pointsMap, mapDiv, false);
   drawLines(image, linesMap, mapDiv);
  } else {
-  drawPoints(image, pointsRobot, mapDiv, select == SELECTROBOTBEAM);
+  drawPoints(image, pointsRobot, mapDiv, select == SELECTROBOTBEAMS);
   drawLines(image, linesRobot, mapDiv);
  }
 
- if(select == SELECTROBOTBEAM) {
+ if(select == SELECTROBOTBEAMS) {
   char text[80];
   sprintf(text, "%d mm per pixel", mapDiv);
   putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1 + tune);
