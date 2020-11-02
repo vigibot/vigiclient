@@ -7,6 +7,8 @@ trace() {
  echo "$(date "+%d/%m/%Y %H:%M:%S") $1"
 }
 
+trace "Starting C++ compilation"
+
 for d in *
 do
  main="$d/main.cpp"
@@ -58,3 +60,5 @@ do
  -lpthread \
  -lRTIMULib || true
 done
+
+trace "Ending C++ compilation"
