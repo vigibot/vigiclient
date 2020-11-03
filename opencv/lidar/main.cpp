@@ -215,8 +215,9 @@ void ui(Mat &image, vector<Point> &pointsRobot, vector<vector<Point>> &linesRobo
 
 void odometry(Point &pointOdometry, uint16_t &theta) {
  theta = int(imuData.fusionPose.z() * double(PI16) / M_PI) * DIRZ;
- pointOdometry.x += (remoteFrame.vx * cos16(theta) - remoteFrame.vy * sin16(theta)) / ONE16 / VDIV;
- pointOdometry.y += (remoteFrame.vx * sin16(theta) + remoteFrame.vy * cos16(theta)) / ONE16 / VDIV;
+ //theta += remoteFrame.vz * VZMUL;
+ pointOdometry.x += (remoteFrame.vx * cos16(theta) - remoteFrame.vy * sin16(theta)) / ONE16 / VXDIV;
+ pointOdometry.y += (remoteFrame.vx * sin16(theta) + remoteFrame.vy * cos16(theta)) / ONE16 / VYDIV;
 }
 
 int main(int argc, char* argv[]) {
@@ -254,8 +255,8 @@ int main(int argc, char* argv[]) {
  telemetryFrame.header[2] = ' ';
  telemetryFrame.header[3] = ' ';
 
- Point pointOdometry;
- uint16_t theta;
+ Point pointOdometry = Point(0, 0);
+ uint16_t theta = 0;
  vector<PointPolar> pointsPolar;
  vector<Point> pointsRobot;
  vector<vector<Point>> linesRobot;
@@ -269,6 +270,7 @@ int main(int argc, char* argv[]) {
  capture.set(CAP_PROP_FPS, fps);
  while(run) {
   capture.read(image);
+  //usleep(20000);
   //image = Mat::zeros(Size(width, height), CV_8UC3);
 
   bool updated = readModem(fd, remoteFrame);
