@@ -18,6 +18,8 @@
 #define NBPOINTSMIN 4
 #define SQDISTMAX (80 * 80)
 
+#define VDIV 10
+
 #define MAPDIVMIN 5
 #define MAPDIVMAX 50
 

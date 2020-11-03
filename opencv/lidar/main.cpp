@@ -194,6 +194,12 @@ void ui(Mat &image, vector<Point> &pointsRobot,
  }
 }
 
+void odometry(Point &pointOdometry, uint16_t &theta) {
+ theta = int(imuData.fusionPose.z() * double(PI16) / M_PI) * DIRZ;
+ pointOdometry.x += (remoteFrame.vx * cos16(theta) - remoteFrame.vy * sin16(theta)) / ONE16 / VDIV;
+ pointOdometry.y += (remoteFrame.vx * sin16(theta) + remoteFrame.vy * cos16(theta)) / ONE16 / VDIV;
+}
+
 int main(int argc, char* argv[]) {
  if(argc != 4) {
   width = WIDTH;
@@ -248,11 +254,8 @@ int main(int argc, char* argv[]) {
 
   bool updated = readModem(fd, remoteFrame);
 
-  if(updated) {
-   pointOdometry.x = 0;
-   pointOdometry.y = 0;
-   theta = int(imuData.fusionPose.z() * double(PI16) / M_PI) * DIRZ;
-  }
+  if(updated)
+   odometry(pointOdometry, theta);
 
   if(readLidar(ld, pointsPolar)) {
    pointsRobot.clear();
