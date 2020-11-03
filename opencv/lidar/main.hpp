@@ -6,13 +6,10 @@
 
 #define LIDARX 0
 #define LIDARY 0
-#define ROBOTWIDTH 10
-#define ROBOTHEIGHT 10
-
-#define ROBOTXMIN (-ROBOTWIDTH / 2)
-#define ROBOTXMAX (ROBOTWIDTH / 2)
-#define ROBOTYMIN (-ROBOTHEIGHT / 2)
-#define ROBOTYMAX (ROBOTHEIGHT / 2)
+#define LIDARXMIN -50
+#define LIDARXMAX 50
+#define LIDARYMIN -50
+#define LIDARYMAX 50
 
 #define EPSILON 30.0
 #define NBPOINTSMIN 4
@@ -28,6 +25,14 @@ enum {
  SELECTROBOT,
  SELECTROBOTBEAMS,
  SELECTMAP
+};
+
+const std::vector<cv::Point> robotIcon = {
+ cv::Point(-30, -40),
+ cv::Point{30, -40},
+ cv::Point(30, 40),
+ cv::Point(0, 60),
+ cv::Point{-30, 40}
 };
 
 int width;

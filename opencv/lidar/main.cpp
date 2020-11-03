@@ -86,8 +86,8 @@ void lidarToRobot(vector<PointPolar> &pointsIn, vector<Point> &pointsOut) {
   int x = LIDARX + pointsIn[i].distance * sin16(pointsIn[i].theta) / ONE16;
   int y = LIDARY + pointsIn[i].distance * cos16(pointsIn[i].theta) / ONE16;
 
-  if(x > ROBOTXMAX || x < ROBOTXMIN ||
-     y > ROBOTYMAX || y < ROBOTYMIN)
+  if(x > LIDARXMAX || x < LIDARXMIN ||
+     y > LIDARYMAX || y < LIDARYMIN)
    pointsOut.push_back(Point(x, y));
  }
 }
@@ -98,11 +98,11 @@ void robotToMap(vector<Point> &pointsIn, vector<Point> &pointsOut, Point pointOd
                             pointOdometry.y + (pointsIn[i].x * sin16(theta) + pointsIn[i].y * cos16(theta)) / ONE16));
 }
 
-void drawPoints(Mat &image, vector<Point> &pointsIn, int mapDiv, bool beams) {
- Point pointCenter = Point(width / 2, height / 2);
+void drawPoints(Mat &image, vector<Point> &points, int mapDiv, bool beams) {
+ const Point pointCenter = Point(width / 2, height / 2);
 
- for(int i = 0; i < pointsIn.size(); i++) {
-  Point point = pointsIn[i];
+ for(int i = 0; i < points.size(); i++) {
+  Point point = points[i];
   point.x /= mapDiv;
   point.y /= -mapDiv;
   if(beams)
@@ -111,12 +111,12 @@ void drawPoints(Mat &image, vector<Point> &pointsIn, int mapDiv, bool beams) {
  }
 }
 
-void drawLines(Mat &image, vector<vector<Point>> &linesIn, int mapDiv) {
- Point pointCenter = Point(width / 2, height / 2);
+void drawLines(Mat &image, vector<vector<Point>> &lines, int mapDiv) {
+ const Point pointCenter = Point(width / 2, height / 2);
 
- for(int i = 0; i < linesIn.size(); i++) {
-  Point point1 = (linesIn[i][0] + linesIn[i][1]) / 2;
-  Point point2 = (linesIn[i][linesIn[i].size() - 1] + linesIn[i][linesIn[i].size() - 2]) / 2;
+ for(int i = 0; i < lines.size(); i++) {
+  Point point1 = (lines[i][0] + lines[i][1]) / 2;
+  Point point2 = (lines[i][lines[i].size() - 1] + lines[i][lines[i].size() - 2]) / 2;
   point1.x /= mapDiv;
   point2.x /= mapDiv;
   point1.y /= -mapDiv;
@@ -127,10 +127,28 @@ void drawLines(Mat &image, vector<vector<Point>> &linesIn, int mapDiv) {
  }
 }
 
-void ui(Mat &image, vector<Point> &pointsRobot,
-                    vector<vector<Point>> &linesRobot,
-                    vector<Point> &pointsMap,
-                    vector<vector<Point>> &linesMap) {
+void drawRobot(Mat &image, vector<Point> robotIcon, Point pointOdometry, uint16_t theta, int mapDiv) {
+ const Point pointCenter = Point(width / 2, height / 2);
+
+ vector<Point> polygon;
+ for(int i = 0; i < robotIcon.size(); i++) {
+  Point point = pointOdometry;
+  point.x += (robotIcon[i].x * cos16(theta) - robotIcon[i].y * sin16(theta)) / ONE16;
+  point.y += (robotIcon[i].x * sin16(theta) + robotIcon[i].y * cos16(theta)) / ONE16;
+  point.x /= mapDiv;
+  point.y /= -mapDiv;
+  point += pointCenter;
+  polygon.push_back(point);
+ }
+
+ vector<vector<Point>> tmp(1, polygon);
+ drawContours(image, tmp, -1, Scalar::all(255), FILLED, LINE_AA);
+}
+
+void ui(Mat &image, vector<Point> &pointsRobot, vector<vector<Point>> &linesRobot,
+                    vector<Point> &pointsMap, vector<vector<Point>> &linesMap,
+                    Point pointOdometry, uint16_t theta) {
+
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
  bool buttonOk = remoteFrame.switchs & 0b10000000;
@@ -176,6 +194,7 @@ void ui(Mat &image, vector<Point> &pointsRobot,
  if(select == SELECTMAP) {
   drawPoints(image, pointsMap, mapDiv, false);
   drawLines(image, linesMap, mapDiv);
+  drawRobot(image, robotIcon, pointOdometry, theta, mapDiv);
  } else {
   drawPoints(image, pointsRobot, mapDiv, select == SELECTROBOTBEAMS);
   drawLines(image, linesRobot, mapDiv);
@@ -275,7 +294,7 @@ int main(int argc, char* argv[]) {
    }
   }
 
-  ui(image, pointsRobot, linesRobot, pointsMap, linesMap);
+  ui(image, pointsRobot, linesRobot, pointsMap, linesMap, pointOdometry, theta);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
