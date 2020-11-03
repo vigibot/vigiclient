@@ -256,15 +256,20 @@ int main(int argc, char* argv[]) {
 
   if(readLidar(ld, pointsPolar)) {
    pointsRobot.clear();
-   linesRobot.clear();
-   pointsMap.clear();
-   linesMap.clear();
-
    lidarToRobot(pointsPolar, pointsRobot);
+
+   linesRobot.clear();
    extractLines(pointsRobot, linesRobot);
 
+   pointsMap.clear();
    robotToMap(pointsRobot, pointsMap, pointOdometry, theta);
-   extractLines(pointsMap, linesMap);
+
+   linesMap.clear();
+   for(int i = 0; i < linesRobot.size(); i++) {
+    vector<Point> tmp;
+    robotToMap(linesRobot[i], tmp, pointOdometry, theta);
+    linesMap.push_back(tmp);
+   }
   }
 
   ui(image, pointsRobot, linesRobot, pointsMap, linesMap);
