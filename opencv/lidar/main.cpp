@@ -46,10 +46,10 @@ void imuThread() {
  }
 }
 
-void extractLines(vector<Point> &pointsIn, vector<vector<Point>> &linesOut) {
+void extractLines(vector<PointPolar> &pointsPolarIn, vector<Point> &pointsIn, vector<vector<Point>> &linesOut) {
  vector<Point> pointsDp;
  vector<Point> pointsNoDp;
- Point oldPoint;
+ Point oldPoint = Point(0, 0);
 
  approxPolyDP(pointsIn, pointsDp, EPSILON, true);
 
@@ -68,7 +68,10 @@ void extractLines(vector<Point> &pointsIn, vector<vector<Point>> &linesOut) {
   oldPoint = pointsIn[ii];
   int sqDist = diff.x * diff.x + diff.y * diff.y;
 
-  if(dp || sqDist > SQDISTMAX) {
+  uint16_t angle = 2 * PI16 / pointsPolarIn.size();
+  int distMax = pointsPolarIn[ii].distance * sin16(angle) * DISTMARGIN / ONE16;
+
+  if(dp || sqDist > distMax * distMax) {
    if(pointsNoDp.size() >= NBPOINTSMIN && i > pointsNoDp.size() + 1) {
     linesOut.push_back(pointsNoDp);
     if(i > ii)
@@ -283,7 +286,7 @@ int main(int argc, char* argv[]) {
    lidarToRobot(pointsPolar, pointsRobot);
 
    linesRobot.clear();
-   extractLines(pointsRobot, linesRobot);
+   extractLines(pointsPolar, pointsRobot, linesRobot);
 
    pointsMap.clear();
    robotToMap(pointsRobot, pointsMap, pointOdometry, theta);

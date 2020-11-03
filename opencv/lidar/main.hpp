@@ -13,7 +13,7 @@
 
 #define EPSILON 30.0
 #define NBPOINTSMIN 4
-#define SQDISTMAX (80 * 80)
+#define DISTMARGIN 4
 
 #define VXDIV 10
 #define VYDIV 10
