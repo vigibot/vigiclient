@@ -130,7 +130,7 @@ void drawLines(Mat &image, vector<vector<Point>> &lines, int mapDiv) {
  }
 }
 
-void drawRobot(Mat &image, vector<Point> robotIcon, Point pointOdometry, uint16_t theta, int mapDiv) {
+void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point pointOdometry, uint16_t theta, int mapDiv) {
  const Point pointCenter = Point(width / 2, height / 2);
 
  vector<Point> polygon;
@@ -145,7 +145,7 @@ void drawRobot(Mat &image, vector<Point> robotIcon, Point pointOdometry, uint16_
  }
 
  vector<vector<Point>> tmp(1, polygon);
- drawContours(image, tmp, -1, Scalar::all(255), FILLED, LINE_AA);
+ drawContours(image, tmp, -1, Scalar::all(255), thickness, LINE_AA);
 }
 
 void ui(Mat &image, vector<Point> &pointsRobot, vector<vector<Point>> &linesRobot,
@@ -176,7 +176,7 @@ void ui(Mat &image, vector<Point> &pointsRobot, vector<vector<Point>> &linesRobo
   }
  }
 
- if(select == SELECTROBOTBEAMS) {
+ if(select == SELECTROBOTBEAMS || select == SELECTMAP) {
   if(!buttonOk && oldButtonOk)
    tune = !tune;
 
@@ -197,13 +197,14 @@ void ui(Mat &image, vector<Point> &pointsRobot, vector<vector<Point>> &linesRobo
  if(select == SELECTMAP) {
   drawPoints(image, pointsMap, mapDiv, false);
   drawLines(image, linesMap, mapDiv);
-  drawRobot(image, robotIcon, pointOdometry, theta, mapDiv);
+  drawRobot(image, robotIcon, FILLED, pointOdometry, theta, mapDiv);
  } else {
   drawPoints(image, pointsRobot, mapDiv, select == SELECTROBOTBEAMS);
   drawLines(image, linesRobot, mapDiv);
+  drawRobot(image, robotIcon, select == SELECTROBOTBEAMS ? FILLED : 1, Point(0, 0), 0, mapDiv);
  }
 
- if(select == SELECTROBOTBEAMS) {
+ if(select == SELECTROBOTBEAMS || select == SELECTMAP) {
   char text[80];
   sprintf(text, "%d mm per pixel", mapDiv);
   putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1 + tune);
