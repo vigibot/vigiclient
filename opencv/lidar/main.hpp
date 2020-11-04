@@ -11,8 +11,8 @@
 #define LIDARYMIN -50
 #define LIDARYMAX 50
 
-#define EPSILON 30.0
-#define NBPOINTSMIN 4
+#define EPSILON 50.0
+#define NBPOINTSMIN 5
 #define DISTMARGIN 3
 
 #define VXDIV 10

@@ -118,8 +118,18 @@ void drawLines(Mat &image, vector<vector<Point>> &lines, int mapDiv) {
  const Point pointCenter = Point(width / 2, height / 2);
 
  for(int i = 0; i < lines.size(); i++) {
-  Point point1 = (lines[i][0] + lines[i][1]) / 2;
-  Point point2 = (lines[i][lines[i].size() - 1] + lines[i][lines[i].size() - 2]) / 2;
+  vector<double> fit;
+  fitLine(lines[i], fit, CV_DIST_L2, 0.0, 0.01, 0.01);
+
+  Point diff = lines[i][0] - lines[i][lines[i].size() - 1];
+  double half = sqrt(diff.x * diff.x + diff.y * diff.y) / 2.0;
+
+  Point point1 = Point(fit[0] * -half + fit[2],
+                       fit[1] * -half + fit[3]);
+
+  Point point2 = Point(fit[0] * half + fit[2],
+                       fit[1] * half + fit[3]);
+
   point1.x /= mapDiv;
   point2.x /= mapDiv;
   point1.y /= -mapDiv;
