@@ -70,6 +70,8 @@ void extractLines(vector<PointPolar> &pointsPolarIn, vector<Point> &pointsIn, ve
 
   uint16_t angle = 2 * PI16 / pointsPolarIn.size();
   int distMax = pointsPolarIn[ii].distance * sin16(angle) * DISTMARGIN / ONE16;
+  if(distMax < DISTCLAMP)
+   distMax = DISTCLAMP;
 
   if(dp || sqDist > distMax * distMax) {
    if(pointsNoDp.size() >= NBPOINTSMIN && i > pointsNoDp.size() + 1) {
