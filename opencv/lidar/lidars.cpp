@@ -121,6 +121,9 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
 
     if(packs == 26 && !points.empty()) {
      packs = 0;
+     points.pop_back();
+     points.pop_back();
+     points.pop_back();
      pointsOut = points;
      points.clear();
      done = true;
