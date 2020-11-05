@@ -135,8 +135,8 @@ void drawLines(Mat &image, vector<vector<Point>> &lines, int mapDiv) {
 
   Point diff3 = point1 - lines[i][0];
   Point diff4 = point1 - lines[i][lines[i].size() - 1];
-  double sqDist3 = diff3.x * diff3.x + diff3.y * diff3.y;
-  double sqDist4 = diff4.x * diff4.x + diff4.y * diff4.y;
+  int sqDist3 = diff3.x * diff3.x + diff3.y * diff3.y;
+  int sqDist4 = diff4.x * diff4.x + diff4.y * diff4.y;
 
   Point point2;
   if(sqDist3 > sqDist4) {
