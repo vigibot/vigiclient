@@ -123,22 +123,43 @@ void drawLines(Mat &image, vector<vector<Point>> &lines, int mapDiv) {
   vector<double> fit;
   fitLine(lines[i], fit, CV_DIST_L2, 0.0, 0.01, 0.01);
 
-  Point diff = lines[i][0] - lines[i][lines[i].size() - 1];
-  double half = sqrt(diff.x * diff.x + diff.y * diff.y) / 2.0;
+  Point point0 = Point(fit[2], fit[3]);
 
-  Point point1 = Point(fit[0] * -half + fit[2],
-                       fit[1] * -half + fit[3]);
+  Point diff1 = point0 - lines[i][0];
+  Point diff2 = point0 - lines[i][lines[i].size() - 1];
+  double dist1 = sqrt(diff1.x * diff1.x + diff1.y * diff1.y);
+  double dist2 = sqrt(diff2.x * diff2.x + diff2.y * diff2.y);
 
-  Point point2 = Point(fit[0] * half + fit[2],
-                       fit[1] * half + fit[3]);
+  Point point1 = Point(fit[0] * dist1 + fit[2],
+                       fit[1] * dist1 + fit[3]);
 
+  Point diff3 = point1 - lines[i][0];
+  Point diff4 = point1 - lines[i][lines[i].size() - 1];
+  double sqDist3 = diff3.x * diff3.x + diff3.y * diff3.y;
+  double sqDist4 = diff4.x * diff4.x + diff4.y * diff4.y;
+
+  Point point2;
+  if(sqDist3 > sqDist4) {
+   point1 = Point(fit[0] * -dist1 + fit[2],
+                  fit[1] * -dist1 + fit[3]);
+   point2 = Point(fit[0] * dist2 + fit[2],
+                  fit[1] * dist2 + fit[3]);
+  } else {
+   point2 = Point(fit[0] * -dist2 + fit[2],
+                  fit[1] * -dist2 + fit[3]);
+  }
+
+  point0.x /= mapDiv;
   point1.x /= mapDiv;
   point2.x /= mapDiv;
+  point0.y /= -mapDiv;
   point1.y /= -mapDiv;
   point2.y /= -mapDiv;
+  point0 += pointCenter;
   point1 += pointCenter;
   point2 += pointCenter;
-  line(image, point1, point2, Scalar::all(255), 1, LINE_AA);
+  line(image, point0, point1, Scalar(255, 255, 0), 1, LINE_AA);
+  line(image, point0, point2, Scalar(0, 255, 255), 1, LINE_AA);
  }
 }
 
@@ -230,8 +251,11 @@ void ui(Mat &image, vector<Point> &pointsRobot, vector<vector<Point>> &linesRobo
 }
 
 void odometry(Point &pointOdometry, uint16_t &theta) {
+#ifdef IMU
  theta = int(imuData.fusionPose.z() * double(PI16) / M_PI) * DIRZ;
- //theta += remoteFrame.vz * VZMUL;
+#elif
+ theta += remoteFrame.vz * VZMUL;
+#endif
  pointOdometry.x += (remoteFrame.vx * cos16(theta) - remoteFrame.vy * sin16(theta)) / ONE16 / VXDIV;
  pointOdometry.y += (remoteFrame.vx * sin16(theta) + remoteFrame.vy * cos16(theta)) / ONE16 / VYDIV;
 }
@@ -259,7 +283,9 @@ int main(int argc, char* argv[]) {
   return 1;
  }
 
+#ifdef IMU
  thread imuThr(imuThread);
+#endif
 
  startLidar(ld);
 

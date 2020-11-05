@@ -2,6 +2,7 @@
 #define HEIGHT 480
 #define FPS 30
 
+#define IMU
 #define DIRZ -1
 
 #define LIDARX 0
