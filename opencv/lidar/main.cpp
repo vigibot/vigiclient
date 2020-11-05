@@ -253,7 +253,7 @@ void ui(Mat &image, vector<Point> &pointsRobot, vector<vector<Point>> &linesRobo
 void odometry(Point &pointOdometry, uint16_t &theta) {
 #ifdef IMU
  theta = int(imuData.fusionPose.z() * double(PI16) / M_PI) * DIRZ;
-#elif
+#else
  theta += remoteFrame.vz * VZMUL;
 #endif
  pointOdometry.x += (remoteFrame.vx * cos16(theta) - remoteFrame.vy * sin16(theta)) / ONE16 / VXDIV;
