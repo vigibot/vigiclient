@@ -46,7 +46,7 @@ void imuThread() {
  }
 }
 
-void extractLines(vector<PointPolar> &pointsPolarIn, vector<Point> &pointsIn, vector<vector<Point>> &linesOut) {
+void extractRawLines(vector<PointPolar> &pointsPolarIn, vector<Point> &pointsIn, vector<vector<Point>> &linesOut) {
  vector<Point> pointsDp;
  vector<Point> pointsNoDp;
  Point oldPoint = Point(0, 0);
@@ -86,6 +86,45 @@ void extractLines(vector<PointPolar> &pointsPolarIn, vector<Point> &pointsIn, ve
  }
 }
 
+void fitLines(vector<vector<Point>> &rawLinesIn, vector<vector<Point>> &linesOut) {
+ for(int i = 0; i < rawLinesIn.size(); i++) {
+  vector<double> fit;
+
+  fitLine(rawLinesIn[i], fit, CV_DIST_L2, 0.0, 0.01, 0.01);
+
+  Point point0 = Point(fit[2], fit[3]);
+
+  Point diff1 = point0 - rawLinesIn[i][0];
+  Point diff2 = point0 - rawLinesIn[i][rawLinesIn[i].size() - 1];
+  double dist1 = sqrt(diff1.x * diff1.x + diff1.y * diff1.y);
+  double dist2 = sqrt(diff2.x * diff2.x + diff2.y * diff2.y);
+
+  Point point1 = Point(fit[0] * dist1 + fit[2],
+                       fit[1] * dist1 + fit[3]);
+
+  Point diff3 = point1 - rawLinesIn[i][0];
+  Point diff4 = point1 - rawLinesIn[i][rawLinesIn[i].size() - 1];
+  int sqDist3 = diff3.x * diff3.x + diff3.y * diff3.y;
+  int sqDist4 = diff4.x * diff4.x + diff4.y * diff4.y;
+
+  Point point2;
+  if(sqDist3 > sqDist4) {
+   point1 = Point(fit[0] * -dist1 + fit[2],
+                  fit[1] * -dist1 + fit[3]);
+   point2 = Point(fit[0] * dist2 + fit[2],
+                  fit[1] * dist2 + fit[3]);
+  } else
+   point2 = Point(fit[0] * -dist2 + fit[2],
+                  fit[1] * -dist2 + fit[3]);
+
+  vector<Point> tmp;
+  tmp.push_back(point0);
+  tmp.push_back(point1);
+  tmp.push_back(point2);
+  linesOut.push_back(tmp);
+ }
+}
+
 void lidarToRobot(vector<PointPolar> &pointsIn, vector<Point> &pointsOut) {
  for(int i = 0; i < pointsIn.size(); i++) {
   int x = LIDARX + pointsIn[i].distance * sin16(pointsIn[i].theta) / ONE16;
@@ -120,34 +159,9 @@ void drawLines(Mat &image, vector<vector<Point>> &lines, int mapDiv) {
  const Point pointCenter = Point(width / 2, height / 2);
 
  for(int i = 0; i < lines.size(); i++) {
-  vector<double> fit;
-  fitLine(lines[i], fit, CV_DIST_L2, 0.0, 0.01, 0.01);
-
-  Point point0 = Point(fit[2], fit[3]);
-
-  Point diff1 = point0 - lines[i][0];
-  Point diff2 = point0 - lines[i][lines[i].size() - 1];
-  double dist1 = sqrt(diff1.x * diff1.x + diff1.y * diff1.y);
-  double dist2 = sqrt(diff2.x * diff2.x + diff2.y * diff2.y);
-
-  Point point1 = Point(fit[0] * dist1 + fit[2],
-                       fit[1] * dist1 + fit[3]);
-
-  Point diff3 = point1 - lines[i][0];
-  Point diff4 = point1 - lines[i][lines[i].size() - 1];
-  int sqDist3 = diff3.x * diff3.x + diff3.y * diff3.y;
-  int sqDist4 = diff4.x * diff4.x + diff4.y * diff4.y;
-
-  Point point2;
-  if(sqDist3 > sqDist4) {
-   point1 = Point(fit[0] * -dist1 + fit[2],
-                  fit[1] * -dist1 + fit[3]);
-   point2 = Point(fit[0] * dist2 + fit[2],
-                  fit[1] * dist2 + fit[3]);
-  } else {
-   point2 = Point(fit[0] * -dist2 + fit[2],
-                  fit[1] * -dist2 + fit[3]);
-  }
+  Point point0 = lines[i][0];
+  Point point1 = lines[i][1];
+  Point point2 = lines[i][2];
 
   point0.x /= mapDiv;
   point1.x /= mapDiv;
@@ -301,6 +315,7 @@ int main(int argc, char* argv[]) {
  uint16_t theta = 0;
  vector<PointPolar> pointsPolar;
  vector<Point> pointsRobot;
+ vector<vector<Point>> rawLinesRobot;
  vector<vector<Point>> linesRobot;
  vector<Point> pointsMap;
  vector<vector<Point>> linesMap;
@@ -324,8 +339,11 @@ int main(int argc, char* argv[]) {
    pointsRobot.clear();
    lidarToRobot(pointsPolar, pointsRobot);
 
+   rawLinesRobot.clear();
+   extractRawLines(pointsPolar, pointsRobot, rawLinesRobot);
+
    linesRobot.clear();
-   extractLines(pointsPolar, pointsRobot, linesRobot);
+   fitLines(rawLinesRobot, linesRobot);
 
    pointsMap.clear();
    robotToMap(pointsRobot, pointsMap, pointOdometry, theta);
