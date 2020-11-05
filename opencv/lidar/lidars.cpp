@@ -119,11 +119,10 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
     }
     packs++;
 
-    if(packs == 26 && !points.empty()) {
+    if(packs == NBPACKS && !points.empty()) {
      packs = 0;
-     points.pop_back();
-     points.pop_back();
-     points.pop_back();
+     for(uint8_t i = 0; i < NBOVERLAPS; i++)
+      points.pop_back();
      pointsOut = points;
      points.clear();
      done = true;

@@ -5,6 +5,8 @@
 #define LDLIDAR
 #define LIDARRATE 230400
 #define NBMEASURESPACK 12
+#define NBPACKS 26
+#define NBOVERLAPS 3
 #define CONFIDENCEMIN 10
 
 //#define RPLIDAR
