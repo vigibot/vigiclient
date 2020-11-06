@@ -49,3 +49,5 @@ RemoteFrame remoteFrame;
 TelemetryFrame telemetryFrame;
 
 RTIMU_DATA imuData;
+
+cv::Scalar hueToBgr[180];
