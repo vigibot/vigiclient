@@ -118,7 +118,6 @@ void fitLines(vector<vector<Point>> &rawLinesIn, vector<vector<Point>> &linesOut
                   fit[1] * -dist2 + fit[3]);
 
   vector<Point> tmp;
-  tmp.push_back(point0);
   tmp.push_back(point1);
   tmp.push_back(point2);
   linesOut.push_back(tmp);
@@ -161,19 +160,18 @@ void drawLines(Mat &image, vector<vector<Point>> &lines, int mapDiv) {
  for(int i = 0; i < lines.size(); i++) {
   Point point0 = lines[i][0];
   Point point1 = lines[i][1];
-  Point point2 = lines[i][2];
+
+  Point diff = point1 - point0;
+  uchar angle = uchar(atan2(diff.y, diff.x) * 90.0 / M_PI + 90.0);
 
   point0.x /= mapDiv;
   point1.x /= mapDiv;
-  point2.x /= mapDiv;
   point0.y /= -mapDiv;
   point1.y /= -mapDiv;
-  point2.y /= -mapDiv;
   point0 += pointCenter;
   point1 += pointCenter;
-  point2 += pointCenter;
-  line(image, point0, point1, Scalar(255, 255, 0), 1, LINE_AA);
-  line(image, point0, point2, Scalar(0, 255, 255), 1, LINE_AA);
+
+  line(image, point0, point1, hueToBgr[angle], 1, LINE_AA);
  }
 }
 
@@ -274,6 +272,15 @@ void odometry(Point &pointOdometry, uint16_t &theta) {
  pointOdometry.y += (remoteFrame.vx * sin16(theta) + remoteFrame.vy * cos16(theta)) / ONE16 / VYDIV;
 }
 
+void bgrInit() {
+ for(uchar i = 0; i < 180; i++) {
+  Mat imageHsv = Mat(1, 1, CV_8UC3, Scalar(i, 255, 255));
+  Mat imageBgr;
+  cvtColor(imageHsv, imageBgr, COLOR_HSV2BGR);
+  hueToBgr[i] = imageBgr.at<Vec3b>(0, 0);
+ }
+}
+
 int main(int argc, char* argv[]) {
  if(argc != 4) {
   width = WIDTH;
@@ -319,6 +326,8 @@ int main(int argc, char* argv[]) {
  vector<vector<Point>> linesRobot;
  vector<Point> pointsMap;
  vector<vector<Point>> linesMap;
+
+ bgrInit();
 
  VideoCapture capture;
  capture.open(0);
