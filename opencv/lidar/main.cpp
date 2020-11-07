@@ -150,7 +150,7 @@ void drawPoints(Mat &image, vector<Point> &points, int mapDiv, bool beams) {
   point.y /= -mapDiv;
   if(beams)
    line(image, pointCenter, pointCenter + point, Scalar::all(i ? 64 : 255), 1, LINE_AA);
-  circle(image, pointCenter + point, i ? 1 : 3, Scalar::all(i ? 128 : 255), 1, LINE_AA);
+  circle(image, pointCenter + point, i ? 1 : 3, Scalar::all(255), FILLED, LINE_AA);
  }
 }
 
@@ -162,7 +162,7 @@ void drawLines(Mat &image, vector<vector<Point>> &lines, int mapDiv) {
   Point point1 = lines[i][1];
 
   Point diff = point1 - point0;
-  uchar angle = uchar(atan2(diff.y, diff.x) * 90.0 / M_PI + 90.0);
+  double angleDeg = atan2(diff.y, diff.x) * 180.0 / M_PI;
 
   point0.x /= mapDiv;
   point1.x /= mapDiv;
@@ -171,7 +171,8 @@ void drawLines(Mat &image, vector<vector<Point>> &lines, int mapDiv) {
   point0 += pointCenter;
   point1 += pointCenter;
 
-  line(image, point0, point1, hueToBgr[angle], 1, LINE_AA);
+  uchar hue = uchar(angleDeg / 2.0 + 90.0);
+  line(image, point0, point1, hueToBgr[hue], 2, LINE_AA);
  }
 }
 
