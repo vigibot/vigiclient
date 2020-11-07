@@ -23,7 +23,7 @@ do
 
  if [ -f "$bin" ]
  then
-  for f in common.hpp common.cpp frame.hpp frame.cpp "$d"/*
+  for f in make.sh *.cpp *.hpp "$d"/*
   do
    if [ "$f" == "$bin" ]
    then
@@ -48,9 +48,10 @@ do
   continue
  fi
 
- all="$d"/*.cpp
- trace "Compiling $all to $bin"
- g++ common.cpp frame.cpp $all -o "$bin" \
+ cur=*.cpp
+ sub="$d"/*.cpp
+ trace "Compiling $cur and $sub to $bin"
+ g++ $cur $sub -o "$bin" \
  -O2 \
  -lopencv_core \
  -lopencv_imgcodecs \
@@ -58,7 +59,9 @@ do
  -lopencv_videoio \
  -lwiringPi \
  -lpthread \
- -lRTIMULib || true
+ -lRTIMULib && \
+ trace "Success to compile $cur and $sub to $bin" || \
+ trace "Failed to compile $cur and $sub to $bin"
 done
 
 trace "Ending C++ compilation"
