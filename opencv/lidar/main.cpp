@@ -59,7 +59,7 @@ int sqDist(Point point1, Point point2) {
  return sqNorm(diff);
 }
 
-void extractRawLines(vector<PointPolar> &pointsPolarIn, vector<Point> &pointsIn, vector<vector<Point>> &linesOut) {
+void extractRawLines(vector<PointPolar> &polarPointsIn, vector<Point> &pointsIn, vector<vector<Point>> &linesOut) {
  vector<Point> pointsDp;
  vector<Point> pointsNoDp;
  Point oldPoint = Point(0, 0);
@@ -80,8 +80,8 @@ void extractRawLines(vector<PointPolar> &pointsPolarIn, vector<Point> &pointsIn,
   int sqDst = sqDist(pointsIn[ii], oldPoint);
   oldPoint = pointsIn[ii];
 
-  uint16_t angle = 2 * PI16 / pointsPolarIn.size();
-  int distMax = pointsPolarIn[ii].distance * sin16(angle) * DISTMARGIN / ONE16;
+  uint16_t angle = 2 * PI16 / polarPointsIn.size();
+  int distMax = polarPointsIn[ii].distance * sin16(angle) * DISTMARGIN / ONE16;
   if(distMax < DISTCLAMP)
    distMax = DISTCLAMP;
 
@@ -363,7 +363,7 @@ void slam(vector<Line> &lines, vector<Line> &map, Point &odometryPoint, uint16_t
 }
 
 void drawPoints(Mat &image, vector<Point> &points, int mapDiv, bool beams) {
- const Point pointCenter = Point(width / 2, height / 2);
+ const Point centerPoint = Point(width / 2, height / 2);
 
  for(int i = 0; i < points.size(); i++) {
   Point point = points[i];
@@ -371,13 +371,13 @@ void drawPoints(Mat &image, vector<Point> &points, int mapDiv, bool beams) {
   point.y /= -mapDiv;
 
   if(beams)
-   line(image, pointCenter, pointCenter + point, Scalar::all(i ? 64 : 255), 1, LINE_AA);
-  circle(image, pointCenter + point, i ? 1 : 3, Scalar::all(255), FILLED, LINE_AA);
+   line(image, centerPoint, centerPoint + point, Scalar::all(i ? 64 : 255), 1, LINE_AA);
+  circle(image, centerPoint + point, i ? 1 : 3, Scalar::all(255), FILLED, LINE_AA);
  }
 }
 
 void drawLines(Mat &image, vector<Line> &lines, bool colored, int mapDiv) {
- const Point pointCenter = Point(width / 2, height / 2);
+ const Point centerPoint = Point(width / 2, height / 2);
 
  for(int i = 0; i < lines.size(); i++) {
   Point point1 = lines[i].a;
@@ -390,8 +390,8 @@ void drawLines(Mat &image, vector<Line> &lines, bool colored, int mapDiv) {
   point2.x /= mapDiv;
   point1.y /= -mapDiv;
   point2.y /= -mapDiv;
-  point1 += pointCenter;
-  point2 += pointCenter;
+  point1 += centerPoint;
+  point2 += centerPoint;
 
   Scalar color;
   if(colored) {
@@ -403,7 +403,7 @@ void drawLines(Mat &image, vector<Line> &lines, bool colored, int mapDiv) {
 }
 
 void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point odometryPoint, uint16_t theta, int mapDiv) {
- const Point pointCenter = Point(width / 2, height / 2);
+ const Point centerPoint = Point(width / 2, height / 2);
 
  vector<Point> polygon;
  for(int i = 0; i < robotIcon.size(); i++) {
@@ -412,7 +412,7 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point odometr
   point.y += (robotIcon[i].x * sin16(theta) + robotIcon[i].y * cos16(theta)) / ONE16;
   point.x /= mapDiv;
   point.y /= -mapDiv;
-  point += pointCenter;
+  point += centerPoint;
   polygon.push_back(point);
  }
 
@@ -420,8 +420,8 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point odometr
  drawContours(image, tmp, -1, Scalar::all(255), thickness, LINE_AA);
 }
 
-void ui(Mat &image, vector<Point> &pointsRobot, vector<Line> &linesRobot,
-                    vector<Point> &pointsMap, vector<Line> &linesMap,
+void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
+                    vector<Point> &mapPoints, vector<Line> &mapLines,
                     vector<Line> &map, Point odometryPoint, uint16_t theta, bool confidence) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
@@ -464,12 +464,12 @@ void ui(Mat &image, vector<Point> &pointsRobot, vector<Line> &linesRobot,
 
  if(select == SELECTMAP) {
   drawLines(image, map, true, mapDiv);
-  drawPoints(image, pointsMap, mapDiv, false);
-  drawLines(image, linesMap, false, mapDiv);
+  drawPoints(image, mapPoints, mapDiv, false);
+  drawLines(image, mapLines, false, mapDiv);
   drawRobot(image, robotIcon, FILLED, odometryPoint, theta, mapDiv);
  } else {
-  drawPoints(image, pointsRobot, mapDiv, select == SELECTROBOTBEAMS);
-  drawLines(image, linesRobot, true, mapDiv);
+  drawPoints(image, robotPoints, mapDiv, select == SELECTROBOTBEAMS);
+  drawLines(image, robotLines, true, mapDiv);
   drawRobot(image, robotIcon, select == SELECTROBOTBEAMS ? FILLED : 1, Point(0, 0), 0, mapDiv);
  }
 
@@ -477,7 +477,7 @@ void ui(Mat &image, vector<Point> &pointsRobot, vector<Line> &linesRobot,
  if(tune)
   sprintf(text, "%d mm per pixel", mapDiv);
  else
-  sprintf(text, "%d points %d lines %d on map", pointsRobot.size(), linesRobot.size(), map.size());
+  sprintf(text, "%d points %d lines %d on map", robotPoints.size(), robotLines.size(), map.size());
  putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
  putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(confidence ? 255 : 128), 1);
 }
@@ -541,12 +541,12 @@ int main(int argc, char* argv[]) {
 
  Point odometryPoint = Point(0, 0);
  uint16_t theta = 0;
- vector<PointPolar> pointsPolar;
- vector<Point> pointsRobot;
- vector<vector<Point>> rawLinesRobot;
- vector<Line> linesRobot;
- vector<Point> pointsMap;
- vector<Line> linesMap;
+ vector<PointPolar> polarPoints;
+ vector<Point> robotPoints;
+ vector<vector<Point>> robotRawLines;
+ vector<Line> robotLines;
+ vector<Point> mapPoints;
+ vector<Line> mapLines;
  vector<Line> map;
  bool confidence = false;
 
@@ -567,37 +567,37 @@ int main(int argc, char* argv[]) {
   if(updated)
    odometry(odometryPoint, theta);
 
-  if(readLidar(ld, pointsPolar)) {
-   pointsRobot.clear();
-   lidarToRobot(pointsPolar, pointsRobot);
+  if(readLidar(ld, polarPoints)) {
+   robotPoints.clear();
+   lidarToRobot(polarPoints, robotPoints);
 
-   rawLinesRobot.clear();
-   extractRawLines(pointsPolar, pointsRobot, rawLinesRobot);
+   robotRawLines.clear();
+   extractRawLines(polarPoints, robotPoints, robotRawLines);
 
-   linesRobot.clear();
-   fitLines(rawLinesRobot, linesRobot);
+   robotLines.clear();
+   fitLines(robotRawLines, robotLines);
 
-   pointsMap.clear();
-   robotToMap(pointsRobot, pointsMap, odometryPoint, theta);
+   mapPoints.clear();
+   robotToMap(robotPoints, mapPoints, odometryPoint, theta);
 
-   linesMap.clear();
-   for(int i = 0; i < linesRobot.size(); i++) {
+   mapLines.clear();
+   for(int i = 0; i < robotLines.size(); i++) {
     vector<Point> in;
     vector<Point> out;
-    in.push_back(linesRobot[i].a);
-    in.push_back(linesRobot[i].b);
+    in.push_back(robotLines[i].a);
+    in.push_back(robotLines[i].b);
     robotToMap(in, out, odometryPoint, theta);
-    linesMap.push_back({out[0], out[1]});
+    mapLines.push_back({out[0], out[1]});
    }
 
-   sort(linesRobot.begin(), linesRobot.end(), [](const Line &a, const Line &b) {
+   sort(robotLines.begin(), robotLines.end(), [](const Line &a, const Line &b) {
     return sqDist(a) > sqDist(b);
    });
 
-   slam(linesMap, map, odometryPoint, theta, confidence);
+   slam(mapLines, map, odometryPoint, theta, confidence);
   }
 
-  ui(image, pointsRobot, linesRobot, pointsMap, linesMap, map, odometryPoint, theta, confidence);
+  ui(image, robotPoints, robotLines, mapPoints, mapLines, map, odometryPoint, theta, confidence);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
