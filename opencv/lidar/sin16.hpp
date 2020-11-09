@@ -4105,9 +4105,9 @@ const uint16_t sinTable16[] {
 
 int16_t sin16(uint16_t angle);
 int16_t cos16(uint16_t angle);
-uint16_t angleFloatToAngle16(float angle);
-float angle16ToAngleFloat(int16_t angle);
-float un16ToUnFloat(int16_t i16);
-float sinFloat(float angle);
-float cosFloat(float angle);
+uint16_t angleDoubleToAngle16(double angle);
+double angle16ToAngleDouble(int16_t angle);
+double un16ToUnDouble(int16_t i16);
+double sinDouble(double angle);
+double cosDouble(double angle);
 int32_t tanQ16(uint16_t angle);

@@ -46,6 +46,19 @@ void imuThread() {
  }
 }
 
+int sqNorm(Point point) {
+ return point.x * point.x + point.y * point.y;
+}
+
+int sqDist(Line line) {
+ return sqNorm(line.b - line.a);
+}
+
+int sqDist(Point point1, Point point2) {
+ Point diff = point2 - point1;
+ return sqNorm(diff);
+}
+
 void extractRawLines(vector<PointPolar> &pointsPolarIn, vector<Point> &pointsIn, vector<vector<Point>> &linesOut) {
  vector<Point> pointsDp;
  vector<Point> pointsNoDp;
@@ -64,17 +77,18 @@ void extractRawLines(vector<PointPolar> &pointsPolarIn, vector<Point> &pointsIn,
    }
   }
 
-  Point diff = pointsIn[ii] - oldPoint;
+  int sqDst = sqDist(pointsIn[ii], oldPoint);
   oldPoint = pointsIn[ii];
-  int sqDist = diff.x * diff.x + diff.y * diff.y;
 
   uint16_t angle = 2 * PI16 / pointsPolarIn.size();
   int distMax = pointsPolarIn[ii].distance * sin16(angle) * DISTMARGIN / ONE16;
   if(distMax < DISTCLAMP)
    distMax = DISTCLAMP;
 
-  if(dp || sqDist > distMax * distMax) {
-   if(pointsNoDp.size() >= NBPOINTSMIN && i > pointsNoDp.size() + 1) {
+  if(dp || sqDst > distMax * distMax) {
+   int size = pointsNoDp.size();
+   if(size >= NBPOINTSMIN && i > size + 1 &&
+      sqDist(pointsNoDp[0], pointsNoDp[size -1]) >= DISTMIN * DISTMIN) {
     linesOut.push_back(pointsNoDp);
     if(i > ii)
      break;
@@ -86,26 +100,21 @@ void extractRawLines(vector<PointPolar> &pointsPolarIn, vector<Point> &pointsIn,
  }
 }
 
-void fitLines(vector<vector<Point>> &rawLinesIn, vector<vector<Point>> &linesOut) {
+void fitLines(vector<vector<Point>> &rawLinesIn, vector<Line> &linesOut) {
  for(int i = 0; i < rawLinesIn.size(); i++) {
   vector<double> fit;
-
   fitLine(rawLinesIn[i], fit, CV_DIST_L2, 0.0, 0.01, 0.01);
 
   Point point0 = Point(fit[2], fit[3]);
 
-  Point diff1 = point0 - rawLinesIn[i][0];
-  Point diff2 = point0 - rawLinesIn[i][rawLinesIn[i].size() - 1];
-  double dist1 = sqrt(diff1.x * diff1.x + diff1.y * diff1.y);
-  double dist2 = sqrt(diff2.x * diff2.x + diff2.y * diff2.y);
+  double dist1 = sqrt(sqDist(point0, rawLinesIn[i][0]));
+  double dist2 = sqrt(sqDist(point0, rawLinesIn[i][rawLinesIn[i].size() - 1]));
 
   Point point1 = Point(fit[0] * dist1 + fit[2],
                        fit[1] * dist1 + fit[3]);
 
-  Point diff3 = point1 - rawLinesIn[i][0];
-  Point diff4 = point1 - rawLinesIn[i][rawLinesIn[i].size() - 1];
-  int sqDist3 = diff3.x * diff3.x + diff3.y * diff3.y;
-  int sqDist4 = diff4.x * diff4.x + diff4.y * diff4.y;
+  int sqDist3 = sqDist(point1, rawLinesIn[i][0]);
+  int sqDist4 = sqDist(point1, rawLinesIn[i][rawLinesIn[i].size() - 1]);
 
   Point point2;
   if(sqDist3 > sqDist4) {
@@ -117,10 +126,7 @@ void fitLines(vector<vector<Point>> &rawLinesIn, vector<vector<Point>> &linesOut
    point2 = Point(fit[0] * -dist2 + fit[2],
                   fit[1] * -dist2 + fit[3]);
 
-  vector<Point> tmp;
-  tmp.push_back(point1);
-  tmp.push_back(point2);
-  linesOut.push_back(tmp);
+  linesOut.push_back({point1, point2});
  }
 }
 
@@ -141,6 +147,220 @@ void robotToMap(vector<Point> &pointsIn, vector<Point> &pointsOut, Point pointOd
                             pointOdometry.y + (pointsIn[i].x * sin16(theta) + pointsIn[i].y * cos16(theta)) / ONE16));
 }
 
+double lineAngle(Line line) {
+ Point diff = line.b - line.a;
+ return atan2(diff.y, diff.x);
+}
+
+double ratioPointLine(Point point, Line line) {
+ Point diff = line.b - line.a;
+ double scalarProduct;
+ double ratio = 0;
+
+ if(diff.x || diff.y) {
+  scalarProduct = (point.x - line.a.x) * diff.x +
+                  (point.y - line.a.y) * diff.y;
+  ratio = scalarProduct / sqNorm(diff);
+ }
+
+ return ratio;
+}
+
+Point pointDistancePointLine(Point point, Line line) {
+ double ratio = ratioPointLine(point, line);
+ Point h;
+ Point diff = line.b - line.a;
+ Point result = Point(0, 0);
+
+ if(ratio) {
+  h.x = line.a.x + int(double(diff.x) * ratio);
+  h.y = line.a.y + int(double(diff.y) * ratio);
+  result = point - h;
+ }
+
+ return result;
+}
+
+int distancePointLine(Point point, Line line) {
+ return sqrt(sqNorm(pointDistancePointLine(point, line)));
+}
+
+bool growLine(Point point, Line &line) {
+ Point diff = line.b - line.a;
+ double ratio = ratioPointLine(point, line);
+ Point h;
+
+ if(ratio < 0 || ratio > 1) {
+  h.x = line.a.x + int(double(diff.x) * ratio);
+  h.y = line.a.y + int(double(diff.y) * ratio);
+
+  if(ratio < 0)
+   line.a = h;
+  else
+   line.b = h;
+
+  return true;
+ }
+ return false;
+}
+
+double diffAngle(double angle1, double angle2) {
+ double result = angle2 - angle1;
+
+ if(result > M_PI)
+  result -= 2.0 * M_PI;
+ else if(result < -M_PI)
+  result += 2.0 * M_PI;
+
+ return result;
+}
+
+bool testLines(Line line1, Line line2) {
+ double angle1 = lineAngle(line1);
+ double angle2 = lineAngle(line2);
+ double angle = diffAngle(angle1, angle2);
+ int distance;
+ int normeRef;
+ int distance1;
+ int distance2;
+
+ if(abs(angle) < SMALLANGULARERROR) {
+  distance = distancePointLine((line1.a + line1.b) / 2, line2);
+
+  if(distance < SMALLDISTERROR) {
+   normeRef = sqrt(sqDist(line2));
+   distance1 = ratioPointLine(line1.a, line2) * normeRef;
+   distance2 = ratioPointLine(line1.b, line2) * normeRef;
+
+   if(distance1 > -SMALLDISTERROR && distance1 < normeRef + SMALLDISTERROR ||
+      distance2 > -SMALLDISTERROR && distance2 < normeRef + SMALLDISTERROR)
+    return true;
+
+  }
+ }
+ return false;
+}
+
+bool confidence(Point deltaPoint, double deltaAngle) {
+ static int delay = 20;
+ bool move = remoteFrame.vx || remoteFrame.vy || remoteFrame.vz;
+
+ if(move)
+  delay = 20;
+
+ if(delay)
+  delay--;
+
+ if(!delay &&
+    sqNorm(deltaPoint) < SMALLDISTERROR * SMALLDISTERROR &&
+    abs(deltaAngle) < SMALLANGULARERROR)
+  return true;
+
+ return false;
+}
+
+uint16_t thetaCorrector = 0; // TODO architecture
+bool confid = false;
+
+void slam(vector<Line> &lines, vector<Line> &map, Point &pointOdometry, uint16_t &theta) {
+ Point deltaPoint = Point(0, 0);
+ double deltaAngle = 0;
+ int weightSum = 0;
+
+ vector<Line> newLines;
+ for(int i = 0; i < lines.size(); i++) {
+  bool newLine = true;
+
+  for(int j = 0; j < map.size(); j++) {
+   double angle1 = lineAngle(lines[i]);
+   double angle2 = lineAngle(map[j]);
+   double angle = diffAngle(angle1, angle2);
+
+   if(abs(angle) > LARGEANGULARERROR)
+    continue;
+
+   Point pointDistance = pointDistancePointLine((lines[i].a + lines[i].b) / 2, map[j]);
+   int distance = sqrt(sqNorm(pointDistance));
+
+   if(distance > LARGEDISTERROR)
+    continue;
+
+   int normeRef = sqrt(sqDist(map[j]));
+   int distance1 = ratioPointLine(lines[i].a, map[j]) * normeRef;
+   int distance2 = ratioPointLine(lines[i].b, map[j]) * normeRef;
+
+   if((distance1 < -LARGEDISTERROR || distance1 > normeRef + LARGEDISTERROR) &&
+      (distance2 < -LARGEDISTERROR || distance2 > normeRef + LARGEDISTERROR) &&
+      distance1 * distance2 > 0)
+    continue;
+
+   newLine = false;
+   deltaPoint += pointDistance * normeRef;
+   deltaAngle += angle * normeRef;
+   weightSum += normeRef;
+
+   if(!confid || abs(angle) > SMALLANGULARERROR)
+    continue;
+
+   if(distance > SMALLDISTERROR)
+    continue;
+
+   if((distance1 < -SMALLDISTERROR || distance1 > normeRef + SMALLDISTERROR) &&
+      (distance2 < -SMALLDISTERROR || distance2 > normeRef + SMALLDISTERROR) &&
+      distance1 * distance2 > 0)
+    continue;
+
+   bool merged = false;
+   merged |= growLine(lines[i].a, map[j]);
+   merged |= growLine(lines[i].b, map[j]);
+
+   if(!merged)
+    continue;
+
+   int mergeIndex = j;
+   for(int k = 0; k < map.size(); k++) {
+    if(k == mergeIndex || !testLines(map[mergeIndex], map[k]))
+     continue;
+
+    bool merged = false;
+    merged |= growLine(map[mergeIndex].a, map[k]);
+    merged |= growLine(map[mergeIndex].b, map[k]);
+
+    if(!merged)
+     continue;
+
+    map.erase(map.begin() + j);
+    if(j < k)
+     k--;
+    mergeIndex = k;
+   }
+
+   break;
+  }
+
+  if(newLine)
+   newLines.push_back(lines[i]);
+ }
+
+ if(weightSum)
+  confid = confidence(deltaPoint / weightSum, deltaAngle / weightSum);
+ else
+  confid = confidence(Point(0, 0), 0.0); // TODO bof ?
+
+ if(confid)
+  for(int i = 0; i < newLines.size(); i++)
+   map.push_back(newLines[i]);
+
+ sort(map.begin(), map.end(), [](const Line &a, const Line &b) { // TODO uniquement si map modifiée
+  return sqDist(a) > sqDist(b);
+ });
+
+ if(weightSum) {
+  pointOdometry -= deltaPoint / weightSum / POINTODOMETRYCORRECTORDIV;
+  thetaCorrector += angleDoubleToAngle16(deltaAngle) / weightSum / THETACORRECTORDIV; // TODO architecture
+ }
+}
+
 void drawPoints(Mat &image, vector<Point> &points, int mapDiv, bool beams) {
  const Point pointCenter = Point(width / 2, height / 2);
 
@@ -148,31 +368,38 @@ void drawPoints(Mat &image, vector<Point> &points, int mapDiv, bool beams) {
   Point point = points[i];
   point.x /= mapDiv;
   point.y /= -mapDiv;
+
   if(beams)
    line(image, pointCenter, pointCenter + point, Scalar::all(i ? 64 : 255), 1, LINE_AA);
   circle(image, pointCenter + point, i ? 1 : 3, Scalar::all(255), FILLED, LINE_AA);
  }
 }
 
-void drawLines(Mat &image, vector<vector<Point>> &lines, int mapDiv) {
+void drawLines(Mat &image, vector<Line> &lines, bool colored, int mapDiv) {
  const Point pointCenter = Point(width / 2, height / 2);
 
  for(int i = 0; i < lines.size(); i++) {
-  Point point0 = lines[i][0];
-  Point point1 = lines[i][1];
+  Point point1 = lines[i].a;
+  Point point2 = lines[i].b;
 
-  Point diff = point1 - point0;
+  Point diff = point2 - point1;
   double angleDeg = atan2(diff.y, diff.x) * 180.0 / M_PI;
 
-  point0.x /= mapDiv;
   point1.x /= mapDiv;
-  point0.y /= -mapDiv;
+  point2.x /= mapDiv;
   point1.y /= -mapDiv;
-  point0 += pointCenter;
+  point2.y /= -mapDiv;
   point1 += pointCenter;
+  point2 += pointCenter;
 
-  uchar hue = uchar(angleDeg / 2.0 + 90.0);
-  line(image, point0, point1, hueToBgr[hue], 2, LINE_AA);
+  Scalar color;
+  if(colored) {
+   uchar hue = uchar(angleDeg / 2.0 + 90.0);
+   color = hueToBgr[hue];
+  } else
+   color = Scalar::all(128);
+
+  line(image, point1, point2, color, 2, LINE_AA);
  }
 }
 
@@ -194,9 +421,9 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point pointOd
  drawContours(image, tmp, -1, Scalar::all(255), thickness, LINE_AA);
 }
 
-void ui(Mat &image, vector<Point> &pointsRobot, vector<vector<Point>> &linesRobot,
-                    vector<Point> &pointsMap, vector<vector<Point>> &linesMap,
-                    Point pointOdometry, uint16_t theta) {
+void ui(Mat &image, vector<Point> &pointsRobot, vector<Line> &linesRobot,
+                    vector<Point> &pointsMap, vector<Line> &linesMap,
+                    vector<Line> &map, Point pointOdometry, uint16_t theta) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -208,7 +435,15 @@ void ui(Mat &image, vector<Point> &pointsRobot, vector<vector<Point>> &linesRobo
  static int select = SELECTROBOT;
  static int mapDiv = MAPDIVMIN;
 
- if(!tune) {
+ if(!buttonOk && oldButtonOk)
+  tune = !tune;
+
+ if(tune) {
+  if(buttonLess && mapDiv < MAPDIVMAX)
+   mapDiv++;
+  else if(buttonMore && mapDiv > MAPDIVMIN)
+   mapDiv--;
+ } else {
   if(!buttonMore && oldButtonMore) {
    if(select < SELECTMAP)
     select++;
@@ -221,18 +456,6 @@ void ui(Mat &image, vector<Point> &pointsRobot, vector<vector<Point>> &linesRobo
     select = SELECTMAP;
   }
  }
-
- if(select == SELECTROBOTBEAMS || select == SELECTMAP) {
-  if(!buttonOk && oldButtonOk)
-   tune = !tune;
-
-  if(tune) {
-   if(buttonLess && mapDiv < MAPDIVMAX)
-    mapDiv++;
-   else if(buttonMore && mapDiv > MAPDIVMIN)
-    mapDiv--;
-  }
- }
  oldButtonLess = buttonLess;
  oldButtonMore = buttonMore;
  oldButtonOk = buttonOk;
@@ -242,33 +465,31 @@ void ui(Mat &image, vector<Point> &pointsRobot, vector<vector<Point>> &linesRobo
 
  if(select == SELECTMAP) {
   drawPoints(image, pointsMap, mapDiv, false);
-  drawLines(image, linesMap, mapDiv);
+  drawLines(image, linesMap, false, mapDiv);
+  drawLines(image, map, true, mapDiv);
   drawRobot(image, robotIcon, FILLED, pointOdometry, theta, mapDiv);
  } else {
   drawPoints(image, pointsRobot, mapDiv, select == SELECTROBOTBEAMS);
-  drawLines(image, linesRobot, mapDiv);
+  drawLines(image, linesRobot, true, mapDiv);
   drawRobot(image, robotIcon, select == SELECTROBOTBEAMS ? FILLED : 1, Point(0, 0), 0, mapDiv);
  }
 
- if(select == SELECTROBOTBEAMS || select == SELECTMAP) {
-  char text[80];
+ char text[80];
+ if(tune)
   sprintf(text, "%d mm per pixel", mapDiv);
-  putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1 + tune);
-  putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1 + tune);
- } else {
-  char text[80];
-  sprintf(text, "%d points %d lines", pointsRobot.size(), linesRobot.size());
-  putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1 + tune);
-  putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1 + tune);
- }
+ else
+  sprintf(text, "%d points %d lines %d on map %d", pointsRobot.size(), linesRobot.size(), map.size(), confid);
+ putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
+ putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
 }
 
 void odometry(Point &pointOdometry, uint16_t &theta) {
 #ifdef IMU
- theta = int(imuData.fusionPose.z() * double(PI16) / M_PI) * DIRZ;
+ theta = angleDoubleToAngle16(imuData.fusionPose.z()) * DIRZ + thetaCorrector; // TODO architecture
 #else
  theta += remoteFrame.vz * VZMUL;
 #endif
+
  pointOdometry.x += (remoteFrame.vx * cos16(theta) - remoteFrame.vy * sin16(theta)) / ONE16 / VXDIV;
  pointOdometry.y += (remoteFrame.vx * sin16(theta) + remoteFrame.vy * cos16(theta)) / ONE16 / VYDIV;
 }
@@ -324,9 +545,10 @@ int main(int argc, char* argv[]) {
  vector<PointPolar> pointsPolar;
  vector<Point> pointsRobot;
  vector<vector<Point>> rawLinesRobot;
- vector<vector<Point>> linesRobot;
+ vector<Line> linesRobot;
  vector<Point> pointsMap;
- vector<vector<Point>> linesMap;
+ vector<Line> linesMap;
+ vector<Line> map;
 
  bgrInit();
 
@@ -360,13 +582,22 @@ int main(int argc, char* argv[]) {
 
    linesMap.clear();
    for(int i = 0; i < linesRobot.size(); i++) {
-    vector<Point> tmp;
-    robotToMap(linesRobot[i], tmp, pointOdometry, theta);
-    linesMap.push_back(tmp);
+    vector<Point> in;
+    vector<Point> out;
+    in.push_back(linesRobot[i].a);
+    in.push_back(linesRobot[i].b);
+    robotToMap(in, out, pointOdometry, theta);
+    linesMap.push_back({out[0], out[1]});
    }
+
+   sort(linesRobot.begin(), linesRobot.end(), [](const Line &a, const Line &b) {
+    return sqDist(a) > sqDist(b);
+   });
+
+   slam(linesMap, map, pointOdometry, theta);
   }
 
-  ui(image, pointsRobot, linesRobot, pointsMap, linesMap, pointOdometry, theta);
+  ui(image, pointsRobot, linesRobot, pointsMap, linesMap, map, pointOdometry, theta);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {

@@ -9,26 +9,26 @@ int16_t cos16(uint16_t angle) {
  return sin16(HALFPI16 - angle);
 }
 
-uint16_t angleFloatToAngle16(float angle) {
- return int(angle * float(PI16) / M_PI);
+uint16_t angleDoubleToAngle16(double angle) {
+ return int(angle * double(PI16) / M_PI);
 }
 
-float angle16ToAngleFloat(int16_t angle) {
- return float(angle) * M_PI / float(PI16);
+double angle16ToAngleDouble(int16_t angle) {
+ return double(angle) * M_PI / double(PI16);
 }
 
-float un16ToUnFloat(int16_t i16) {
- return float(i16) / float(ONE16);
+double un16ToUnDouble(int16_t i16) {
+ return double(i16) / double(ONE16);
 }
 
-float sinFloat(float angle) {
+double sinDouble(double angle) {
  //return sin(angle);
- return un16ToUnFloat(sin16(angleFloatToAngle16(angle)));
+ return un16ToUnDouble(sin16(angleDoubleToAngle16(angle)));
 }
 
-float cosFloat(float angle) {
+double cosDouble(double angle) {
  //return cos(angle);
- return un16ToUnFloat(cos16(angleFloatToAngle16(angle)));
+ return un16ToUnDouble(cos16(angleDoubleToAngle16(angle)));
 }
 
 int32_t tanQ16(uint16_t angle) {
