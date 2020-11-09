@@ -241,7 +241,7 @@ bool testLines(Line line1, Line line2) {
  return false;
 }
 
-bool confidence(Point deltaPoint, double deltaAngle) {
+bool getConfidence(Point deltaPoint, double deltaAngle) {
  static int delay = 20;
  bool move = remoteFrame.vx || remoteFrame.vy || remoteFrame.vz;
 
@@ -259,10 +259,7 @@ bool confidence(Point deltaPoint, double deltaAngle) {
  return false;
 }
 
-uint16_t thetaCorrector = 0; // TODO architecture
-bool confid = false;
-
-void slam(vector<Line> &lines, vector<Line> &map, Point &pointOdometry, uint16_t &theta) {
+void slam(vector<Line> &lines, vector<Line> &map, Point &pointOdometry, uint16_t &theta, bool &confidence) {
  Point deltaPoint = Point(0, 0);
  double deltaAngle = 0;
  int weightSum = 0;
@@ -299,7 +296,7 @@ void slam(vector<Line> &lines, vector<Line> &map, Point &pointOdometry, uint16_t
    deltaAngle += angle * normeRef;
    weightSum += normeRef;
 
-   if(!confid || abs(angle) > SMALLANGULARERROR)
+   if(!confidence || abs(angle) > SMALLANGULARERROR)
     continue;
 
    if(distance > SMALLDISTERROR)
@@ -343,21 +340,25 @@ void slam(vector<Line> &lines, vector<Line> &map, Point &pointOdometry, uint16_t
  }
 
  if(weightSum)
-  confid = confidence(deltaPoint / weightSum, deltaAngle / weightSum);
+  confidence = getConfidence(deltaPoint / weightSum, deltaAngle / weightSum);
  else
-  confid = confidence(Point(0, 0), 0.0); // TODO bof ?
+  confidence = getConfidence(Point(0, 0), 0.0); // TODO
 
- if(confid)
+ if(confidence)
   for(int i = 0; i < newLines.size(); i++)
    map.push_back(newLines[i]);
 
- sort(map.begin(), map.end(), [](const Line &a, const Line &b) { // TODO uniquement si map modifiée
+ sort(map.begin(), map.end(), [](const Line &a, const Line &b) { // TODO
   return sqDist(a) > sqDist(b);
  });
 
  if(weightSum) {
   pointOdometry -= deltaPoint / weightSum / POINTODOMETRYCORRECTORDIV;
-  thetaCorrector += angleDoubleToAngle16(deltaAngle) / weightSum / THETACORRECTORDIV; // TODO architecture
+#ifdef IMU
+  thetaCorrector += angleDoubleToAngle16(deltaAngle) / weightSum / THETACORRECTORDIV;
+#else
+  theta += angleDoubleToAngle16(deltaAngle) / weightSum / THETACORRECTORDIV;
+#endif
  }
 }
 
@@ -423,7 +424,7 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point pointOd
 
 void ui(Mat &image, vector<Point> &pointsRobot, vector<Line> &linesRobot,
                     vector<Point> &pointsMap, vector<Line> &linesMap,
-                    vector<Line> &map, Point pointOdometry, uint16_t theta) {
+                    vector<Line> &map, Point pointOdometry, uint16_t theta, bool confidence) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -478,14 +479,14 @@ void ui(Mat &image, vector<Point> &pointsRobot, vector<Line> &linesRobot,
  if(tune)
   sprintf(text, "%d mm per pixel", mapDiv);
  else
-  sprintf(text, "%d points %d lines %d on map %d", pointsRobot.size(), linesRobot.size(), map.size(), confid);
+  sprintf(text, "%d points %d lines %d on map %d", pointsRobot.size(), linesRobot.size(), map.size(), confidence);
  putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
  putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
 }
 
 void odometry(Point &pointOdometry, uint16_t &theta) {
 #ifdef IMU
- theta = angleDoubleToAngle16(imuData.fusionPose.z()) * DIRZ + thetaCorrector; // TODO architecture
+ theta = angleDoubleToAngle16(imuData.fusionPose.z()) * DIRZ + thetaCorrector;
 #else
  theta += remoteFrame.vz * VZMUL;
 #endif
@@ -549,6 +550,7 @@ int main(int argc, char* argv[]) {
  vector<Point> pointsMap;
  vector<Line> linesMap;
  vector<Line> map;
+ bool confidence = false;
 
  bgrInit();
 
@@ -594,10 +596,10 @@ int main(int argc, char* argv[]) {
     return sqDist(a) > sqDist(b);
    });
 
-   slam(linesMap, map, pointOdometry, theta);
+   slam(linesMap, map, pointOdometry, theta, confidence);
   }
 
-  ui(image, pointsRobot, linesRobot, pointsMap, linesMap, map, pointOdometry, theta);
+  ui(image, pointsRobot, linesRobot, pointsMap, linesMap, map, pointOdometry, theta, confidence);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
