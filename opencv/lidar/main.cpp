@@ -141,10 +141,28 @@ void lidarToRobot(vector<PointPolar> &pointsIn, vector<Point> &pointsOut) {
  }
 }
 
-void robotToMap(vector<Point> &pointsIn, vector<Point> &pointsOut, Point odometryPoint, uint16_t theta) {
- for(int i = 0; i < pointsIn.size(); i++)
-  pointsOut.push_back(Point(odometryPoint.x + (pointsIn[i].x * cos16(theta) - pointsIn[i].y * sin16(theta)) / ONE16,
-                            odometryPoint.y + (pointsIn[i].x * sin16(theta) + pointsIn[i].y * cos16(theta)) / ONE16));
+void robotToMap(vector<Line> &linesIn, vector<Line> &linesOut, Point odometryPoint, uint16_t theta) {
+ for(int i = 0; i < linesIn.size(); i++) {
+  linesOut.push_back({
+   Point(odometryPoint.x + (linesIn[i].a.x * cos16(theta) - linesIn[i].a.y * sin16(theta)) / ONE16,
+         odometryPoint.y + (linesIn[i].a.x * sin16(theta) + linesIn[i].a.y * cos16(theta)) / ONE16),
+   Point(odometryPoint.x + (linesIn[i].b.x * cos16(theta) - linesIn[i].b.y * sin16(theta)) / ONE16,
+         odometryPoint.y + (linesIn[i].b.x * sin16(theta) + linesIn[i].b.y * cos16(theta)) / ONE16)
+  });
+ }
+}
+
+void mapToRobot(vector<Line> &linesIn, vector<Line> &linesOut, Point odometryPoint, uint16_t theta) {
+ for(int i = 0; i < linesIn.size(); i++) {
+  Point point1 = linesIn[i].a - odometryPoint;
+  Point point2 = linesIn[i].b - odometryPoint;
+  linesOut.push_back({
+   Point((point1.x * cos16(-theta) - point1.y * sin16(-theta)) / ONE16,
+         (point1.x * sin16(-theta) + point1.y * cos16(-theta)) / ONE16),
+   Point((point2.x * cos16(-theta) - point2.y * sin16(-theta)) / ONE16,
+         (point2.x * sin16(-theta) + point2.y * cos16(-theta)) / ONE16)
+  });
+ }
 }
 
 double lineAngle(Line line) {
@@ -420,9 +438,9 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point odometr
  drawContours(image, tmp, -1, Scalar::all(255), thickness, LINE_AA);
 }
 
-void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
-                    vector<Point> &mapPoints, vector<Line> &mapLines,
-                    vector<Line> &map, Point odometryPoint, uint16_t theta, bool confidence) {
+void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector<Line> &mapLines,
+                    vector<Line> &map, vector<Line> &mapRobot,
+                    Point odometryPoint, uint16_t theta, bool confidence) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -463,10 +481,10 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
   return;
 
  if(select == SELECTMAP) {
-  drawLines(image, map, true, mapDiv);
-  drawPoints(image, mapPoints, mapDiv, false);
-  drawLines(image, mapLines, false, mapDiv);
-  drawRobot(image, robotIcon, FILLED, odometryPoint, theta, mapDiv);
+  drawPoints(image, robotPoints, mapDiv, false);
+  drawLines(image, robotLines, false, mapDiv);
+  drawLines(image, mapRobot, true, mapDiv);
+  drawRobot(image, robotIcon, FILLED, Point(0, 0), 0, mapDiv);
  } else {
   drawPoints(image, robotPoints, mapDiv, select == SELECTROBOTBEAMS);
   drawLines(image, robotLines, true, mapDiv);
@@ -545,9 +563,9 @@ int main(int argc, char* argv[]) {
  vector<Point> robotPoints;
  vector<vector<Point>> robotRawLines;
  vector<Line> robotLines;
- vector<Point> mapPoints;
  vector<Line> mapLines;
  vector<Line> map;
+ vector<Line> mapRobot;
  bool confidence = false;
 
  bgrInit();
@@ -577,27 +595,20 @@ int main(int argc, char* argv[]) {
    robotLines.clear();
    fitLines(robotRawLines, robotLines);
 
-   mapPoints.clear();
-   robotToMap(robotPoints, mapPoints, odometryPoint, theta);
-
    mapLines.clear();
-   for(int i = 0; i < robotLines.size(); i++) {
-    vector<Point> in;
-    vector<Point> out;
-    in.push_back(robotLines[i].a);
-    in.push_back(robotLines[i].b);
-    robotToMap(in, out, odometryPoint, theta);
-    mapLines.push_back({out[0], out[1]});
-   }
+   robotToMap(robotLines, mapLines, odometryPoint, theta);
 
    sort(robotLines.begin(), robotLines.end(), [](const Line &a, const Line &b) {
     return sqDist(a) > sqDist(b);
    });
 
    slam(mapLines, map, odometryPoint, theta, confidence);
+
+   mapRobot.clear();
+   mapToRobot(map, mapRobot, odometryPoint, theta);
   }
 
-  ui(image, robotPoints, robotLines, mapPoints, mapLines, map, odometryPoint, theta, confidence);
+  ui(image, robotPoints, robotLines, mapLines, map, mapRobot, odometryPoint, theta, confidence);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
