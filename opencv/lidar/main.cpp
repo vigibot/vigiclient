@@ -413,7 +413,7 @@ void drawLines(Mat &image, vector<Line> &lines, bool colored, int mapDiv) {
 
   Scalar color;
   if(colored) {
-   uchar hue = uchar(angleDeg / 2.0 + 90.0);
+   uchar hue = uchar(angleDeg / 2.0 + 90.0) % 180;
    line(image, point1, point2, hueToBgr[hue], 2, LINE_AA);
   } else
    line(image, point1, point2, Scalar::all(255), 2, LINE_AA);
