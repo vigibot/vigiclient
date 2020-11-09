@@ -141,10 +141,10 @@ void lidarToRobot(vector<PointPolar> &pointsIn, vector<Point> &pointsOut) {
  }
 }
 
-void robotToMap(vector<Point> &pointsIn, vector<Point> &pointsOut, Point pointOdometry, uint16_t theta) {
+void robotToMap(vector<Point> &pointsIn, vector<Point> &pointsOut, Point odometryPoint, uint16_t theta) {
  for(int i = 0; i < pointsIn.size(); i++)
-  pointsOut.push_back(Point(pointOdometry.x + (pointsIn[i].x * cos16(theta) - pointsIn[i].y * sin16(theta)) / ONE16,
-                            pointOdometry.y + (pointsIn[i].x * sin16(theta) + pointsIn[i].y * cos16(theta)) / ONE16));
+  pointsOut.push_back(Point(odometryPoint.x + (pointsIn[i].x * cos16(theta) - pointsIn[i].y * sin16(theta)) / ONE16,
+                            odometryPoint.y + (pointsIn[i].x * sin16(theta) + pointsIn[i].y * cos16(theta)) / ONE16));
 }
 
 double lineAngle(Line line) {
@@ -259,7 +259,7 @@ bool getConfidence(Point deltaPoint, double deltaAngle) {
  return false;
 }
 
-void slam(vector<Line> &lines, vector<Line> &map, Point &pointOdometry, uint16_t &theta, bool &confidence) {
+void slam(vector<Line> &lines, vector<Line> &map, Point &odometryPoint, uint16_t &theta, bool &confidence) {
  Point deltaPoint = Point(0, 0);
  double deltaAngle = 0;
  int weightSum = 0;
@@ -353,9 +353,9 @@ void slam(vector<Line> &lines, vector<Line> &map, Point &pointOdometry, uint16_t
  });
 
  if(weightSum) {
-  pointOdometry -= deltaPoint / weightSum / POINTODOMETRYCORRECTORDIV;
+  odometryPoint -= deltaPoint / weightSum / ODOMETRYCORRECTORDIV;
 #ifdef IMU
-  thetaCorrector += int(deltaAngle * double(PI16) / M_PI) / weightSum / THETACORRECTORDIV;
+  thetaCorrector += int(deltaAngle * double(PI16) / M_PI) / weightSum / IMUTHETACORRECTORDIV;
 #else
   theta += int(deltaAngle * double(PI16) / M_PI) / weightSum / THETACORRECTORDIV;
 #endif
@@ -402,12 +402,12 @@ void drawLines(Mat &image, vector<Line> &lines, bool colored, int mapDiv) {
  }
 }
 
-void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point pointOdometry, uint16_t theta, int mapDiv) {
+void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point odometryPoint, uint16_t theta, int mapDiv) {
  const Point pointCenter = Point(width / 2, height / 2);
 
  vector<Point> polygon;
  for(int i = 0; i < robotIcon.size(); i++) {
-  Point point = pointOdometry;
+  Point point = odometryPoint;
   point.x += (robotIcon[i].x * cos16(theta) - robotIcon[i].y * sin16(theta)) / ONE16;
   point.y += (robotIcon[i].x * sin16(theta) + robotIcon[i].y * cos16(theta)) / ONE16;
   point.x /= mapDiv;
@@ -422,7 +422,7 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point pointOd
 
 void ui(Mat &image, vector<Point> &pointsRobot, vector<Line> &linesRobot,
                     vector<Point> &pointsMap, vector<Line> &linesMap,
-                    vector<Line> &map, Point pointOdometry, uint16_t theta, bool confidence) {
+                    vector<Line> &map, Point odometryPoint, uint16_t theta, bool confidence) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -466,7 +466,7 @@ void ui(Mat &image, vector<Point> &pointsRobot, vector<Line> &linesRobot,
   drawLines(image, map, true, mapDiv);
   drawPoints(image, pointsMap, mapDiv, false);
   drawLines(image, linesMap, false, mapDiv);
-  drawRobot(image, robotIcon, FILLED, pointOdometry, theta, mapDiv);
+  drawRobot(image, robotIcon, FILLED, odometryPoint, theta, mapDiv);
  } else {
   drawPoints(image, pointsRobot, mapDiv, select == SELECTROBOTBEAMS);
   drawLines(image, linesRobot, true, mapDiv);
@@ -482,15 +482,15 @@ void ui(Mat &image, vector<Point> &pointsRobot, vector<Line> &linesRobot,
  putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(confidence ? 255 : 128), 1);
 }
 
-void odometry(Point &pointOdometry, uint16_t &theta) {
+void odometry(Point &odometryPoint, uint16_t &theta) {
 #ifdef IMU
  theta = angleDoubleToAngle16(imuData.fusionPose.z()) * DIRZ + thetaCorrector;
 #else
  theta += remoteFrame.vz * VZMUL;
 #endif
 
- pointOdometry.x += (remoteFrame.vx * cos16(theta) - remoteFrame.vy * sin16(theta)) / ONE16 / VXDIV;
- pointOdometry.y += (remoteFrame.vx * sin16(theta) + remoteFrame.vy * cos16(theta)) / ONE16 / VYDIV;
+ odometryPoint.x += (remoteFrame.vx * cos16(theta) - remoteFrame.vy * sin16(theta)) / ONE16 / VXDIV;
+ odometryPoint.y += (remoteFrame.vx * sin16(theta) + remoteFrame.vy * cos16(theta)) / ONE16 / VYDIV;
 }
 
 void bgrInit() {
@@ -539,7 +539,7 @@ int main(int argc, char* argv[]) {
  telemetryFrame.header[2] = ' ';
  telemetryFrame.header[3] = ' ';
 
- Point pointOdometry = Point(0, 0);
+ Point odometryPoint = Point(0, 0);
  uint16_t theta = 0;
  vector<PointPolar> pointsPolar;
  vector<Point> pointsRobot;
@@ -565,7 +565,7 @@ int main(int argc, char* argv[]) {
   bool updated = readModem(fd, remoteFrame);
 
   if(updated)
-   odometry(pointOdometry, theta);
+   odometry(odometryPoint, theta);
 
   if(readLidar(ld, pointsPolar)) {
    pointsRobot.clear();
@@ -578,7 +578,7 @@ int main(int argc, char* argv[]) {
    fitLines(rawLinesRobot, linesRobot);
 
    pointsMap.clear();
-   robotToMap(pointsRobot, pointsMap, pointOdometry, theta);
+   robotToMap(pointsRobot, pointsMap, odometryPoint, theta);
 
    linesMap.clear();
    for(int i = 0; i < linesRobot.size(); i++) {
@@ -586,7 +586,7 @@ int main(int argc, char* argv[]) {
     vector<Point> out;
     in.push_back(linesRobot[i].a);
     in.push_back(linesRobot[i].b);
-    robotToMap(in, out, pointOdometry, theta);
+    robotToMap(in, out, odometryPoint, theta);
     linesMap.push_back({out[0], out[1]});
    }
 
@@ -594,10 +594,10 @@ int main(int argc, char* argv[]) {
     return sqDist(a) > sqDist(b);
    });
 
-   slam(linesMap, map, pointOdometry, theta, confidence);
+   slam(linesMap, map, odometryPoint, theta, confidence);
   }
 
-  ui(image, pointsRobot, linesRobot, pointsMap, linesMap, map, pointOdometry, theta, confidence);
+  ui(image, pointsRobot, linesRobot, pointsMap, linesMap, map, odometryPoint, theta, confidence);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
