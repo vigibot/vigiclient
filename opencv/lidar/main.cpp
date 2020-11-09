@@ -355,9 +355,9 @@ void slam(vector<Line> &lines, vector<Line> &map, Point &pointOdometry, uint16_t
  if(weightSum) {
   pointOdometry -= deltaPoint / weightSum / POINTODOMETRYCORRECTORDIV;
 #ifdef IMU
-  thetaCorrector += angleDoubleToAngle16(deltaAngle) / weightSum / THETACORRECTORDIV;
+  thetaCorrector += int(deltaAngle * double(PI16) / M_PI) / weightSum / THETACORRECTORDIV;
 #else
-  theta += angleDoubleToAngle16(deltaAngle) / weightSum / THETACORRECTORDIV;
+  theta += int(deltaAngle * double(PI16) / M_PI) / weightSum / THETACORRECTORDIV;
 #endif
  }
 }
@@ -396,11 +396,9 @@ void drawLines(Mat &image, vector<Line> &lines, bool colored, int mapDiv) {
   Scalar color;
   if(colored) {
    uchar hue = uchar(angleDeg / 2.0 + 90.0);
-   color = hueToBgr[hue];
+   line(image, point1, point2, hueToBgr[hue], 2, LINE_AA);
   } else
-   color = Scalar::all(128);
-
-  line(image, point1, point2, color, 2, LINE_AA);
+   line(image, point1, point2, Scalar::all(255), 2, LINE_AA);
  }
 }
 
@@ -465,9 +463,9 @@ void ui(Mat &image, vector<Point> &pointsRobot, vector<Line> &linesRobot,
   return;
 
  if(select == SELECTMAP) {
+  drawLines(image, map, true, mapDiv);
   drawPoints(image, pointsMap, mapDiv, false);
   drawLines(image, linesMap, false, mapDiv);
-  drawLines(image, map, true, mapDiv);
   drawRobot(image, robotIcon, FILLED, pointOdometry, theta, mapDiv);
  } else {
   drawPoints(image, pointsRobot, mapDiv, select == SELECTROBOTBEAMS);
@@ -479,9 +477,9 @@ void ui(Mat &image, vector<Point> &pointsRobot, vector<Line> &linesRobot,
  if(tune)
   sprintf(text, "%d mm per pixel", mapDiv);
  else
-  sprintf(text, "%d points %d lines %d on map %d", pointsRobot.size(), linesRobot.size(), map.size(), confidence);
+  sprintf(text, "%d points %d lines %d on map", pointsRobot.size(), linesRobot.size(), map.size());
  putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
- putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
+ putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(confidence ? 255 : 128), 1);
 }
 
 void odometry(Point &pointOdometry, uint16_t &theta) {
