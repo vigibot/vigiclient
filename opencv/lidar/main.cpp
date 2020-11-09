@@ -380,7 +380,7 @@ void slam(vector<Line> &lines, vector<Line> &map, Point &odometryPoint, uint16_t
  }
 }
 
-void drawPoints(Mat &image, vector<Point> &points, int mapDiv, bool beams) {
+void drawPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) {
  const Point centerPoint = Point(width / 2, height / 2);
 
  for(int i = 0; i < points.size(); i++) {
@@ -449,7 +449,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector
  static bool oldButtonMore = false;
  static bool oldButtonOk = false;
  static bool tune = false;
- static int select = SELECTROBOT;
+ static int select = SELECTMAP;
  static int mapDiv = MAPDIVMIN;
 
  if(!buttonOk && oldButtonOk)
@@ -462,7 +462,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector
    mapDiv--;
  } else {
   if(!buttonMore && oldButtonMore) {
-   if(select < SELECTMAP)
+   if(select < SELECTMAPBEAMS)
     select++;
    else
     select = SELECTNONE;
@@ -470,7 +470,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector
    if(select > SELECTNONE)
     select--;
    else
-    select = SELECTMAP;
+    select = SELECTMAPBEAMS;
   }
  }
  oldButtonLess = buttonLess;
@@ -481,14 +481,15 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector
   return;
 
  if(select == SELECTMAP) {
-  drawPoints(image, robotPoints, mapDiv, false);
+  drawPoints(image, robotPoints, false, mapDiv);
+  drawLines(image, robotLines, false, mapDiv);
+  drawLines(image, mapRobot, true, mapDiv);
+  drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
+ } else {
+  drawPoints(image, robotPoints, true, mapDiv);
   drawLines(image, robotLines, false, mapDiv);
   drawLines(image, mapRobot, true, mapDiv);
   drawRobot(image, robotIcon, FILLED, Point(0, 0), 0, mapDiv);
- } else {
-  drawPoints(image, robotPoints, mapDiv, select == SELECTROBOTBEAMS);
-  drawLines(image, robotLines, true, mapDiv);
-  drawRobot(image, robotIcon, select == SELECTROBOTBEAMS ? FILLED : 1, Point(0, 0), 0, mapDiv);
  }
 
  char text[80];

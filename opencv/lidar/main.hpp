@@ -35,9 +35,8 @@
 
 enum {
  SELECTNONE,
- SELECTROBOT,
- SELECTROBOTBEAMS,
- SELECTMAP
+ SELECTMAP,
+ SELECTMAPBEAMS
 };
 
 const std::vector<cv::Point> robotIcon = {
