@@ -237,21 +237,17 @@ bool testLines(Line line1, Line line2) {
  double angle1 = lineAngle(line1);
  double angle2 = lineAngle(line2);
  double angle = diffAngle(angle1, angle2);
- int distance;
- int normeRef;
- int distance1;
- int distance2;
 
  if(abs(angle) < SMALLANGULARERROR) {
-  distance = distancePointLine((line1.a + line1.b) / 2, line2);
+  int distance = distancePointLine((line1.a + line1.b) / 2, line2);
 
   if(distance < SMALLDISTERROR) {
-   normeRef = sqrt(sqDist(line2));
-   distance1 = ratioPointLine(line1.a, line2) * normeRef;
-   distance2 = ratioPointLine(line1.b, line2) * normeRef;
+   int refNorm = sqrt(sqDist(line2));
+   int distance1 = ratioPointLine(line1.a, line2) * refNorm;
+   int distance2 = ratioPointLine(line1.b, line2) * refNorm;
 
-   if(distance1 > -SMALLDISTERROR && distance1 < normeRef + SMALLDISTERROR ||
-      distance2 > -SMALLDISTERROR && distance2 < normeRef + SMALLDISTERROR)
+   if(distance1 > -SMALLDISTERROR && distance1 < refNorm + SMALLDISTERROR ||
+      distance2 > -SMALLDISTERROR && distance2 < refNorm + SMALLDISTERROR)
     return true;
 
   }
@@ -301,19 +297,19 @@ void slam(vector<Line> &lines, vector<Line> &map, Point &odometryPoint, uint16_t
    if(distance > LARGEDISTERROR)
     continue;
 
-   int normeRef = sqrt(sqDist(map[j]));
-   int distance1 = ratioPointLine(lines[i].a, map[j]) * normeRef;
-   int distance2 = ratioPointLine(lines[i].b, map[j]) * normeRef;
+   int refNorm = sqrt(sqDist(map[j]));
+   int distance1 = ratioPointLine(lines[i].a, map[j]) * refNorm;
+   int distance2 = ratioPointLine(lines[i].b, map[j]) * refNorm;
 
-   if((distance1 < -LARGEDISTERROR || distance1 > normeRef + LARGEDISTERROR) &&
-      (distance2 < -LARGEDISTERROR || distance2 > normeRef + LARGEDISTERROR) &&
+   if((distance1 < -LARGEDISTERROR || distance1 > refNorm + LARGEDISTERROR) &&
+      (distance2 < -LARGEDISTERROR || distance2 > refNorm + LARGEDISTERROR) &&
       distance1 * distance2 > 0)
     continue;
 
    newLine = false;
-   deltaPoint += pointDistance * normeRef;
-   deltaAngle += angle * normeRef;
-   weightSum += normeRef;
+   deltaPoint += pointDistance * refNorm;
+   deltaAngle += angle * refNorm;
+   weightSum += refNorm;
 
    if(!confidence || abs(angle) > SMALLANGULARERROR)
     continue;
@@ -321,8 +317,8 @@ void slam(vector<Line> &lines, vector<Line> &map, Point &odometryPoint, uint16_t
    if(distance > SMALLDISTERROR)
     continue;
 
-   if((distance1 < -SMALLDISTERROR || distance1 > normeRef + SMALLDISTERROR) &&
-      (distance2 < -SMALLDISTERROR || distance2 > normeRef + SMALLDISTERROR) &&
+   if((distance1 < -SMALLDISTERROR || distance1 > refNorm + SMALLDISTERROR) &&
+      (distance2 < -SMALLDISTERROR || distance2 > refNorm + SMALLDISTERROR) &&
       distance1 * distance2 > 0)
     continue;
 
