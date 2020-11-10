@@ -25,7 +25,7 @@ void imuThread() {
  dup2(fileno(stderr), fileno(stdout));
 
  RTIMUSettings *settings = new RTIMUSettings("RTIMULib");
- RTIMU *imu = RTIMU::createIMU(settings);
+ imu = RTIMU::createIMU(settings);
  if(imu == NULL || imu->IMUType() == RTIMU_TYPE_NULL) {
   fprintf(stderr, "No IMU found\n");
   return;
@@ -446,18 +446,32 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point odometr
  drawContours(image, tmp, -1, Scalar::all(255), thickness, LINE_AA);
 }
 
-void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,vector<Line> &mapRobot,
-                    Point odometryPoint, uint16_t theta, bool confidence) {
+void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
+                    vector<Line> &map, vector<Line> &mapRobot,
+                    Point &odometryPoint, uint16_t &theta, bool confidence) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
+ bool buttonReset = remoteFrame.switchs & 0b01000000;
  bool buttonOk = remoteFrame.switchs & 0b10000000;
  static bool oldButtonLess = false;
  static bool oldButtonMore = false;
+ static bool oldButtonReset = false;
  static bool oldButtonOk = false;
  static bool tune = false;
  static int select = SELECTMAP;
  static int mapDiv = MAPDIVMIN;
+
+ if(!buttonReset && oldButtonReset) {
+  map.clear();
+  odometryPoint = Point(0, 0);
+  theta = 0;
+
+#ifdef IMU
+  thetaCorrector = 0;
+  imu->resetFusion();
+#endif
+ }
 
  if(!buttonOk && oldButtonOk)
   tune = !tune;
@@ -482,6 +496,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,vector<
  }
  oldButtonLess = buttonLess;
  oldButtonMore = buttonMore;
+ oldButtonReset = buttonReset;
  oldButtonOk = buttonOk;
 
  if(select == SELECTNONE)
@@ -616,7 +631,7 @@ int main(int argc, char* argv[]) {
    mapToRobot(map, mapRobot, odometryPoint, theta);
   }
 
-  ui(image, robotPoints, robotLines, mapRobot, odometryPoint, theta, confidence);
+  ui(image, robotPoints, robotLines, map, mapRobot, odometryPoint, theta, confidence);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
