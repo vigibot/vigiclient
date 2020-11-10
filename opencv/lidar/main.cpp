@@ -446,8 +446,7 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point odometr
  drawContours(image, tmp, -1, Scalar::all(255), thickness, LINE_AA);
 }
 
-void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector<Line> &mapLines,
-                    vector<Line> &map, vector<Line> &mapRobot,
+void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,vector<Line> &mapRobot,
                     Point odometryPoint, uint16_t theta, bool confidence) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
@@ -504,7 +503,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector
  if(tune)
   sprintf(text, "%d mm per pixel", mapDiv);
  else
-  sprintf(text, "%d points %d lines %d on map", robotPoints.size(), robotLines.size(), map.size());
+  sprintf(text, "%d points %d lines %d on map", robotPoints.size(), robotLines.size(), mapRobot.size());
  putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
  putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(confidence ? 255 : 128), 1);
 }
@@ -607,7 +606,7 @@ int main(int argc, char* argv[]) {
    mapLines.clear();
    robotToMap(robotLines, mapLines, odometryPoint, theta);
 
-   sort(robotLines.begin(), robotLines.end(), [](const Line &a, const Line &b) {
+   sort(mapLines.begin(), mapLines.end(), [](const Line &a, const Line &b) {
     return sqDist(a) > sqDist(b);
    });
 
@@ -617,7 +616,7 @@ int main(int argc, char* argv[]) {
    mapToRobot(map, mapRobot, odometryPoint, theta);
   }
 
-  ui(image, robotPoints, robotLines, mapLines, map, mapRobot, odometryPoint, theta, confidence);
+  ui(image, robotPoints, robotLines, mapRobot, odometryPoint, theta, confidence);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
