@@ -260,8 +260,8 @@ bool testLines(Line line1, Line line2) {
 }
 
 bool getConfidence(Point deltaPoint, double deltaAngle) {
- static int delay = 20;
  bool move = remoteFrame.vx || remoteFrame.vy || remoteFrame.vz;
+ static int delay = 20;
 
  if(move)
   delay = 20;
@@ -281,6 +281,7 @@ void slam(vector<Line> &lines, vector<Line> &map, Point &odometryPoint, uint16_t
  Point deltaPoint = Point(0, 0);
  double deltaAngle = 0;
  int weightSum = 0;
+ bool change = false;
 
  vector<Line> newLines;
  for(int i = 0; i < lines.size(); i++) {
@@ -331,6 +332,8 @@ void slam(vector<Line> &lines, vector<Line> &map, Point &odometryPoint, uint16_t
 
    if(!merged)
     continue;
+   else
+    change = true;
 
    int mergeIndex = j;
    for(int k = 0; k < map.size(); k++) {
@@ -353,25 +356,30 @@ void slam(vector<Line> &lines, vector<Line> &map, Point &odometryPoint, uint16_t
    break;
   }
 
-  if(newLine)
+  if(newLine) {
    newLines.push_back(lines[i]);
+   change = true;
+  }
  }
 
  if(weightSum)
   confidence = getConfidence(deltaPoint / weightSum, deltaAngle / weightSum);
  else
-  confidence = getConfidence(Point(0, 0), 0.0); // TODO
+  confidence = getConfidence(Point(0, 0), 0.0);
 
  if(confidence)
   for(int i = 0; i < newLines.size(); i++)
    map.push_back(newLines[i]);
 
- sort(map.begin(), map.end(), [](const Line &a, const Line &b) { // TODO
-  return sqDist(a) > sqDist(b);
- });
+ if(change) {
+  sort(map.begin(), map.end(), [](const Line &a, const Line &b) {
+   return sqDist(a) > sqDist(b);
+  });
+ }
 
  if(weightSum) {
   odometryPoint -= deltaPoint / weightSum / ODOMETRYCORRECTORDIV;
+
 #ifdef IMU
   thetaCorrector += int(deltaAngle * double(PI16) / M_PI) / weightSum / IMUTHETACORRECTORDIV;
 #else
