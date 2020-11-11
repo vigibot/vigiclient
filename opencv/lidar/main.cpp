@@ -222,7 +222,9 @@ bool growLine(Point point, Line &line) {
  return false;
 }
 
-double diffAngle(double angle1, double angle2) {
+double diffAngle(Line ligne1, Line ligne2) {
+ double angle1 = lineAngle(ligne1);
+ double angle2 = lineAngle(ligne2);
  double result = angle2 - angle1;
 
  if(result > M_PI)
@@ -234,25 +236,26 @@ double diffAngle(double angle1, double angle2) {
 }
 
 bool testLines(Line line1, Line line2) {
- double angle1 = lineAngle(line1);
- double angle2 = lineAngle(line2);
- double angle = diffAngle(angle1, angle2);
+ double angle = diffAngle(line1, line2);
 
- if(abs(angle) < SMALLANGULARERROR) {
-  int distance = distancePointLine((line1.a + line1.b) / 2, line2);
+ if(abs(angle) > SMALLANGULARERROR)
+  return false;
 
-  if(distance < SMALLDISTERROR) {
-   int refNorm = sqrt(sqDist(line2));
-   int distance1 = ratioPointLine(line1.a, line2) * refNorm;
-   int distance2 = ratioPointLine(line1.b, line2) * refNorm;
+ int distance = distancePointLine((line1.a + line1.b) / 2, line2);
 
-   if(distance1 > -SMALLDISTERROR && distance1 < refNorm + SMALLDISTERROR ||
-      distance2 > -SMALLDISTERROR && distance2 < refNorm + SMALLDISTERROR)
-    return true;
+ if(distance > SMALLDISTERROR)
+  return false;
 
-  }
- }
- return false;
+ int refNorm = sqrt(sqDist(line2));
+ int distance1 = ratioPointLine(line1.a, line2) * refNorm;
+ int distance2 = ratioPointLine(line1.b, line2) * refNorm;
+
+ if((distance1 < -SMALLDISTERROR || distance1 > refNorm + SMALLDISTERROR) &&
+    (distance2 < -SMALLDISTERROR || distance2 > refNorm + SMALLDISTERROR) &&
+    distance1 * distance2 > 0)
+  return false;
+
+ return true;
 }
 
 bool getConfidence(Point deltaPoint, double deltaAngle) {
@@ -284,23 +287,18 @@ void slam(vector<Line> &lines, vector<Line> &map, Point &odometryPoint, uint16_t
   bool newLine = true;
 
   for(int j = 0; j < map.size(); j++) {
-   double angle1 = lineAngle(lines[i]);
-   double angle2 = lineAngle(map[j]);
-   double angle = diffAngle(angle1, angle2);
-
+   double angle = diffAngle(lines[i], map[j]);
    if(abs(angle) > LARGEANGULARERROR)
     continue;
 
    Point pointDistance = pointDistancePointLine((lines[i].a + lines[i].b) / 2, map[j]);
    int distance = sqrt(sqNorm(pointDistance));
-
    if(distance > LARGEDISTERROR)
     continue;
 
    int refNorm = sqrt(sqDist(map[j]));
    int distance1 = ratioPointLine(lines[i].a, map[j]) * refNorm;
    int distance2 = ratioPointLine(lines[i].b, map[j]) * refNorm;
-
    if((distance1 < -LARGEDISTERROR || distance1 > refNorm + LARGEDISTERROR) &&
       (distance2 < -LARGEDISTERROR || distance2 > refNorm + LARGEDISTERROR) &&
       distance1 * distance2 > 0)
@@ -325,7 +323,6 @@ void slam(vector<Line> &lines, vector<Line> &map, Point &odometryPoint, uint16_t
    bool merged = false;
    merged |= growLine(lines[i].a, map[j]);
    merged |= growLine(lines[i].b, map[j]);
-
    if(!merged)
     continue;
    else
@@ -336,17 +333,27 @@ void slam(vector<Line> &lines, vector<Line> &map, Point &odometryPoint, uint16_t
     if(k == mergeIndex || !testLines(map[mergeIndex], map[k]))
      continue;
 
+    int bigger;
+    int smaller;
+    if(sqDist(map[mergeIndex]) > sqDist(map[k])) {
+     bigger = mergeIndex;
+     smaller = k;
+    } else {
+     bigger = k;
+     smaller = mergeIndex;
+     mergeIndex = bigger;
+    }
     bool merged = false;
-    merged |= growLine(map[mergeIndex].a, map[k]);
-    merged |= growLine(map[mergeIndex].b, map[k]);
-
+    merged |= growLine(map[smaller].a, map[bigger]);
+    merged |= growLine(map[smaller].b, map[bigger]);
     if(!merged)
      continue;
 
-    map.erase(map.begin() + j);
-    if(j < k)
+    map.erase(map.begin() + smaller);
+    if(smaller < bigger) {
+     mergeIndex--;
      k--;
-    mergeIndex = k;
+    }
    }
 
    break;
