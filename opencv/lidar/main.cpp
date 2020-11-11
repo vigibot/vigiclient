@@ -259,10 +259,22 @@ bool testLines(Line line1, Line line2) {
 }
 
 bool getConfidence(double refTilt[], Point deltaPoint, double deltaAngle) {
- if(abs(imuData.fusionPose.x() - refTilt[0]) < CONFIDENCEMAXTILT &&
-    abs(imuData.fusionPose.y() - refTilt[1]) < CONFIDENCEMAXTILT && // TODO formule jojo
+ static int delay = 0;
+ bool moveFast = abs(remoteFrame.vx) > CONFIDENCEMAXVELOCITY ||
+                 abs(remoteFrame.vy) > CONFIDENCEMAXVELOCITY ||
+                 abs(remoteFrame.vz) > CONFIDENCEMAXVELOCITY;
+ bool tilt = abs(imuData.fusionPose.x() - refTilt[0]) > CONFIDENCEMAXTILT &&
+             abs(imuData.fusionPose.y() - refTilt[1]) > CONFIDENCEMAXTILT;
+
+ if(moveFast || tilt)
+  delay = CONFIDENCEDELAY;
+
+ if(delay)
+  delay--;
+
+ if(!delay &&
     sqNorm(deltaPoint) < CONFIDENCEDISTERROR * CONFIDENCEDISTERROR &&
-    abs(deltaAngle) < CONFIDENCEANGULARERROR / 2)
+    abs(deltaAngle) < CONFIDENCEANGULARERROR)
   return true;
 
  return false;
