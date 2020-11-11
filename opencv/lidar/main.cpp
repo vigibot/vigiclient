@@ -263,7 +263,7 @@ bool getConfidence(double refTilt[], Point deltaPoint, double deltaAngle) {
  bool moveFast = abs(remoteFrame.vx) > CONFIDENCEMAXVELOCITY ||
                  abs(remoteFrame.vy) > CONFIDENCEMAXVELOCITY ||
                  abs(remoteFrame.vz) > CONFIDENCEMAXVELOCITY;
- bool tilt = abs(imuData.fusionPose.x() - refTilt[0]) > CONFIDENCEMAXTILT &&
+ bool tilt = abs(imuData.fusionPose.x() - refTilt[0]) > CONFIDENCEMAXTILT ||
              abs(imuData.fusionPose.y() - refTilt[1]) > CONFIDENCEMAXTILT;
 
  if(moveFast || tilt)
@@ -506,10 +506,10 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
   theta = 0;
 
 #ifdef IMU
+  imu->resetFusion();
   thetaCorrector = 0;
   refTilt[0] = imuData.fusionPose.x();
   refTilt[1] = imuData.fusionPose.y();
-  imu->resetFusion();
 #endif
  }
 
