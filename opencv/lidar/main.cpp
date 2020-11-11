@@ -276,17 +276,16 @@ bool getConfidence(Point deltaPoint, double deltaAngle) {
  return false;
 }
 
-void slam(vector<Line> &lines, vector<Line> &map, Point &odometryPoint, uint16_t &theta, bool &confidence) {
+void localization(vector<Line> &lines, vector<Line> &map,
+                  Point &odometryPoint, uint16_t &theta, bool &confidence) {
+
  Point deltaPoint = Point(0, 0);
  double deltaAngle = 0;
  int weightSum = 0;
- bool change = false;
 
- vector<Line> newLines;
  for(int i = 0; i < lines.size(); i++) {
-  bool newLine = true;
-
   for(int j = 0; j < map.size(); j++) {
+
    double angle = diffAngle(lines[i], map[j]);
    if(abs(angle) > LARGEANGULARERROR)
     continue;
@@ -304,12 +303,58 @@ void slam(vector<Line> &lines, vector<Line> &map, Point &odometryPoint, uint16_t
       distance1 * distance2 > 0)
     continue;
 
-   newLine = false;
    deltaPoint += pointDistance * refNorm;
    deltaAngle += angle * refNorm;
    weightSum += refNorm;
 
-   if(!confidence || abs(angle) > SMALLANGULARERROR)
+   break;
+  }
+ }
+
+ if(weightSum) {
+  confidence = getConfidence(deltaPoint / weightSum, deltaAngle / weightSum);
+  odometryPoint -= deltaPoint / weightSum / ODOMETRYCORRECTORDIV;
+
+#ifdef IMU
+  thetaCorrector += int(deltaAngle * double(PI16) / M_PI) / weightSum / IMUTHETACORRECTORDIV;
+#else
+  theta += int(deltaAngle * double(PI16) / M_PI) / weightSum / THETACORRECTORDIV;
+#endif
+
+ } else
+  confidence = getConfidence(Point(0, 0), 0.0);
+}
+
+void mapping(vector<Line> &lines, vector<Line> &map, bool &confidence) {
+ vector<Line> newLines;
+ bool change = false;
+
+ if(!confidence)
+  return;
+
+ for(int i = 0; i < lines.size(); i++) {
+  bool newLine = true;
+
+  for(int j = 0; j < map.size(); j++) {
+   double angle = diffAngle(lines[i], map[j]);
+   if(abs(angle) > LARGEANGULARERROR)
+    continue;
+
+   int distance = distancePointLine((lines[i].a + lines[i].b) / 2, map[j]);
+   if(distance > LARGEDISTERROR)
+    continue;
+
+   int refNorm = sqrt(sqDist(map[j]));
+   int distance1 = ratioPointLine(lines[i].a, map[j]) * refNorm;
+   int distance2 = ratioPointLine(lines[i].b, map[j]) * refNorm;
+   if((distance1 < -LARGEDISTERROR || distance1 > refNorm + LARGEDISTERROR) &&
+      (distance2 < -LARGEDISTERROR || distance2 > refNorm + LARGEDISTERROR) &&
+      distance1 * distance2 > 0)
+    continue;
+
+   newLine = false;
+
+   if(abs(angle) > SMALLANGULARERROR)
     continue;
 
    if(distance > SMALLDISTERROR)
@@ -365,29 +410,13 @@ void slam(vector<Line> &lines, vector<Line> &map, Point &odometryPoint, uint16_t
   }
  }
 
- if(weightSum)
-  confidence = getConfidence(deltaPoint / weightSum, deltaAngle / weightSum);
- else
-  confidence = getConfidence(Point(0, 0), 0.0);
-
- if(confidence)
-  for(int i = 0; i < newLines.size(); i++)
-   map.push_back(newLines[i]);
+ for(int i = 0; i < newLines.size(); i++)
+  map.push_back(newLines[i]);
 
  if(change) {
   sort(map.begin(), map.end(), [](const Line &a, const Line &b) {
    return sqDist(a) > sqDist(b);
   });
- }
-
- if(weightSum) {
-  odometryPoint -= deltaPoint / weightSum / ODOMETRYCORRECTORDIV;
-
-#ifdef IMU
-  thetaCorrector += int(deltaAngle * double(PI16) / M_PI) / weightSum / IMUTHETACORRECTORDIV;
-#else
-  theta += int(deltaAngle * double(PI16) / M_PI) / weightSum / THETACORRECTORDIV;
-#endif
  }
 }
 
@@ -405,15 +434,12 @@ void drawPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) {
  }
 }
 
-void drawLines(Mat &image, vector<Line> &lines, bool colored, int mapDiv) {
+void drawLines(Mat &image, vector<Line> &lines, vector<Line> &colors, bool colored, int mapDiv) {
  const Point centerPoint = Point(width / 2, height / 2);
 
  for(int i = 0; i < lines.size(); i++) {
   Point point1 = lines[i].a;
   Point point2 = lines[i].b;
-
-  Point diff = point2 - point1;
-  double angleDeg = atan2(diff.y, diff.x) * 180.0 / M_PI;
 
   point1.x /= mapDiv;
   point2.x /= mapDiv;
@@ -421,6 +447,9 @@ void drawLines(Mat &image, vector<Line> &lines, bool colored, int mapDiv) {
   point2.y /= -mapDiv;
   point1 += centerPoint;
   point2 += centerPoint;
+
+  Point diff = colors[i].b - colors[i].a;
+  double angleDeg = atan2(diff.y, diff.x) * 180.0 / M_PI;
 
   Scalar color;
   if(colored) {
@@ -507,13 +536,13 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
 
  if(select == SELECTMAP) {
   drawPoints(image, robotPoints, false, mapDiv);
-  drawLines(image, robotLines, false, mapDiv);
-  drawLines(image, mapRobot, true, mapDiv);
+  drawLines(image, robotLines, robotLines, false, mapDiv);
+  drawLines(image, mapRobot, map, true, mapDiv);
   drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
  } else {
   drawPoints(image, robotPoints, true, mapDiv);
-  drawLines(image, robotLines, false, mapDiv);
-  drawLines(image, mapRobot, true, mapDiv);
+  drawLines(image, robotLines, robotLines, false, mapDiv);
+  drawLines(image, mapRobot, map, true, mapDiv);
   drawRobot(image, robotIcon, FILLED, Point(0, 0), 0, mapDiv);
  }
 
@@ -628,7 +657,8 @@ int main(int argc, char* argv[]) {
     return sqDist(a) > sqDist(b);
    });
 
-   slam(mapLines, map, odometryPoint, theta, confidence);
+   localization(mapLines, map, odometryPoint, theta, confidence);
+   mapping(mapLines, map, confidence);
 
    mapRobot.clear();
    mapToRobot(map, mapRobot, odometryPoint, theta);
