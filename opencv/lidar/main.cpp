@@ -258,26 +258,19 @@ bool testLines(Line line1, Line line2) {
  return true;
 }
 
-bool getConfidence(Point deltaPoint, double deltaAngle) {
- bool move = remoteFrame.vx || remoteFrame.vy || remoteFrame.vz;
- static int delay = 20;
-
- if(move)
-  delay = 20;
-
- if(delay)
-  delay--;
-
- if(!delay &&
-    sqNorm(deltaPoint) < SMALLDISTERROR * SMALLDISTERROR &&
-    abs(deltaAngle) < SMALLANGULARERROR)
+bool getConfidence(double refTilt[], Point deltaPoint, double deltaAngle) {
+ if(abs(imuData.fusionPose.x() - refTilt[0]) < CONFIDENCEMAXTILT &&
+    abs(imuData.fusionPose.y() - refTilt[1]) < CONFIDENCEMAXTILT && // TODO formule jojo
+    sqNorm(deltaPoint) < CONFIDENCEDISTERROR * CONFIDENCEDISTERROR &&
+    abs(deltaAngle) < CONFIDENCEANGULARERROR / 2)
   return true;
 
  return false;
 }
 
 void localization(vector<Line> &lines, vector<Line> &map,
-                  Point &odometryPoint, uint16_t &theta, bool &confidence) {
+                  Point &odometryPoint, uint16_t &theta,
+                  double refTilt[], bool &confidence) {
 
  Point deltaPoint = Point(0, 0);
  double deltaAngle = 0;
@@ -312,7 +305,7 @@ void localization(vector<Line> &lines, vector<Line> &map,
  }
 
  if(weightSum) {
-  confidence = getConfidence(deltaPoint / weightSum, deltaAngle / weightSum);
+  confidence = getConfidence(refTilt, deltaPoint / weightSum, deltaAngle / weightSum);
   odometryPoint -= deltaPoint / weightSum / ODOMETRYCORRECTORDIV;
 
 #ifdef IMU
@@ -322,14 +315,14 @@ void localization(vector<Line> &lines, vector<Line> &map,
 #endif
 
  } else
-  confidence = getConfidence(Point(0, 0), 0.0);
+  confidence = false;
 }
 
 void mapping(vector<Line> &lines, vector<Line> &map, bool &confidence) {
  vector<Line> newLines;
  bool change = false;
 
- if(!confidence)
+ if(!confidence && map.size())
   return;
 
  for(int i = 0; i < lines.size(); i++) {
@@ -480,7 +473,8 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point odometr
 
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
                     vector<Line> &map, vector<Line> &mapRobot,
-                    Point &odometryPoint, uint16_t &theta, bool confidence) {
+                    Point &odometryPoint, uint16_t &theta,
+                    double refTilt[], bool confidence) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -501,6 +495,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
 
 #ifdef IMU
   thetaCorrector = 0;
+  refTilt[0] = imuData.fusionPose.x();
+  refTilt[1] = imuData.fusionPose.y();
   imu->resetFusion();
 #endif
  }
@@ -621,6 +617,11 @@ int main(int argc, char* argv[]) {
  vector<Line> mapLines;
  vector<Line> map;
  vector<Line> mapRobot;
+#ifdef IMU
+ double refTilt[] = {imuData.fusionPose.x(), imuData.fusionPose.y()};
+#else
+ double refTilt[] = {0, 0};
+#endif
  bool confidence = false;
 
  bgrInit();
@@ -657,14 +658,14 @@ int main(int argc, char* argv[]) {
     return sqDist(a) > sqDist(b);
    });
 
-   localization(mapLines, map, odometryPoint, theta, confidence);
+   localization(mapLines, map, odometryPoint, theta, refTilt, confidence);
    mapping(mapLines, map, confidence);
 
    mapRobot.clear();
    mapToRobot(map, mapRobot, odometryPoint, theta);
   }
 
-  ui(image, robotPoints, robotLines, map, mapRobot, odometryPoint, theta, confidence);
+  ui(image, robotPoints, robotLines, map, mapRobot, odometryPoint, theta, refTilt, confidence);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
