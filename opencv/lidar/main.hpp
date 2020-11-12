@@ -4,6 +4,7 @@
 
 #define IMU
 #define DIRZ -1
+#define REFTILTINITDELAY 20
 
 #define LIDARX 0
 #define LIDARY 0

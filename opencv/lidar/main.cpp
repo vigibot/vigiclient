@@ -287,6 +287,10 @@ void localization(vector<Line> &lines, vector<Line> &map,
  Point pointErrorSum = Point(0, 0);
  double angularErrorSum = 0;
  int weightSum = 0;
+ int distErrorMax = 0;
+ double angularErrorMax = 0;
+ int distErrorMaxId = -1;
+ int angularErrorMaxId = -1;
 
  for(int i = 0; i < lines.size(); i++) {
   for(int j = 0; j < map.size(); j++) {
@@ -312,7 +316,16 @@ void localization(vector<Line> &lines, vector<Line> &map,
    angularErrorSum += angularError * refNorm;
    weightSum += refNorm;
 
-   break;
+   if(distError > distErrorMax) {
+    distErrorMax = distError;
+    distErrorMaxId = j;
+   }
+
+   double absAngularError = abs(angularError);
+   if(absAngularError > angularErrorMax) {
+    angularErrorMax = absAngularError;
+    angularErrorMaxId = j;
+   }
   }
  }
 
@@ -325,6 +338,15 @@ void localization(vector<Line> &lines, vector<Line> &map,
 #else
   theta += int(angularErrorSum * double(PI16) / M_PI) / weightSum / THETACORRECTORDIV;
 #endif
+
+  if(!confidence)
+   return;
+
+  if(distErrorMax > SMALLDISTERROR)
+   map.erase(map.begin() + distErrorMaxId);
+
+  if(angularErrorMax > SMALLANGULARERROR)
+   map.erase(map.begin() + angularErrorMaxId);
 
  } else
   confidence = false;
@@ -629,11 +651,8 @@ int main(int argc, char* argv[]) {
  vector<Line> mapLines;
  vector<Line> map;
  vector<Line> mapRobot;
-#ifdef IMU
- double refTilt[] = {imuData.fusionPose.x(), imuData.fusionPose.y()};
-#else
  double refTilt[] = {0, 0};
-#endif
+ int refTiltInitDelay = REFTILTINITDELAY;
  bool confidence = false;
 
  bgrInit();
@@ -678,6 +697,12 @@ int main(int argc, char* argv[]) {
   }
 
   ui(image, robotPoints, robotLines, map, mapRobot, odometryPoint, theta, refTilt, confidence);
+
+  if(refTiltInitDelay == 0) {
+   refTilt[0] = imuData.fusionPose.x();
+   refTilt[1] = imuData.fusionPose.y();
+  } else if(refTiltInitDelay > -1)
+   refTiltInitDelay--;
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
