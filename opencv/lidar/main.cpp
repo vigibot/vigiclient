@@ -258,7 +258,7 @@ bool testLines(Line line1, Line line2) {
  return true;
 }
 
-bool getConfidence(double refTilt[], Point deltaPoint, double deltaAngle) {
+bool getConfidence(double refTilt[], Point pointError, double angularError) {
  static int delay = 0;
  bool moveFast = abs(remoteFrame.vx) > CONFIDENCEMAXVELOCITY ||
                  abs(remoteFrame.vy) > CONFIDENCEMAXVELOCITY ||
@@ -273,8 +273,8 @@ bool getConfidence(double refTilt[], Point deltaPoint, double deltaAngle) {
   delay--;
 
  if(!delay &&
-    sqNorm(deltaPoint) < CONFIDENCEDISTERROR * CONFIDENCEDISTERROR &&
-    abs(deltaAngle) < CONFIDENCEANGULARERROR)
+    sqNorm(pointError) < CONFIDENCEDISTERROR * CONFIDENCEDISTERROR &&
+    abs(angularError) < CONFIDENCEANGULARERROR)
   return true;
 
  return false;
@@ -284,20 +284,20 @@ void localization(vector<Line> &lines, vector<Line> &map,
                   Point &odometryPoint, uint16_t &theta,
                   double refTilt[], bool &confidence) {
 
- Point deltaPoint = Point(0, 0);
- double deltaAngle = 0;
+ Point pointErrorSum = Point(0, 0);
+ double angularErrorSum = 0;
  int weightSum = 0;
 
  for(int i = 0; i < lines.size(); i++) {
   for(int j = 0; j < map.size(); j++) {
 
-   double angle = diffAngle(lines[i], map[j]);
-   if(abs(angle) > LARGEANGULARERROR)
+   double angularError = diffAngle(lines[i], map[j]);
+   if(abs(angularError) > LARGEANGULARERROR)
     continue;
 
-   Point pointDistance = pointDistancePointLine((lines[i].a + lines[i].b) / 2, map[j]);
-   int distance = sqrt(sqNorm(pointDistance));
-   if(distance > LARGEDISTERROR)
+   Point pointError = pointDistancePointLine((lines[i].a + lines[i].b) / 2, map[j]);
+   int distError = sqrt(sqNorm(pointError));
+   if(distError > LARGEDISTERROR)
     continue;
 
    int refNorm = sqrt(sqDist(map[j]));
@@ -308,8 +308,8 @@ void localization(vector<Line> &lines, vector<Line> &map,
       distance1 * distance2 > 0)
     continue;
 
-   deltaPoint += pointDistance * refNorm;
-   deltaAngle += angle * refNorm;
+   pointErrorSum += pointError * refNorm;
+   angularErrorSum += angularError * refNorm;
    weightSum += refNorm;
 
    break;
@@ -317,13 +317,13 @@ void localization(vector<Line> &lines, vector<Line> &map,
  }
 
  if(weightSum) {
-  confidence = getConfidence(refTilt, deltaPoint / weightSum, deltaAngle / weightSum);
-  odometryPoint -= deltaPoint / weightSum / ODOMETRYCORRECTORDIV;
+  confidence = getConfidence(refTilt, pointErrorSum / weightSum, angularErrorSum / weightSum);
+  odometryPoint -= pointErrorSum / weightSum / ODOMETRYCORRECTORDIV;
 
 #ifdef IMU
-  thetaCorrector += int(deltaAngle * double(PI16) / M_PI) / weightSum / IMUTHETACORRECTORDIV;
+  thetaCorrector += int(angularErrorSum * double(PI16) / M_PI) / weightSum / IMUTHETACORRECTORDIV;
 #else
-  theta += int(deltaAngle * double(PI16) / M_PI) / weightSum / THETACORRECTORDIV;
+  theta += int(angularErrorSum * double(PI16) / M_PI) / weightSum / THETACORRECTORDIV;
 #endif
 
  } else
