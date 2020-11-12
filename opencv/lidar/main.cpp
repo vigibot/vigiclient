@@ -698,10 +698,12 @@ int main(int argc, char* argv[]) {
 
   ui(image, robotPoints, robotLines, map, mapRobot, odometryPoint, theta, refTilt, confidence);
 
-  if(refTiltInitDelay == 0) {
+  if(refTiltInitDelay == 1) {
    refTilt[0] = imuData.fusionPose.x();
    refTilt[1] = imuData.fusionPose.y();
-  } else if(refTiltInitDelay > -1)
+  }
+
+  if(refTiltInitDelay)
    refTiltInitDelay--;
 
   if(updated) {
