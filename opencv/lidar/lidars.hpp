@@ -4,6 +4,7 @@
 
 #define LDLIDAR
 #define LIDARRATE 230400
+#define WAITMOTOR 5
 #define NBMEASURESPACK 12
 #define NBPACKS 26
 #define NBOVERLAPS 3

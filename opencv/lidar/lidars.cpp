@@ -10,6 +10,7 @@ void stopLidar(int ld) {
 }
 
 bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
+ static uint8_t waitMotor = WAITMOTOR;
  uint8_t current;
  static uint8_t n = 0;
  static uint8_t o = 0;
@@ -125,7 +126,10 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
       points.pop_back();
      pointsOut = points;
      points.clear();
-     done = true;
+     if(waitMotor)
+      waitMotor--;
+     else
+      done = true;
     }
 
     n = 0;
