@@ -235,29 +235,6 @@ double diffAngle(Line ligne1, Line ligne2) {
  return result;
 }
 
-bool testLines(Line line1, Line line2) {
- double angle = diffAngle(line1, line2);
-
- if(abs(angle) > SMALLANGULARERROR)
-  return false;
-
- int distance = distancePointLine((line1.a + line1.b) / 2, line2);
-
- if(distance > SMALLDISTERROR)
-  return false;
-
- int refNorm = sqrt(sqDist(line2));
- int distance1 = ratioPointLine(line1.a, line2) * refNorm;
- int distance2 = ratioPointLine(line1.b, line2) * refNorm;
-
- if((distance1 < -SMALLDISTERROR || distance1 > refNorm + SMALLDISTERROR) &&
-    (distance2 < -SMALLDISTERROR || distance2 > refNorm + SMALLDISTERROR) &&
-    distance1 * distance2 > 0)
-  return false;
-
- return true;
-}
-
 bool getConfidence(double refTilt[], Point pointError, double angularError) {
  static int delay = 0;
  bool moveFast = abs(remoteFrame.vx) > CONFIDENCEMAXVELOCITY ||
@@ -273,8 +250,8 @@ bool getConfidence(double refTilt[], Point pointError, double angularError) {
   delay--;
 
  if(!delay &&
-    sqNorm(pointError) < CONFIDENCEDISTERROR * CONFIDENCEDISTERROR &&
-    abs(angularError) < CONFIDENCEANGULARERROR)
+    sqNorm(pointError) < CONFIDENCEDISTTOLERANCE * CONFIDENCEDISTTOLERANCE &&
+    abs(angularError) < CONFIDENCEANGULARTOLERANCE)
   return true;
 
  return false;
@@ -297,19 +274,19 @@ void localization(vector<Line> &lines, vector<Line> &map,
 
    double angularError = diffAngle(lines[i], map[j]);
    double absAngularError = abs(angularError);
-   if(absAngularError > LARGEANGULARERROR)
+   if(absAngularError > LARGEANGULARTOLERANCE)
     continue;
 
    Point pointError = pointDistancePointLine((lines[i].a + lines[i].b) / 2, map[j]);
    int distError = sqrt(sqNorm(pointError));
-   if(distError > LARGEDISTERROR)
+   if(distError > LARGEDISTTOLERANCE)
     continue;
 
    int refNorm = sqrt(sqDist(map[j]));
    int distance1 = ratioPointLine(lines[i].a, map[j]) * refNorm;
    int distance2 = ratioPointLine(lines[i].b, map[j]) * refNorm;
-   if((distance1 < -SMALLDISTERROR || distance1 > refNorm + SMALLDISTERROR) &&
-      (distance2 < -SMALLDISTERROR || distance2 > refNorm + SMALLDISTERROR) &&
+   if((distance1 < 0 || distance1 > refNorm) &&
+      (distance2 < 0 || distance2 > refNorm) &&
       distance1 * distance2 > 0)
     continue;
 
@@ -342,14 +319,34 @@ void localization(vector<Line> &lines, vector<Line> &map,
   if(!confidence)
    return;
 
-  if(distErrorMax > SMALLDISTERROR)
+  if(distErrorMax > SMALLDISTTOLERANCE)
    map.erase(map.begin() + distErrorMaxId);
 
-  if(absAngularErrorMax > SMALLANGULARERROR)
+  if(absAngularErrorMax > SMALLANGULARTOLERANCE)
    map.erase(map.begin() + absAngularErrorMaxId);
 
  } else
   confidence = false;
+}
+
+bool testLines(Line line1, Line line2) {
+ double absAngularError = abs(diffAngle(line1, line2));
+ if(absAngularError > SMALLANGULARTOLERANCE)
+  return false;
+
+ int distError = distancePointLine((line1.a + line1.b) / 2, line2);
+ if(distError > SMALLDISTTOLERANCE)
+  return false;
+
+ int refNorm = sqrt(sqDist(line2));
+ int distance1 = ratioPointLine(line1.a, line2) * refNorm;
+ int distance2 = ratioPointLine(line1.b, line2) * refNorm;
+ if((distance1 < 0 || distance1 > refNorm) &&
+    (distance2 < 0 || distance2 > refNorm) &&
+    distance1 * distance2 > 0)
+  return false;
+
+ return true;
 }
 
 void mapping(vector<Line> &lines, vector<Line> &map, bool &confidence) {
@@ -364,27 +361,27 @@ void mapping(vector<Line> &lines, vector<Line> &map, bool &confidence) {
 
   for(int j = 0; j < map.size(); j++) {
    double absAngularError = abs(diffAngle(lines[i], map[j]));
-   if(absAngularError > LARGEANGULARERROR)
+   if(absAngularError > LARGEANGULARTOLERANCE)
     continue;
 
    int distError = distancePointLine((lines[i].a + lines[i].b) / 2, map[j]);
-   if(distError > LARGEDISTERROR)
+   if(distError > LARGEDISTTOLERANCE)
     continue;
 
    int refNorm = sqrt(sqDist(map[j]));
    int distance1 = ratioPointLine(lines[i].a, map[j]) * refNorm;
    int distance2 = ratioPointLine(lines[i].b, map[j]) * refNorm;
-   if((distance1 < -SMALLDISTERROR || distance1 > refNorm + SMALLDISTERROR) &&
-      (distance2 < -SMALLDISTERROR || distance2 > refNorm + SMALLDISTERROR) &&
+   if((distance1 < 0 || distance1 > refNorm) &&
+      (distance2 < 0 || distance2 > refNorm) &&
       distance1 * distance2 > 0)
     continue;
 
    newLine = false;
 
-   if(absAngularError > SMALLANGULARERROR)
+   if(absAngularError > SMALLANGULARTOLERANCE)
     continue;
 
-   if(distError > SMALLDISTERROR)
+   if(distError > SMALLDISTTOLERANCE)
     continue;
 
    bool merged = false;
