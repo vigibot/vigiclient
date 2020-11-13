@@ -288,15 +288,16 @@ void localization(vector<Line> &lines, vector<Line> &map,
  double angularErrorSum = 0;
  int weightSum = 0;
  int distErrorMax = 0;
- double angularErrorMax = 0;
  int distErrorMaxId = -1;
- int angularErrorMaxId = -1;
+ double absAngularErrorMax = 0;
+ int absAngularErrorMaxId = -1;
 
  for(int i = 0; i < lines.size(); i++) {
   for(int j = 0; j < map.size(); j++) {
 
    double angularError = diffAngle(lines[i], map[j]);
-   if(abs(angularError) > LARGEANGULARERROR)
+   double absAngularError = abs(angularError);
+   if(absAngularError > LARGEANGULARERROR)
     continue;
 
    Point pointError = pointDistancePointLine((lines[i].a + lines[i].b) / 2, map[j]);
@@ -321,10 +322,9 @@ void localization(vector<Line> &lines, vector<Line> &map,
     distErrorMaxId = j;
    }
 
-   double absAngularError = abs(angularError);
-   if(absAngularError > angularErrorMax) {
-    angularErrorMax = absAngularError;
-    angularErrorMaxId = j;
+   if(absAngularError > absAngularErrorMax) {
+    absAngularErrorMax = absAngularError;
+    absAngularErrorMaxId = j;
    }
   }
  }
@@ -345,8 +345,8 @@ void localization(vector<Line> &lines, vector<Line> &map,
   if(distErrorMax > SMALLDISTERROR)
    map.erase(map.begin() + distErrorMaxId);
 
-  if(angularErrorMax > SMALLANGULARERROR)
-   map.erase(map.begin() + angularErrorMaxId);
+  if(absAngularErrorMax > SMALLANGULARERROR)
+   map.erase(map.begin() + absAngularErrorMaxId);
 
  } else
   confidence = false;
@@ -363,12 +363,12 @@ void mapping(vector<Line> &lines, vector<Line> &map, bool &confidence) {
   bool newLine = true;
 
   for(int j = 0; j < map.size(); j++) {
-   double angle = diffAngle(lines[i], map[j]);
-   if(abs(angle) > LARGEANGULARERROR)
+   double absAngularError = abs(diffAngle(lines[i], map[j]));
+   if(absAngularError > LARGEANGULARERROR)
     continue;
 
-   int distance = distancePointLine((lines[i].a + lines[i].b) / 2, map[j]);
-   if(distance > LARGEDISTERROR)
+   int distError = distancePointLine((lines[i].a + lines[i].b) / 2, map[j]);
+   if(distError > LARGEDISTERROR)
     continue;
 
    int refNorm = sqrt(sqDist(map[j]));
@@ -381,10 +381,10 @@ void mapping(vector<Line> &lines, vector<Line> &map, bool &confidence) {
 
    newLine = false;
 
-   if(abs(angle) > SMALLANGULARERROR)
+   if(absAngularError > SMALLANGULARERROR)
     continue;
 
-   if(distance > SMALLDISTERROR)
+   if(distError > SMALLDISTERROR)
     continue;
 
    if((distance1 < -SMALLDISTERROR || distance1 > refNorm + SMALLDISTERROR) &&
@@ -579,8 +579,10 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  char text[80];
  if(tune)
   sprintf(text, "%d mm per pixel", mapDiv);
- else
+ else if(select == SELECTMAPBEAMS)
   sprintf(text, "%d points %d lines %d on map", robotPoints.size(), robotLines.size(), mapRobot.size());
+ else
+  sprintf(text, "X %03d Y %03d Theta %03d", odometryPoint.x / 10, odometryPoint.y / 10, theta * 180 / PI16);
  putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
  putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(confidence ? 255 : 128), 1);
 }
