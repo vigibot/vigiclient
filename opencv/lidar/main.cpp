@@ -308,8 +308,8 @@ void localization(vector<Line> &lines, vector<Line> &map,
    int refNorm = sqrt(sqDist(map[j]));
    int distance1 = ratioPointLine(lines[i].a, map[j]) * refNorm;
    int distance2 = ratioPointLine(lines[i].b, map[j]) * refNorm;
-   if((distance1 < -LARGEDISTERROR || distance1 > refNorm + LARGEDISTERROR) &&
-      (distance2 < -LARGEDISTERROR || distance2 > refNorm + LARGEDISTERROR) &&
+   if((distance1 < -SMALLDISTERROR || distance1 > refNorm + SMALLDISTERROR) &&
+      (distance2 < -SMALLDISTERROR || distance2 > refNorm + SMALLDISTERROR) &&
       distance1 * distance2 > 0)
     continue;
 
@@ -374,8 +374,8 @@ void mapping(vector<Line> &lines, vector<Line> &map, bool &confidence) {
    int refNorm = sqrt(sqDist(map[j]));
    int distance1 = ratioPointLine(lines[i].a, map[j]) * refNorm;
    int distance2 = ratioPointLine(lines[i].b, map[j]) * refNorm;
-   if((distance1 < -LARGEDISTERROR || distance1 > refNorm + LARGEDISTERROR) &&
-      (distance2 < -LARGEDISTERROR || distance2 > refNorm + LARGEDISTERROR) &&
+   if((distance1 < -SMALLDISTERROR || distance1 > refNorm + SMALLDISTERROR) &&
+      (distance2 < -SMALLDISTERROR || distance2 > refNorm + SMALLDISTERROR) &&
       distance1 * distance2 > 0)
     continue;
 
@@ -385,11 +385,6 @@ void mapping(vector<Line> &lines, vector<Line> &map, bool &confidence) {
     continue;
 
    if(distError > SMALLDISTERROR)
-    continue;
-
-   if((distance1 < -SMALLDISTERROR || distance1 > refNorm + SMALLDISTERROR) &&
-      (distance2 < -SMALLDISTERROR || distance2 > refNorm + SMALLDISTERROR) &&
-      distance1 * distance2 > 0)
     continue;
 
    bool merged = false;
