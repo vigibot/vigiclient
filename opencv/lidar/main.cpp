@@ -257,6 +257,16 @@ bool getConfidence(double refTilt[], Point pointError, double angularError) {
  return false;
 }
 
+bool ccw(Point point1, Point point2, Point point3) {
+ return (point3.y - point1.y) * (point2.x - point1.x) >
+        (point2.y - point1.y) * (point3.x - point1.x);
+}
+
+bool intersect(Line line1, Line line2) {
+ return ccw(line1.a, line2.a, line2.b) != ccw(line1.b, line2.a, line2.b) &&
+        ccw(line1.a, line1.b, line2.a) != ccw(line1.a, line1.b, line2.b);
+}
+
 void localization(vector<Line> &lines, vector<Line> &map,
                   Point &odometryPoint, uint16_t &theta,
                   double refTilt[], bool &confidence) {
