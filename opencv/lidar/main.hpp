@@ -6,8 +6,6 @@
 #define DIRZ -1
 #define REFTILTINITDELAY 20
 
-#define LIDARX 0
-#define LIDARY 0
 #define LIDARXMIN -100
 #define LIDARXMAX 100
 #define LIDARYMIN -100

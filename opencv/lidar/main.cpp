@@ -132,8 +132,8 @@ void fitLines(vector<vector<Point>> &rawLinesIn, vector<Line> &linesOut) {
 
 void lidarToRobot(vector<PointPolar> &pointsIn, vector<Point> &pointsOut) {
  for(int i = 0; i < pointsIn.size(); i++) {
-  int x = LIDARX + pointsIn[i].distance * sin16(pointsIn[i].theta) / ONE16;
-  int y = LIDARY + pointsIn[i].distance * cos16(pointsIn[i].theta) / ONE16;
+  int x = pointsIn[i].distance * sin16(pointsIn[i].theta) / ONE16;
+  int y = pointsIn[i].distance * cos16(pointsIn[i].theta) / ONE16;
 
   if(x > LIDARXMAX || x < LIDARXMIN ||
      y > LIDARYMAX || y < LIDARYMIN)
