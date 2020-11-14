@@ -51,11 +51,11 @@ const uint8_t LDCRC[] = {
  0x06, 0x4b, 0x9c, 0xd1, 0x7f, 0x32, 0xe5, 0xa8
 };
 
-typedef struct PointPolar {
+typedef struct PolarPoint {
  int distance;
  uint16_t theta;
-} PointPolar;
+} PolarPoint;
 
 void startLidar(int ld);
 void stopLidar(int ld);
-bool readLidar(int ld, std::vector<PointPolar> &pointsOut);
+bool readLidar(int ld, std::vector<PolarPoint> &pointsOut);

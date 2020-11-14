@@ -9,7 +9,7 @@ void startLidar(int ld) {
 void stopLidar(int ld) {
 }
 
-bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
+bool readLidar(int ld, std::vector<PolarPoint> &pointsOut) {
  static uint8_t waitMotor = WAITMOTOR;
  uint8_t current;
  static uint8_t n = 0;
@@ -23,7 +23,7 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
  static uint16_t timestamp;
  static uint8_t crc = 0;
  static uint8_t packs = 0;
- static std::vector<PointPolar> points;
+ static std::vector<PolarPoint> points;
  bool done = false;
 
  while(serialDataAvail(ld)) {
@@ -162,7 +162,7 @@ void stopLidar(int ld) {
  serialPutchar(ld, 0x25);
 }
 
-bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
+bool readLidar(int ld, std::vector<PolarPoint> &pointsOut) {
  static uint8_t init = 0;
  uint8_t current;
  static uint8_t n = 0;
@@ -176,7 +176,7 @@ bool readLidar(int ld, std::vector<PointPolar> &pointsOut) {
  static uint8_t o = 0;
  static uint8_t p = 0;
  static uint16_t j = 0;
- static std::vector<PointPolar> points;
+ static std::vector<PolarPoint> points;
  bool done = false;
 
  while(serialDataAvail(ld)) {

@@ -59,29 +59,29 @@ int sqDist(Point point1, Point point2) {
  return sqNorm(diff);
 }
 
-void extractRawLines(vector<PointPolar> &polarPointsIn, vector<Point> &pointsIn, vector<vector<Point>> &linesOut) {
+void extractRawLines(vector<PolarPoint> &polarPoints, vector<Point> &points, vector<vector<Point>> &lines) {
  vector<Point> pointsDp;
  vector<Point> pointsNoDp;
  Point oldPoint = Point(0, 0);
 
- approxPolyDP(pointsIn, pointsDp, EPSILON, true);
+ approxPolyDP(points, pointsDp, EPSILON, true);
 
- for(int i = 0; i < pointsIn.size() * 2; i++) {
-  int ii = i % pointsIn.size();
+ for(int i = 0; i < points.size() * 2; i++) {
+  int ii = i % points.size();
 
   bool dp = false;
   for(int j = 0; j < pointsDp.size(); j++) {
-   if(pointsIn[ii] == pointsDp[j]) {
+   if(points[ii] == pointsDp[j]) {
     dp = true;
     break;
    }
   }
 
-  int sqDst = sqDist(pointsIn[ii], oldPoint);
-  oldPoint = pointsIn[ii];
+  int sqDst = sqDist(points[ii], oldPoint);
+  oldPoint = points[ii];
 
-  uint16_t angle = 2 * PI16 / polarPointsIn.size();
-  int distMax = polarPointsIn[ii].distance * sin16(angle) * DISTMARGIN / ONE16;
+  uint16_t angle = 2 * PI16 / polarPoints.size();
+  int distMax = polarPoints[ii].distance * sin16(angle) * DISTMARGIN / ONE16;
   if(distMax < DISTCLAMP)
    distMax = DISTCLAMP;
 
@@ -89,14 +89,14 @@ void extractRawLines(vector<PointPolar> &polarPointsIn, vector<Point> &pointsIn,
    int size = pointsNoDp.size();
    if(size >= NBPOINTSMIN && i > size + 1 &&
       sqDist(pointsNoDp[0], pointsNoDp[size -1]) >= DISTMIN * DISTMIN) {
-    linesOut.push_back(pointsNoDp);
+    lines.push_back(pointsNoDp);
     if(i > ii)
      break;
    }
    pointsNoDp.clear();
 
   } else
-   pointsNoDp.push_back(pointsIn[ii]);
+   pointsNoDp.push_back(points[ii]);
  }
 }
 
@@ -130,7 +130,7 @@ void fitLines(vector<vector<Point>> &rawLinesIn, vector<Line> &linesOut) {
  }
 }
 
-void lidarToRobot(vector<PointPolar> &pointsIn, vector<Point> &pointsOut) {
+void lidarToRobot(vector<PolarPoint> &pointsIn, vector<Point> &pointsOut) {
  for(int i = 0; i < pointsIn.size(); i++) {
   int x = pointsIn[i].distance * sin16(pointsIn[i].theta) / ONE16;
   int y = pointsIn[i].distance * cos16(pointsIn[i].theta) / ONE16;
@@ -648,7 +648,7 @@ int main(int argc, char* argv[]) {
 
  Point odometryPoint = Point(0, 0);
  uint16_t theta = 0;
- vector<PointPolar> polarPoints;
+ vector<PolarPoint> polarPoints;
  vector<Point> robotPoints;
  vector<vector<Point>> robotRawLines;
  vector<Line> robotLines;
