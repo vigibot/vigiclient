@@ -240,8 +240,8 @@ bool getConfidence(double refTilt[], Point pointError, double angularError) {
  bool moveFast = abs(remoteFrame.vx) > CONFIDENCEMAXVELOCITY ||
                  abs(remoteFrame.vy) > CONFIDENCEMAXVELOCITY ||
                  abs(remoteFrame.vz) > CONFIDENCEMAXVELOCITY;
- bool tilt = abs(imuData.fusionPose.x() - refTilt[0]) > CONFIDENCEMAXTILT ||
-             abs(imuData.fusionPose.y() - refTilt[1]) > CONFIDENCEMAXTILT;
+ bool tilt = fabs(imuData.fusionPose.x() - refTilt[0]) > CONFIDENCEMAXTILT ||
+             fabs(imuData.fusionPose.y() - refTilt[1]) > CONFIDENCEMAXTILT;
 
  if(moveFast || tilt)
   delay = CONFIDENCEDELAY;
@@ -251,7 +251,7 @@ bool getConfidence(double refTilt[], Point pointError, double angularError) {
 
  if(!delay &&
     sqNorm(pointError) < CONFIDENCEDISTTOLERANCE * CONFIDENCEDISTTOLERANCE &&
-    abs(angularError) < CONFIDENCEANGULARTOLERANCE)
+    fabs(angularError) < CONFIDENCEANGULARTOLERANCE)
   return true;
 
  return false;
@@ -283,7 +283,7 @@ void localization(vector<Line> &lines, vector<Line> &map,
   for(int j = 0; j < map.size(); j++) {
 
    double angularError = diffAngle(lines[i], map[j]);
-   double absAngularError = abs(angularError);
+   double absAngularError = fabs(angularError);
    if(absAngularError > LARGEANGULARTOLERANCE)
     continue;
 
@@ -340,7 +340,7 @@ void localization(vector<Line> &lines, vector<Line> &map,
 }
 
 bool testLines(Line line1, Line line2) {
- double absAngularError = abs(diffAngle(line1, line2));
+ double absAngularError = fabs(diffAngle(line1, line2));
  if(absAngularError > SMALLANGULARTOLERANCE)
   return false;
 
@@ -359,18 +359,15 @@ bool testLines(Line line1, Line line2) {
  return true;
 }
 
-void mapping(vector<Line> &lines, vector<Line> &map, bool &confidence) {
+void mapping(vector<Line> &lines, vector<Line> &map) {
  vector<Line> newLines;
  bool change = false;
-
- if(!confidence && map.size())
-  return;
 
  for(int i = 0; i < lines.size(); i++) {
   bool newLine = true;
 
   for(int j = 0; j < map.size(); j++) {
-   double absAngularError = abs(diffAngle(lines[i], map[j]));
+   double absAngularError = fabs(diffAngle(lines[i], map[j]));
    if(absAngularError > LARGEANGULARTOLERANCE)
     continue;
 
@@ -694,7 +691,9 @@ int main(int argc, char* argv[]) {
    });
 
    localization(mapLines, map, odometryPoint, theta, refTilt, confidence);
-   mapping(mapLines, map, confidence);
+
+   if(confidence || !map.size())
+    mapping(mapLines, map);
 
    mapRobot.clear();
    mapToRobot(map, mapRobot, odometryPoint, theta);
