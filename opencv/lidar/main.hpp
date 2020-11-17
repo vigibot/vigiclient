@@ -23,8 +23,8 @@
 #define EPSILON 50.0
 #define DISTMARGIN 3
 #define DISTCLAMP 50
-#define NBPOINTSMIN 5
-#define DISTMIN 100
+#define NBPOINTSMIN 6
+#define DISTMIN 200
 
 #define VXDIV 10
 #define VYDIV 10
@@ -66,6 +66,8 @@ const std::vector<cv::Point> robotIcon = {
 typedef struct Line {
  cv::Point a;
  cv::Point b;
+ bool locka;
+ bool lockb;
 } Line;
 
 int width;

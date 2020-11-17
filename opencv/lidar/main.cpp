@@ -235,27 +235,27 @@ double diffAngle(Line ligne1, Line ligne2) {
  return result;
 }
 
-bool ccw(Point point1, Point point2, Point point3) {
- return (point3.y - point1.y) * (point2.x - point1.x) >
-        (point2.y - point1.y) * (point3.x - point1.x);
-}
+bool intersect(Line line1, Line line2, Point &intersectPoint) {
+ double det = (line1.a.x - line1.b.x) * (line2.a.y - line2.b.y) -
+              (line1.a.y - line1.b.y) * (line2.a.x - line2.b.x);
 
-bool intersect(Line line1, Line line2) {
- return ccw(line1.a, line2.a, line2.b) != ccw(line1.b, line2.a, line2.b) &&
-        ccw(line1.a, line1.b, line2.a) != ccw(line1.a, line1.b, line2.b);
-}
-
-bool intersectPoint(Line line1, Line line2, Point &interPoint) {
- Point diff1 = line1.b - line1.a;
- Point diff2 = line2.b - line2.a;
- Point diff3 = line2.a - line1.a;
-
- double deter12 = double(diff1.x * diff2.y - diff1.y * diff2.x);
- if(abs(deter12) < 0.001)
+ if(det == 0)
   return false;
 
- double deter32 = double(diff3.x * diff2.y - diff3.y * diff2.x);
- interPoint = line1.a + diff1 * deter32 / deter12;
+ double pre = line1.a.x * line1.b.y - line1.a.y * line1.b.x;
+ double post = line2.a.x * line2.b.y - line2.a.y * line2.b.x;
+ double x = (pre * (line2.a.x - line2.b.x) - (line1.a.x - line1.b.x) * post) / det;
+ double y = (pre * (line2.a.y - line2.b.y) - (line1.a.y - line1.b.y) * post) / det;
+
+ if(x < min(line1.a.x, line1.b.x) || x > max(line1.a.x, line1.b.x) ||
+    x < min(line2.a.x, line2.b.x) || x > max(line2.a.x, line2.b.x))
+  return false;
+
+ if(y < min(line1.a.y, line1.b.y) || y > max(line1.a.y, line1.b.y) ||
+    y < min(line2.a.y, line2.b.y) || y > max(line2.a.y, line2.b.y))
+  return false;
+
+ intersectPoint = Point(x, y);
 
  return true;
 }
@@ -275,20 +275,18 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odomet
   Line shorterLine = {odometryPoint, closerPoints[i]};
   for(int j = 0; j < map.size(); j++) {
 
-   if(intersect(shorterLine, map[j])) {
+   Point intersectPoint;
+   if(intersect(shorterLine, map[j], intersectPoint)) {
+
     double absAngularError = fabs(diffAngle(shorterLine, map[j]));
     if(absAngularError < LARGEANGULARTOLERANCE ||
        absAngularError > M_PI - LARGEANGULARTOLERANCE)
      continue;
 
-    Point interPoint;
-    if(!intersectPoint(shorterLine, map[j], interPoint))
-     continue;
-
-    if(sqDist(map[j].a, interPoint) < sqDist(map[j].b, interPoint))
-     map[j].a = interPoint;
+    if(sqDist(map[j].a, intersectPoint) < sqDist(map[j].b, intersectPoint))
+     map[j].a = intersectPoint;
     else
-     map[j].b = interPoint;
+     map[j].b = intersectPoint;
 
     if(sqDist(map[j]) < DISTMIN * DISTMIN) {
      map.erase(map.begin() + j);
@@ -779,12 +777,15 @@ int main(int argc, char* argv[]) {
 
    confidence = computeConfidence(refTilt, pointError, angularError);
 
-   if(confidence) { // TODO
-    if(absAngularErrorMax > SMALLANGULARTOLERANCE)
+   /*if(confidence) {
+    if(absAngularErrorMax > SMALLANGULARTOLERANCE) {
      map.erase(map.begin() + absAngularErrorMaxId);
-    else if(distErrorMax > SMALLDISTTOLERANCE)
+     if(absAngularErrorMaxId < distErrorMaxId)
+      distErrorMaxId--;
+    }
+    if(distErrorMax > SMALLDISTTOLERANCE)
      map.erase(map.begin() + distErrorMaxId);
-   }
+   }*/
 
    if(confidence || !map.size()) {
     mapping(mapLines, map);
