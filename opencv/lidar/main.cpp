@@ -245,17 +245,19 @@ bool intersect(Line line1, Line line2) {
         ccw(line1.a, line1.b, line2.a) != ccw(line1.a, line1.b, line2.b);
 }
 
-Point intersectPoint(Line line1, Line line2) { // TODO
+bool intersectPoint(Line line1, Line line2, Point &interPoint) {
  Point diff1 = line1.b - line1.a;
  Point diff2 = line2.b - line2.a;
  Point diff3 = line2.a - line1.a;
 
  double deter12 = double(diff1.x * diff2.y - diff1.y * diff2.x);
- if(abs(deter12) < 1e-8)
-  return Point(0, 0);
- double deter32 = double(diff3.x * diff2.y - diff3.y * diff2.x);
+ if(abs(deter12) < 0.001)
+  return false;
 
- return line1.a + diff1 * deter32 / deter12;
+ double deter32 = double(diff3.x * diff2.y - diff3.y * diff2.x);
+ interPoint = line1.a + diff1 * deter32 / deter12;
+
+ return true;
 }
 
 void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odometryPoint, uint16_t theta) {
@@ -274,7 +276,14 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odomet
   for(int j = 0; j < map.size(); j++) {
 
    if(intersect(shorterLine, map[j])) {
-    Point interPoint = intersectPoint(shorterLine, map[j]);
+    double absAngularError = fabs(diffAngle(shorterLine, map[j]));
+    if(absAngularError < LARGEANGULARTOLERANCE ||
+       absAngularError > M_PI - LARGEANGULARTOLERANCE)
+     continue;
+
+    Point interPoint;
+    if(!intersectPoint(shorterLine, map[j], interPoint))
+     continue;
 
     if(sqDist(map[j].a, interPoint) < sqDist(map[j].b, interPoint))
      map[j].a = interPoint;
@@ -289,6 +298,7 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odomet
 
   }
  }
+
 }
 
 bool computeErrors(vector<Line> &lines, vector<Line> &map,
@@ -588,7 +598,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  else if(select == SELECTMAPBEAMS)
   sprintf(text, "%d points %d lines %d on map", robotPoints.size(), robotLines.size(), mapRobot.size());
  else
-  sprintf(text, "X %03d Y %03d Theta %03d", odometryPoint.x / 10, odometryPoint.y / 10, theta * 180 / PI16);
+  sprintf(text, "X %04d Y %04d Theta %03d", odometryPoint.x, odometryPoint.y, theta * 180 / PI16);
  putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
  putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(confidence ? 255 : 128), 1);
 }
@@ -741,17 +751,16 @@ int main(int argc, char* argv[]) {
 
    confidence = computeConfidence(refTilt, pointError, angularError);
 
-   if(confidence) {
-    if(distErrorMax > SMALLDISTTOLERANCE)
-     map.erase(map.begin() + distErrorMaxId);
-
+   if(confidence) { // TODO
     if(absAngularErrorMax > SMALLANGULARTOLERANCE)
      map.erase(map.begin() + absAngularErrorMaxId);
+    else if(distErrorMax > SMALLDISTTOLERANCE)
+     map.erase(map.begin() + distErrorMaxId);
    }
 
    if(confidence || !map.size()) {
     mapping(mapLines, map);
-    //mapCleaner(polarPoints, map, odometryPoint, theta);
+    mapCleaner(polarPoints, map, odometryPoint, theta);
    }
 
    mapRobot.clear();
