@@ -173,7 +173,7 @@ double lineAngle(Line line) {
 double ratioPointLine(Point point, Line line) {
  Point diff = line.b - line.a;
  double scalarProduct;
- double ratio = 0;
+ double ratio = 0.0;
 
  if(diff.x || diff.y) {
   scalarProduct = (point.x - line.a.x) * diff.x +
@@ -235,28 +235,6 @@ double diffAngle(Line ligne1, Line ligne2) {
  return result;
 }
 
-bool getConfidence(double refTilt[], Point pointError, double angularError) {
- static int delay = 0;
- bool moveFast = abs(remoteFrame.vx) > CONFIDENCEMAXVELOCITY ||
-                 abs(remoteFrame.vy) > CONFIDENCEMAXVELOCITY ||
-                 abs(remoteFrame.vz) > CONFIDENCEMAXVELOCITY;
- bool tilt = fabs(imuData.fusionPose.x() - refTilt[0]) > CONFIDENCEMAXTILT ||
-             fabs(imuData.fusionPose.y() - refTilt[1]) > CONFIDENCEMAXTILT;
-
- if(moveFast || tilt)
-  delay = CONFIDENCEDELAY;
-
- if(delay)
-  delay--;
-
- if(!delay &&
-    sqNorm(pointError) < CONFIDENCEDISTTOLERANCE * CONFIDENCEDISTTOLERANCE &&
-    fabs(angularError) < CONFIDENCEANGULARTOLERANCE)
-  return true;
-
- return false;
-}
-
 bool ccw(Point point1, Point point2, Point point3) {
  return (point3.y - point1.y) * (point2.x - point1.x) >
         (point2.y - point1.y) * (point3.x - point1.x);
@@ -267,17 +245,60 @@ bool intersect(Line line1, Line line2) {
         ccw(line1.a, line1.b, line2.a) != ccw(line1.a, line1.b, line2.b);
 }
 
-void localization(vector<Line> &lines, vector<Line> &map,
-                  Point &odometryPoint, uint16_t &theta,
-                  double refTilt[], bool &confidence) {
+Point intersectPoint(Line line1, Line line2) { // TODO
+ Point diff1 = line1.b - line1.a;
+ Point diff2 = line2.b - line2.a;
+ Point diff3 = line2.a - line1.a;
+
+ double deter12 = double(diff1.x * diff2.y - diff1.y * diff2.x);
+ if(abs(deter12) < 1e-8)
+  return Point(0, 0);
+ double deter32 = double(diff3.x * diff2.y - diff3.y * diff2.x);
+
+ return line1.a + diff1 * deter32 / deter12;
+}
+
+void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odometryPoint, uint16_t theta) {
+ vector<Point> closerPoints;
+
+ for(int i = 0; i < polarPoints.size(); i++) {
+  Point closerPoint = Point((polarPoints[i].distance - LARGEDISTTOLERANCE) * sin16(polarPoints[i].theta) / ONE16,
+                            (polarPoints[i].distance - LARGEDISTTOLERANCE) * cos16(polarPoints[i].theta) / ONE16);
+
+  closerPoints.push_back(Point(odometryPoint.x + (closerPoint.x * cos16(theta) - closerPoint.y * sin16(theta)) / ONE16,
+                               odometryPoint.y + (closerPoint.x * sin16(theta) + closerPoint.y * cos16(theta)) / ONE16));
+ }
+
+ for(int i = 0; i < closerPoints.size(); i++) {
+  Line shorterLine = {odometryPoint, closerPoints[i]};
+  for(int j = 0; j < map.size(); j++) {
+
+   if(intersect(shorterLine, map[j])) {
+    Point interPoint = intersectPoint(shorterLine, map[j]);
+
+    if(sqDist(map[j].a, interPoint) < sqDist(map[j].b, interPoint))
+     map[j].a = interPoint;
+    else
+     map[j].b = interPoint;
+
+    if(sqDist(map[j]) < DISTMIN * DISTMIN) {
+     map.erase(map.begin() + j);
+     j--;
+    }
+   }
+
+  }
+ }
+}
+
+bool computeErrors(vector<Line> &lines, vector<Line> &map,
+                   Point &pointErrorOut, double &angularErrorOut,
+                   int &distErrorMax, int &distErrorMaxId,
+                   double &absAngularErrorMax, int &absAngularErrorMaxId) {
 
  Point pointErrorSum = Point(0, 0);
- double angularErrorSum = 0;
+ double angularErrorSum = 0.0;
  int weightSum = 0;
- int distErrorMax = 0;
- int distErrorMaxId = -1;
- double absAngularErrorMax = 0;
- int absAngularErrorMaxId = -1;
 
  for(int i = 0; i < lines.size(); i++) {
   for(int j = 0; j < map.size(); j++) {
@@ -317,26 +338,12 @@ void localization(vector<Line> &lines, vector<Line> &map,
  }
 
  if(weightSum) {
-  confidence = getConfidence(refTilt, pointErrorSum / weightSum, angularErrorSum / weightSum);
-  odometryPoint -= pointErrorSum / weightSum / ODOMETRYCORRECTORDIV;
+  pointErrorOut = pointErrorSum / weightSum;
+  angularErrorOut = angularErrorSum / weightSum;
 
-#ifdef IMU
-  thetaCorrector += int(angularErrorSum * double(PI16) / M_PI) / weightSum / IMUTHETACORRECTORDIV;
-#else
-  theta += int(angularErrorSum * double(PI16) / M_PI) / weightSum / THETACORRECTORDIV;
-#endif
-
-  if(!confidence)
-   return;
-
-  if(distErrorMax > SMALLDISTTOLERANCE)
-   map.erase(map.begin() + distErrorMaxId);
-
-  if(absAngularErrorMax > SMALLANGULARTOLERANCE)
-   map.erase(map.begin() + absAngularErrorMaxId);
-
+  return true;
  } else
-  confidence = false;
+  return false;
 }
 
 bool testLines(Line line1, Line line2) {
@@ -606,6 +613,27 @@ void bgrInit() {
  }
 }
 
+bool computeConfidence(double refTilt[], Point pointError, double angularError) {
+ static int delay = 0;
+ bool moveFast = abs(remoteFrame.vx) > CONFIDENCEMAXVELOCITY ||
+                 abs(remoteFrame.vy) > CONFIDENCEMAXVELOCITY ||
+                 abs(remoteFrame.vz) > CONFIDENCEMAXVELOCITY;
+ bool tilt = fabs(imuData.fusionPose.x() - refTilt[0]) > CONFIDENCEMAXTILT ||
+             fabs(imuData.fusionPose.y() - refTilt[1]) > CONFIDENCEMAXTILT;
+
+ if(moveFast || tilt)
+  delay = CONFIDENCEDELAY;
+
+ if(delay)
+  delay--;
+
+ if(!delay && sqNorm(pointError) < CONFIDENCEDISTTOLERANCE * CONFIDENCEDISTTOLERANCE &&
+              fabs(angularError) < CONFIDENCEANGULARTOLERANCE)
+  return true;
+
+ return false;
+}
+
 int main(int argc, char* argv[]) {
  if(argc != 4) {
   width = WIDTH;
@@ -674,6 +702,7 @@ int main(int argc, char* argv[]) {
    odometry(odometryPoint, theta);
 
   if(readLidar(ld, polarPoints)) {
+
    robotPoints.clear();
    lidarToRobot(polarPoints, robotPoints);
 
@@ -683,17 +712,47 @@ int main(int argc, char* argv[]) {
    robotLines.clear();
    fitLines(robotRawLines, robotLines);
 
-   mapLines.clear();
-   robotToMap(robotLines, mapLines, odometryPoint, theta);
-
-   sort(mapLines.begin(), mapLines.end(), [](const Line &a, const Line &b) {
+   sort(robotLines.begin(), robotLines.end(), [](const Line &a, const Line &b) {
     return sqDist(a) > sqDist(b);
    });
 
-   localization(mapLines, map, odometryPoint, theta, refTilt, confidence);
+   Point pointError = Point(0, 0);
+   double angularError = 0.0;
+   int distErrorMax = 0;
+   int distErrorMaxId = -1;
+   double absAngularErrorMax = 0.0;
+   int absAngularErrorMaxId = -1;
+   for(int i = 0; i < NBITERATIONS; i++) {
+    mapLines.clear();
+    robotToMap(robotLines, mapLines, odometryPoint, theta);
 
-   if(confidence || !map.size())
+    if(computeErrors(mapLines, map, pointError, angularError,
+                                    distErrorMax, distErrorMaxId,
+                                    absAngularErrorMax, absAngularErrorMaxId)) {
+
+     odometryPoint -= pointError / ODOMETRYCORRECTORDIV;
+#ifdef IMU
+     thetaCorrector += int(angularError * double(PI16) / M_PI) / IMUTHETACORRECTORDIV;
+#else
+     theta += int(angularError * double(PI16) / M_PI) / THETACORRECTORDIV;
+#endif
+    }
+   }
+
+   confidence = computeConfidence(refTilt, pointError, angularError);
+
+   if(confidence) {
+    if(distErrorMax > SMALLDISTTOLERANCE)
+     map.erase(map.begin() + distErrorMaxId);
+
+    if(absAngularErrorMax > SMALLANGULARTOLERANCE)
+     map.erase(map.begin() + absAngularErrorMaxId);
+   }
+
+   if(confidence || !map.size()) {
     mapping(mapLines, map);
+    //mapCleaner(polarPoints, map, odometryPoint, theta);
+   }
 
    mapRobot.clear();
    mapToRobot(map, mapRobot, odometryPoint, theta);
