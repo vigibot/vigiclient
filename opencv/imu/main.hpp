@@ -10,6 +10,7 @@
 #define OFFSETX M_PI
 #define OFFSETY 0.0
 #define OFFSETZ 0.0
+#define IMUSLERPPOWER 0.01
 #define TRIGGERVX 64
 #define DIVVZ 20
 #define KPVZ 3

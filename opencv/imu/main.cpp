@@ -30,7 +30,7 @@ void imuThread() {
  }
 
  imu->IMUInit();
- imu->setSlerpPower(0.002);
+ imu->setSlerpPower(IMUSLERPPOWER);
  imu->setGyroEnable(true);
  imu->setAccelEnable(true);
  imu->setCompassEnable(false);

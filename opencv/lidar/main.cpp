@@ -32,7 +32,7 @@ void imuThread() {
  }
 
  imu->IMUInit();
- imu->setSlerpPower(0.002);
+ imu->setSlerpPower(IMUSLERPPOWER);
  imu->setGyroEnable(true);
  imu->setAccelEnable(true);
  imu->setCompassEnable(false);
@@ -617,8 +617,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  watch(image, imux, Point(x1, y1), DIAM1, Scalar(0, 0, 200), Scalar::all(200));
  watch(image, imuy, Point(x2, y1), DIAM1, Scalar(0, 200, 0), Scalar::all(200));
 
- watch(image, imux * M_PI / CONFIDENCEMAXTILT, Point(x1, y1), DIAM2, Scalar(0, 0, 255), Scalar::all(255));
- watch(image, imuy * M_PI / CONFIDENCEMAXTILT, Point(x2, y1), DIAM2, Scalar(0, 255, 0), Scalar::all(255));
+ watch(image, imux * M_PI / 2 / CONFIDENCEMAXTILT, Point(x1, y1), DIAM2, Scalar(0, 0, 255), Scalar::all(255));
+ watch(image, imuy * M_PI / 2 / CONFIDENCEMAXTILT, Point(x2, y1), DIAM2, Scalar(0, 255, 0), Scalar::all(255));
 #endif
 
  char text[80];
