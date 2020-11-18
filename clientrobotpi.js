@@ -651,7 +651,7 @@ USER.SERVERS.forEach(function(server, index) {
    return;
   lastFrame = now;
 
-  lastTimestamp = data.boucleVideoCommand;
+  lastTimestamp = data.boucleVideoCommande;
 
   if(hard.WRITEUSERDEVICE != SYS.UNUSED)
    serial.write(data.data);
