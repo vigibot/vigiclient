@@ -907,14 +907,10 @@ setInterval(function() {
  let predictiveLatency = Date.now() - lastTimestamp;
 
  if(predictiveLatency < SYS.LATENCYALARMEND && latencyAlarm) {
-  //trace(predictiveLatency + " ms latency, return to configured video bitrate", false);
-  //exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function() {
-  //});
+  trace(predictiveLatency + " ms latency, resuming normal operations", false);
   latencyAlarm = false;
  } else if(predictiveLatency > SYS.LATENCYALARMBEGIN && !latencyAlarm) {
-  //trace(predictiveLatency + " ms latency, stop the motors and switch to reduced video bitrate", false);
-  //exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + SYS.EMERGENCYBITRATE, function() {
-  //});
+  trace(predictiveLatency + " ms latency, stopping of motors and streams", false);
   latencyAlarm = true;
  }
 
@@ -1230,7 +1226,9 @@ NET.createServer(function(socket) {
 
  SPLITTER.on("data", function(data) {
 
-  if(currentServer && !latencyAlarm) {
+  if(currentServer) {
+   if(latencyAlarm)
+    data = new Buffer.from([]);
    sockets[currentServer].emit("serveurrobotvideo", {
     timestamp: Date.now(),
     data: data
@@ -1261,7 +1259,9 @@ NET.createServer(function(socket) {
   i++;
 
   if(i == 20) {
-   if(currentServer && !latencyAlarm) {
+   if(currentServer) {
+    if(latencyAlarm)
+     array = [];
     sockets[currentServer].emit("serveurrobotaudio", {
      timestamp: Date.now(),
      data: Buffer.concat(array)
