@@ -222,19 +222,6 @@ bool growLine(Point point, Line &line) {
  return false;
 }
 
-double diffAngle(Line ligne1, Line ligne2) {
- double angle1 = lineAngle(ligne1);
- double angle2 = lineAngle(ligne2);
- double result = angle2 - angle1;
-
- if(result > M_PI)
-  result -= 2.0 * M_PI;
- else if(result < -M_PI)
-  result += 2.0 * M_PI;
-
- return result;
-}
-
 bool intersect(Line line1, Line line2, Point &intersectPoint) {
  double det = (line1.a.x - line1.b.x) * (line2.a.y - line2.b.y) -
               (line1.a.y - line1.b.y) * (line2.a.x - line2.b.x);
@@ -258,6 +245,38 @@ bool intersect(Line line1, Line line2, Point &intersectPoint) {
  intersectPoint = Point(x, y);
 
  return true;
+}
+
+bool growMapIntersect(Point point, vector<Line> &map, int n) {
+ Point intersectPoint;
+
+ if(growLine(point, map[n])) {
+
+  for(int i = 0; i < map.size(); i++) {
+   if(i != n && intersect(map[i], map[n], intersectPoint)) {
+    if(sqDist(intersectPoint, map[n].a) < sqDist(intersectPoint, map[n].b))
+     map[n].a = intersectPoint;
+    else
+     map[n].b = intersectPoint;
+   }
+  }
+
+  return true;
+ }
+ return false;
+}
+
+double diffAngle(Line line1, Line line2) {
+ double angle1 = lineAngle(line1);
+ double angle2 = lineAngle(line2);
+ double result = angle2 - angle1;
+
+ if(result > M_PI)
+  result -= 2.0 * M_PI;
+ else if(result < -M_PI)
+  result += 2.0 * M_PI;
+
+ return result;
 }
 
 void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odometryPoint, uint16_t theta) {
@@ -299,7 +318,7 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odomet
 
 }
 
-bool computeErrors(vector<Line> &lines, vector<Line> &map,
+bool computeErrors(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map,
                    Point &pointErrorOut, double &angularErrorOut,
                    int &distErrorMax, int &distErrorMaxId,
                    double &absAngularErrorMax, int &absAngularErrorMaxId) {
@@ -309,6 +328,11 @@ bool computeErrors(vector<Line> &lines, vector<Line> &map,
  int weightSum = 0;
 
  for(int i = 0; i < lines.size(); i++) {
+  Line line = {Point(0, 0), Point((robotLines[i].a + robotLines[i].b) / 2)};
+  double angle = fabs(diffAngle(line, robotLines[i]));
+  if(angle < LARGEANGULARTOLERANCE || fabs(angle - M_PI) < LARGEANGULARTOLERANCE)
+   continue;
+
   for(int j = 0; j < map.size(); j++) {
 
    double angularError = diffAngle(lines[i], map[j]);
@@ -374,20 +398,25 @@ bool testLines(Line line1, Line line2) {
  return true;
 }
 
-void mapping(vector<Line> &lines, vector<Line> &map) {
+void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
  vector<Line> newLines;
  bool change = false;
 
  for(int i = 0; i < lines.size(); i++) {
   bool newLine = true;
 
+  Line line = {Point(0, 0), Point((robotLines[i].a + robotLines[i].b) / 2)};
+  double angle = fabs(diffAngle(line, robotLines[i]));
+  if(angle < LARGEANGULARTOLERANCE || fabs(angle - M_PI) < LARGEANGULARTOLERANCE)
+   continue;
+
   for(int j = 0; j < map.size(); j++) {
    double absAngularError = fabs(diffAngle(lines[i], map[j]));
-   if(absAngularError > LARGEANGULARTOLERANCE)
+   if(absAngularError > LARGEANGULARTOLERANCE * 2)
     continue;
 
    int distError = distancePointLine((lines[i].a + lines[i].b) / 2, map[j]);
-   if(distError > LARGEDISTTOLERANCE)
+   if(distError > LARGEDISTTOLERANCE * 2)
     continue;
 
    int refNorm = sqrt(sqDist(map[j]));
@@ -407,8 +436,8 @@ void mapping(vector<Line> &lines, vector<Line> &map) {
     continue;
 
    bool merged = false;
-   merged |= growLine(lines[i].a, map[j]);
-   merged |= growLine(lines[i].b, map[j]);
+   merged |= growMapIntersect(lines[i].a, map, j);
+   merged |= growMapIntersect(lines[i].b, map, j);
    if(!merged)
     continue;
    else
@@ -429,10 +458,10 @@ void mapping(vector<Line> &lines, vector<Line> &map) {
      smaller = mergeIndex;
      mergeIndex = bigger;
     }
-    bool merged = false;
-    merged |= growLine(map[smaller].a, map[bigger]);
-    merged |= growLine(map[smaller].b, map[bigger]);
-    if(!merged)
+    bool mergedMap = false;
+    mergedMap |= growLine(map[smaller].a, map[bigger]);
+    mergedMap |= growLine(map[smaller].b, map[bigger]);
+    if(!mergedMap)
      continue;
 
     map.erase(map.begin() + smaller);
@@ -440,6 +469,8 @@ void mapping(vector<Line> &lines, vector<Line> &map) {
      mergeIndex--;
      k--;
     }
+
+    break;
    }
 
    break;
@@ -555,7 +586,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
 #endif
  }
 
- if(!buttonOk && oldButtonOk)
+ if(select != SELECTNONE &&
+    !buttonOk && oldButtonOk)
   tune = !tune;
 
  if(tune) {
@@ -654,12 +686,18 @@ bool computeConfidence(double refTilt[], Point pointError, double angularError) 
  static int delay = 0;
  bool moveFast = abs(remoteFrame.vx) > CONFIDENCEMAXVELOCITY ||
                  abs(remoteFrame.vy) > CONFIDENCEMAXVELOCITY ||
-                 abs(remoteFrame.vz) > CONFIDENCEMAXVELOCITY;
+                 abs(remoteFrame.vz) > CONFIDENCEMAXANGULARVELOCITY;
+
+#ifdef IMU
  bool tilt = fabs(imuData.fusionPose.x() * DIRX + OFFSETX - refTilt[0]) > CONFIDENCEMAXTILT ||
              fabs(imuData.fusionPose.y() * DIRY + OFFSETY - refTilt[1]) > CONFIDENCEMAXTILT;
 
  if(moveFast || tilt)
   delay = CONFIDENCEDELAY;
+#else
+ if(moveFast)
+  delay = CONFIDENCEDELAY;
+#endif
 
  if(delay)
   delay--;
@@ -762,9 +800,10 @@ int main(int argc, char* argv[]) {
     mapLines.clear();
     robotToMap(robotLines, mapLines, odometryPoint, theta);
 
-    if(computeErrors(mapLines, map, pointError, angularError,
-                                    distErrorMax, distErrorMaxId,
-                                    absAngularErrorMax, absAngularErrorMaxId)) {
+    if(computeErrors(robotLines, mapLines, map,
+                     pointError, angularError,
+                     distErrorMax, distErrorMaxId,
+                     absAngularErrorMax, absAngularErrorMaxId)) {
 
      odometryPoint -= pointError / ODOMETRYCORRECTORDIV;
 #ifdef IMU
@@ -788,8 +827,8 @@ int main(int argc, char* argv[]) {
    }*/
 
    if(confidence || !map.size()) {
-    mapping(mapLines, map);
-    mapCleaner(polarPoints, map, odometryPoint, theta);
+    mapping(robotLines, mapLines, map);
+    //mapCleaner(polarPoints, map, odometryPoint, theta);
    }
 
    mapRobot.clear();
