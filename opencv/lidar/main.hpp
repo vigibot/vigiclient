@@ -67,8 +67,6 @@ const std::vector<cv::Point> robotIcon = {
 typedef struct Line {
  cv::Point a;
  cv::Point b;
- bool locka;
- bool lockb;
 } Line;
 
 int width;

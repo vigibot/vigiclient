@@ -247,7 +247,7 @@ bool intersect(Line line1, Line line2, Point &intersectPoint) {
  return true;
 }
 
-bool growMapIntersect(Point point, vector<Line> &map, int n) {
+/*bool growMapIntersect(Point point, vector<Line> &map, int n) {
  Point intersectPoint;
 
  if(growLine(point, map[n])) {
@@ -264,7 +264,7 @@ bool growMapIntersect(Point point, vector<Line> &map, int n) {
   return true;
  }
  return false;
-}
+}*/
 
 double diffAngle(Line line1, Line line2) {
  double angle1 = lineAngle(line1);
@@ -436,8 +436,8 @@ void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
     continue;
 
    bool merged = false;
-   merged |= growMapIntersect(lines[i].a, map, j);
-   merged |= growMapIntersect(lines[i].b, map, j);
+   merged |= growLine(lines[i].a, map[j]);
+   merged |= growLine(lines[i].b, map[j]);
    if(!merged)
     continue;
    else
