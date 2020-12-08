@@ -6,8 +6,7 @@
 #define LIDARRATE 230400
 #define WAITMOTOR 5
 #define NBMEASURESPACK 12
-#define NBPACKS 26
-#define NBOVERLAPS 3
+#define DISTANCEMIN 100
 #define CONFIDENCEMIN 10
 
 //#define RPLIDAR
@@ -15,6 +14,7 @@
 //#define NBINITS 3
 //#define NBMEASURESCABIN 32
 //#define FULLTURNQ6 (360 << 6)
+//#define DISTANCEMIN 100
 
 const uint8_t LDCRC[] = {
  0x00, 0x4d, 0x9a, 0xd7, 0x79, 0x34, 0xe3, 0xae,

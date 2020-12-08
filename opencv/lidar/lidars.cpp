@@ -22,8 +22,8 @@ bool readLidar(int ld, std::vector<PolarPoint> &pointsOut) {
  static uint16_t endAngle;
  static uint16_t timestamp;
  static uint8_t crc = 0;
- static uint8_t packs = 0;
  static std::vector<PolarPoint> points;
+ static uint16_t oldAngle = 0;
  bool done = false;
 
  while(serialDataAvail(ld)) {
@@ -110,26 +110,23 @@ bool readLidar(int ld, std::vector<PolarPoint> &pointsOut) {
      uint16_t diff = (endAngle + 36000 - startAngle) % 36000;
 
      for(uint8_t i = 0; i < NBMEASURESPACK; i++) {
-      if(!distances[i] || confidences[i] < CONFIDENCEMIN)
+      if(distances[i] < DISTANCEMIN || confidences[i] < CONFIDENCEMIN)
        continue;
 
       uint16_t angle = startAngle + diff * i / (NBMEASURESPACK - 1);
       angle = angle * 65536 / 36000;
       points.push_back({distances[i], angle});
-     }
-    }
-    packs++;
 
-    if(packs == NBPACKS && !points.empty()) {
-     packs = 0;
-     for(uint8_t i = 0; i < NBOVERLAPS; i++)
-      points.pop_back();
-     pointsOut = points;
-     points.clear();
-     if(waitMotor)
-      waitMotor--;
-     else
-      done = true;
+      if(oldAngle > angle && !points.empty()) {
+       pointsOut = points;
+       points.clear();
+       if(waitMotor)
+        waitMotor--;
+       else
+        done = true;
+      }
+      oldAngle = angle;
+     }
     }
 
     n = 0;
@@ -234,7 +231,7 @@ bool readLidar(int ld, std::vector<PolarPoint> &pointsOut) {
      }
      oldAngleBrutQ6 = angleBrutQ6;
 
-     if(distances[i]) {                                      // Si la lecture est valide et si il reste de la place dans les tableaux
+     if(distances[i] >= DISTANCEMIN) {                       // Si la lecture est valide
       int32_t angle = angleBrutQ6 - (deltaAnglesQ3[i] << 3); // Calculer l'angle compensé
       angle = angle * 65536 / FULLTURNQ6;                    // Remise à l'échelle de l'angle
       points.push_back({distances[i], uint16_t(angle)});
