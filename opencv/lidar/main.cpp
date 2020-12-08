@@ -572,7 +572,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  static bool oldButtonOk = false;
  static bool tune = false;
  static int select = SELECTMAP;
- static int mapDiv = MAPDIVMIN;
+ static int mapDiv = MAPDIV;
 
  if(!buttonReset && oldButtonReset) {
   map.clear();

@@ -30,8 +30,9 @@
 #define VYDIV 10
 #define VZMUL 10
 
-#define MAPDIVMIN 5
-#define MAPDIVMAX 50
+#define MAPDIV 5
+#define MAPDIVMIN 1
+#define MAPDIVMAX 100
 
 #define LARGEDISTTOLERANCE 200
 #define LARGEANGULARTOLERANCE (20.0 * M_PI / 180.0)
