@@ -88,7 +88,7 @@ void extractRawLines(vector<PolarPoint> &polarPoints, vector<Point> &points, vec
   if(dp || sqDst > distMax * distMax) {
    int size = pointsNoDp.size();
    if(size >= NBPOINTSMIN && i > size + 1 &&
-      sqDist(pointsNoDp[0], pointsNoDp[size -1]) >= DISTMIN * DISTMIN) {
+      sqDist(pointsNoDp[0], pointsNoDp[size - 1]) >= DISTMIN * DISTMIN) {
     lines.push_back(pointsNoDp);
     if(i > ii)
      break;
