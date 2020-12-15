@@ -558,10 +558,8 @@ void watch(Mat &image, double angle, Point center, int diam, Scalar color1, Scal
 
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
                     vector<Line> &map, vector<Line> &mapRobot,
-                    Point &odometryPoint, uint16_t &theta,
-                    double *refTilt, bool confidence) {
+                    Point &odometryPoint, uint16_t &theta, bool confidence) {
 
- static int refTiltInitDelay = REFTILTINITDELAY;
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
  bool buttonReset = remoteFrame.switchs & 0b01000000;
@@ -582,7 +580,6 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
 #ifdef IMU
   imu->resetFusion();
   thetaCorrector = 0;
-  refTiltInitDelay = REFTILTINITDELAY;
 #endif
  }
 
@@ -628,29 +625,6 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
   drawRobot(image, robotIcon, FILLED, Point(0, 0), 0, mapDiv);
  }
 
-#ifdef IMU
- if(refTiltInitDelay == 1) {
-  refTilt[0] = imuData.fusionPose.x() * DIRX + OFFSETX;
-  refTilt[1] = imuData.fusionPose.y() * DIRY + OFFSETY;
- }
-
- if(refTiltInitDelay)
-  refTiltInitDelay--;
-
- double imux = imuData.fusionPose.x() * DIRX + OFFSETX - refTilt[0];
- double imuy = imuData.fusionPose.y() * DIRY + OFFSETY - refTilt[1];
-
- int x1 = MARGIN + DIAM1;
- int x2 = x1 + MARGIN + DIAM1 * 2;
- int y1 = MARGIN + DIAM1;
-
- watch(image, imux, Point(x1, y1), DIAM1, Scalar(0, 0, 200), Scalar::all(200));
- watch(image, imuy, Point(x2, y1), DIAM1, Scalar(0, 200, 0), Scalar::all(200));
-
- watch(image, imux * M_PI / 2 / CONFIDENCEMAXTILT, Point(x1, y1), DIAM2, Scalar(0, 0, 255), Scalar::all(255));
- watch(image, imuy * M_PI / 2 / CONFIDENCEMAXTILT, Point(x2, y1), DIAM2, Scalar(0, 255, 0), Scalar::all(255));
-#endif
-
  char text[80];
  if(tune)
   sprintf(text, "%d mm per pixel", mapDiv);
@@ -658,13 +632,13 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
   sprintf(text, "%d points %d lines %d on map", robotPoints.size(), robotLines.size(), mapRobot.size());
  else
   sprintf(text, "X %04d Y %04d Theta %03d", odometryPoint.x, odometryPoint.y, theta * 180 / PI16);
- putText(image, text, Point(95, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
- putText(image, text, Point(96, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(confidence ? 255 : 128), 1);
+ putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
+ putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(confidence ? 255 : 128), 1);
 }
 
 void odometry(Point &odometryPoint, uint16_t &theta) {
 #ifdef IMU
- theta = angleDoubleToAngle16(imuData.fusionPose.z() * DIRZ + OFFSETZ) + thetaCorrector;
+ theta = angleDoubleToAngle16(imuData.fusionPose.z() * DIRZ) + thetaCorrector;
 #else
  theta += remoteFrame.vz * VZMUL;
 #endif
@@ -682,22 +656,14 @@ void bgrInit() {
  }
 }
 
-bool computeConfidence(double refTilt[], Point pointError, double angularError) {
+bool computeConfidence(Point pointError, double angularError) {
  static int delay = 0;
  bool moveFast = abs(remoteFrame.vx) > CONFIDENCEMAXVELOCITY ||
                  abs(remoteFrame.vy) > CONFIDENCEMAXVELOCITY ||
                  abs(remoteFrame.vz) > CONFIDENCEMAXANGULARVELOCITY;
 
-#ifdef IMU
- bool tilt = fabs(imuData.fusionPose.x() * DIRX + OFFSETX - refTilt[0]) > CONFIDENCEMAXTILT ||
-             fabs(imuData.fusionPose.y() * DIRY + OFFSETY - refTilt[1]) > CONFIDENCEMAXTILT;
-
- if(moveFast || tilt)
-  delay = CONFIDENCEDELAY;
-#else
  if(moveFast)
   delay = CONFIDENCEDELAY;
-#endif
 
  if(delay)
   delay--;
@@ -755,7 +721,6 @@ int main(int argc, char* argv[]) {
  vector<Line> mapLines;
  vector<Line> map;
  vector<Line> mapRobot;
- double refTilt[] = {0, 0};
  bool confidence = false;
 
  bgrInit();
@@ -814,7 +779,7 @@ int main(int argc, char* argv[]) {
     }
    }
 
-   confidence = computeConfidence(refTilt, pointError, angularError);
+   confidence = computeConfidence(pointError, angularError);
 
    /*if(confidence) {
     if(absAngularErrorMax > SMALLANGULARTOLERANCE) {
@@ -835,7 +800,7 @@ int main(int argc, char* argv[]) {
    mapToRobot(map, mapRobot, odometryPoint, theta);
   }
 
-  ui(image, robotPoints, robotLines, map, mapRobot, odometryPoint, theta, refTilt, confidence);
+  ui(image, robotPoints, robotLines, map, mapRobot, odometryPoint, theta, confidence);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {

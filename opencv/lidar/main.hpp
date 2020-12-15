@@ -3,14 +3,8 @@
 #define FPS 30
 
 #define IMU
-#define DIRX 1.0
-#define DIRY 1.0
 #define DIRZ -1.0
-#define OFFSETX M_PI
-#define OFFSETY 0.0
-#define OFFSETZ 0.0
 #define IMUSLERPPOWER 0.01
-#define REFTILTINITDELAY 100
 #define MARGIN 5
 #define DIAM1 20
 #define DIAM2 10
@@ -43,7 +37,6 @@
 #define CONFIDENCEANGULARTOLERANCE (4.0 * M_PI / 180.0)
 #define CONFIDENCEMAXVELOCITY 64
 #define CONFIDENCEMAXANGULARVELOCITY 32
-#define CONFIDENCEMAXTILT (4.0 * M_PI / 180.0)
 #define CONFIDENCEDELAY 10
 
 #define NBITERATIONS 10
