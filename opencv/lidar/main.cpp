@@ -319,9 +319,7 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odomet
 }
 
 bool computeErrors(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map,
-                   Point &pointErrorOut, double &angularErrorOut,
-                   int &distErrorMax, int &distErrorMaxId,
-                   double &absAngularErrorMax, int &absAngularErrorMaxId) {
+                   Point &pointErrorOut, double &angularErrorOut) {
 
  Point pointErrorSum = Point(0, 0);
  double angularErrorSum = 0.0;
@@ -356,16 +354,6 @@ bool computeErrors(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &
    pointErrorSum += pointError * refNorm;
    angularErrorSum += angularError * refNorm;
    weightSum += refNorm;
-
-   if(distError > distErrorMax) {
-    distErrorMax = distError;
-    distErrorMaxId = j;
-   }
-
-   if(absAngularError > absAngularErrorMax) {
-    absAngularErrorMax = absAngularError;
-    absAngularErrorMaxId = j;
-   }
   }
  }
 
@@ -757,18 +745,12 @@ int main(int argc, char* argv[]) {
 
    Point pointError = Point(0, 0);
    double angularError = 0.0;
-   int distErrorMax = 0;
-   int distErrorMaxId = -1;
-   double absAngularErrorMax = 0.0;
-   int absAngularErrorMaxId = -1;
    for(int i = 0; i < NBITERATIONS; i++) {
     mapLines.clear();
     robotToMap(robotLines, mapLines, odometryPoint, theta);
 
     if(computeErrors(robotLines, mapLines, map,
-                     pointError, angularError,
-                     distErrorMax, distErrorMaxId,
-                     absAngularErrorMax, absAngularErrorMaxId)) {
+                     pointError, angularError)) {
 
      odometryPoint -= pointError / ODOMETRYCORRECTORDIV;
 #ifdef IMU
@@ -781,19 +763,9 @@ int main(int argc, char* argv[]) {
 
    confidence = computeConfidence(pointError, angularError);
 
-   /*if(confidence) {
-    if(absAngularErrorMax > SMALLANGULARTOLERANCE) {
-     map.erase(map.begin() + absAngularErrorMaxId);
-     if(absAngularErrorMaxId < distErrorMaxId)
-      distErrorMaxId--;
-    }
-    if(distErrorMax > SMALLDISTTOLERANCE)
-     map.erase(map.begin() + distErrorMaxId);
-   }*/
-
    if(confidence || !map.size()) {
     mapping(robotLines, mapLines, map);
-    //mapCleaner(polarPoints, map, odometryPoint, theta);
+    mapCleaner(polarPoints, map, odometryPoint, theta);
    }
 
    mapRobot.clear();
