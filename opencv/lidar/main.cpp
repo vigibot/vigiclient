@@ -200,13 +200,14 @@ Point pointDistancePointLine(Point point, Line line) {
 }
 
 int distancePointLine(Point point, Line line) {
- return sqrt(sqNorm(pointDistancePointLine(point, line)));
+ return int(sqrt(sqNorm(pointDistancePointLine(point, line))));
 }
 
-bool growLine(Point point, Line &line) {
+bool growLine(Point point, Line &line, Line &grownLine) {
  Point diff = line.b - line.a;
  double ratio = ratioPointLine(point, line);
  Point h;
+ grownLine = line;
 
  if(ratio < 0 || ratio > 1) {
   h.x = line.a.x + int(double(diff.x) * ratio);
@@ -214,14 +215,14 @@ bool growLine(Point point, Line &line) {
 
   if(ratio < 0) {
    if(line.growa == 0) {
-    line.a = h;
+    grownLine.a = h;
     line.growa = GROWFILTER;
     return true;
    } else
     line.growa--;
   } else {
    if(line.growb == 0) {
-    line.b = h;
+    grownLine.b = h;
     line.growb = GROWFILTER;
     return true;
    } else
@@ -230,6 +231,73 @@ bool growLine(Point point, Line &line) {
  }
 
  return false;
+}
+
+double diffAngle(Line line1, Line line2) {
+ double angle1 = lineAngle(line1);
+ double angle2 = lineAngle(line2);
+ double result = angle2 - angle1;
+
+ if(result > M_PI)
+  result -= 2.0 * M_PI;
+ else if(result < -M_PI)
+  result += 2.0 * M_PI;
+
+ return result;
+}
+
+bool testLines(Line line1, Line line2, double angularTolerance, int distTolerance) {
+ double absAngularError = fabs(diffAngle(line1, line2));
+ if(absAngularError > angularTolerance)
+  return false;
+
+ int distError = distancePointLine((line1.a + line1.b) / 2, line2);
+ if(distError > distTolerance)
+  return false;
+
+ int refNorm = int(sqrt(sqDist(line2)));
+ int distance1 = ratioPointLine(line1.a, line2) * refNorm;
+ int distance2 = ratioPointLine(line1.b, line2) * refNorm;
+ if((distance1 < 0 || distance1 > refNorm) &&
+    (distance2 < 0 || distance2 > refNorm) &&
+    distance1 * distance2 > 0)
+  return false;
+
+ return true;
+}
+
+bool growLineMap(Point point, vector<Line> &map, int n) {
+ Line grownLine;
+
+ if(!growLine(point, map[n], grownLine))
+  return false;
+
+ for(int i = 0; i < map.size(); i++) {
+  if(i == n)
+   continue;
+
+  double absAngularError = fabs(diffAngle(map[i], grownLine));
+  if(absAngularError > LARGEANGULARTOLERANCE)
+   continue;
+
+  int distError = distancePointLine((map[i].a + map[i].b) / 2, grownLine);
+  if(distError > LARGEDISTTOLERANCE)
+   continue;
+
+  int refNorm = int(sqrt(sqDist(grownLine)));
+  int distance1 = ratioPointLine(map[i].a, grownLine) * refNorm;
+  int distance2 = ratioPointLine(map[i].b, grownLine) * refNorm;
+  if((distance1 < 0 || distance1 > refNorm) &&
+     (distance2 < 0 || distance2 > refNorm) &&
+     distance1 * distance2 > 0)
+   continue;
+
+  map.erase(map.begin() + i);
+ }
+
+ map[n] = grownLine;
+
+ return true;
 }
 
 bool intersect(Line line1, Line line2, Point &intersectPoint) {
@@ -255,38 +323,6 @@ bool intersect(Line line1, Line line2, Point &intersectPoint) {
  intersectPoint = Point(x, y);
 
  return true;
-}
-
-/*bool growMapIntersect(Point point, vector<Line> &map, int n) {
- Point intersectPoint;
-
- if(growLine(point, map[n])) {
-
-  for(int i = 0; i < map.size(); i++) {
-   if(i != n && intersect(map[i], map[n], intersectPoint)) {
-    if(sqDist(intersectPoint, map[n].a) < sqDist(intersectPoint, map[n].b))
-     map[n].a = intersectPoint;
-    else
-     map[n].b = intersectPoint;
-   }
-  }
-
-  return true;
- }
- return false;
-}*/
-
-double diffAngle(Line line1, Line line2) {
- double angle1 = lineAngle(line1);
- double angle2 = lineAngle(line2);
- double result = angle2 - angle1;
-
- if(result > M_PI)
-  result -= 2.0 * M_PI;
- else if(result < -M_PI)
-  result += 2.0 * M_PI;
-
- return result;
 }
 
 void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odometryPoint, uint16_t theta) {
@@ -358,11 +394,11 @@ bool computeErrors(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &
     continue;
 
    Point pointError = pointDistancePointLine((lines[i].a + lines[i].b) / 2, map[j]);
-   int distError = sqrt(sqNorm(pointError));
+   int distError = int(sqrt(sqNorm(pointError)));
    if(distError > LARGEDISTTOLERANCE)
     continue;
 
-   int refNorm = sqrt(sqDist(map[j]));
+   int refNorm = int(sqrt(sqDist(map[j])));
    int distance1 = ratioPointLine(lines[i].a, map[j]) * refNorm;
    int distance2 = ratioPointLine(lines[i].b, map[j]) * refNorm;
    if((distance1 < 0 || distance1 > refNorm) &&
@@ -383,26 +419,6 @@ bool computeErrors(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &
   return true;
  } else
   return false;
-}
-
-bool testLines(Line line1, Line line2) {
- double absAngularError = fabs(diffAngle(line1, line2));
- if(absAngularError > SMALLANGULARTOLERANCE)
-  return false;
-
- int distError = distancePointLine((line1.a + line1.b) / 2, line2);
- if(distError > SMALLDISTTOLERANCE)
-  return false;
-
- int refNorm = sqrt(sqDist(line2));
- int distance1 = ratioPointLine(line1.a, line2) * refNorm;
- int distance2 = ratioPointLine(line1.b, line2) * refNorm;
- if((distance1 < 0 || distance1 > refNorm) &&
-    (distance2 < 0 || distance2 > refNorm) &&
-    distance1 * distance2 > 0)
-  return false;
-
- return true;
 }
 
 void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
@@ -426,7 +442,7 @@ void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
    if(distError > LARGEDISTTOLERANCE * 2)
     continue;
 
-   int refNorm = sqrt(sqDist(map[j]));
+   int refNorm = int(sqrt(sqDist(map[j])));
    int distance1 = ratioPointLine(lines[i].a, map[j]) * refNorm;
    int distance2 = ratioPointLine(lines[i].b, map[j]) * refNorm;
    if((distance1 < 0 || distance1 > refNorm) &&
@@ -443,44 +459,12 @@ void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
     continue;
 
    bool merged = false;
-   merged |= growLine(lines[i].a, map[j]);
-   merged |= growLine(lines[i].b, map[j]);
-   //merged |= growMapIntersect(lines[i].a, map, j);
-   //merged |= growMapIntersect(lines[i].b, map, j);
+   merged |= growLineMap(lines[i].a, map, j);
+   merged |= growLineMap(lines[i].b, map, j);
    if(!merged)
     continue;
    else
     change = true;
-
-   int mergeIndex = j;
-   for(int k = 0; k < map.size(); k++) {
-    if(k == mergeIndex || !testLines(map[mergeIndex], map[k]))
-     continue;
-
-    int bigger;
-    int smaller;
-    if(sqDist(map[mergeIndex]) > sqDist(map[k])) {
-     bigger = mergeIndex;
-     smaller = k;
-    } else {
-     bigger = k;
-     smaller = mergeIndex;
-     mergeIndex = bigger;
-    }
-    bool mergedMap = false;
-    mergedMap |= growLine(map[smaller].a, map[bigger]);
-    mergedMap |= growLine(map[smaller].b, map[bigger]);
-    if(!mergedMap)
-     continue;
-
-    map.erase(map.begin() + smaller);
-    if(smaller < bigger) {
-     mergeIndex--;
-     k--;
-    }
-
-    break;
-   }
 
    break;
   }
