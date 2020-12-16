@@ -247,7 +247,7 @@ bool intersect(Line line1, Line line2, Point &intersectPoint) {
  return true;
 }
 
-/*bool growMapIntersect(Point point, vector<Line> &map, int n) {
+bool growMapIntersect(Point point, vector<Line> &map, int n) {
  Point intersectPoint;
 
  if(growLine(point, map[n])) {
@@ -264,7 +264,7 @@ bool intersect(Line line1, Line line2, Point &intersectPoint) {
   return true;
  }
  return false;
-}*/
+}
 
 double diffAngle(Line line1, Line line2) {
  double angle1 = lineAngle(line1);
@@ -424,8 +424,8 @@ void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
     continue;
 
    bool merged = false;
-   merged |= growLine(lines[i].a, map[j]);
-   merged |= growLine(lines[i].b, map[j]);
+   merged |= growMapIntersect(lines[i].a, map, j);
+   merged |= growMapIntersect(lines[i].b, map, j);
    if(!merged)
     continue;
    else
@@ -720,7 +720,7 @@ int main(int argc, char* argv[]) {
  capture.set(CAP_PROP_FPS, fps);
  while(run) {
   capture.read(image);
-  //usleep(20000);
+  //usleep(10000);
   //image = Mat::zeros(Size(width, height), CV_8UC3);
 
   bool updated = readModem(fd, remoteFrame);
