@@ -44,6 +44,8 @@
 #define IMUTHETACORRECTORDIV 100
 #define THETACORRECTORDIV 10
 
+#define SHRINKFILTER 100
+
 enum {
  SELECTNONE,
  SELECTMAP,
@@ -61,6 +63,8 @@ const std::vector<cv::Point> robotIcon = {
 typedef struct Line {
  cv::Point a;
  cv::Point b;
+ int shrinka;
+ int shrinkb;
 } Line;
 
 int width;

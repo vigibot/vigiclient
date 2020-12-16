@@ -302,10 +302,19 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odomet
        absAngularError > M_PI - LARGEANGULARTOLERANCE)
      continue;
 
-    if(sqDist(map[j].a, intersectPoint) < sqDist(map[j].b, intersectPoint))
-     map[j].a = intersectPoint;
-    else
-     map[j].b = intersectPoint;
+    if(sqDist(map[j].a, intersectPoint) < sqDist(map[j].b, intersectPoint)) {
+     if(map[j].shrinka == 0) {
+      map[j].a = intersectPoint;
+      map[j].shrinka = SHRINKFILTER;
+     } else
+      map[j].shrinka--;
+    } else {
+     if(map[j].shrinkb == 0) {
+      map[j].b = intersectPoint;
+      map[j].shrinkb = SHRINKFILTER;
+     } else
+      map[j].shrinkb--;
+    }
 
     if(sqDist(map[j]) < DISTMIN * DISTMIN) {
      map.erase(map.begin() + j);
@@ -470,8 +479,11 @@ void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
   }
  }
 
- for(int i = 0; i < newLines.size(); i++)
+ for(int i = 0; i < newLines.size(); i++) {
+  newLines[i].shrinka = SHRINKFILTER;
+  newLines[i].shrinkb = SHRINKFILTER;
   map.push_back(newLines[i]);
+ }
 
  if(change) {
   sort(map.begin(), map.end(), [](const Line &a, const Line &b) {
