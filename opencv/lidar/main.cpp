@@ -212,13 +212,23 @@ bool growLine(Point point, Line &line) {
   h.x = line.a.x + int(double(diff.x) * ratio);
   h.y = line.a.y + int(double(diff.y) * ratio);
 
-  if(ratio < 0)
-   line.a = h;
-  else
-   line.b = h;
-
-  return true;
+  if(ratio < 0) {
+   if(line.growa == 0) {
+    line.a = h;
+    line.growa = GROWFILTER;
+    return true;
+   } else
+    line.growa--;
+  } else {
+   if(line.growb == 0) {
+    line.b = h;
+    line.growb = GROWFILTER;
+    return true;
+   } else
+    line.growb--;
+  }
  }
+
  return false;
 }
 
@@ -247,7 +257,7 @@ bool intersect(Line line1, Line line2, Point &intersectPoint) {
  return true;
 }
 
-bool growMapIntersect(Point point, vector<Line> &map, int n) {
+/*bool growMapIntersect(Point point, vector<Line> &map, int n) {
  Point intersectPoint;
 
  if(growLine(point, map[n])) {
@@ -264,7 +274,7 @@ bool growMapIntersect(Point point, vector<Line> &map, int n) {
   return true;
  }
  return false;
-}
+}*/
 
 double diffAngle(Line line1, Line line2) {
  double angle1 = lineAngle(line1);
@@ -433,8 +443,10 @@ void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
     continue;
 
    bool merged = false;
-   merged |= growMapIntersect(lines[i].a, map, j);
-   merged |= growMapIntersect(lines[i].b, map, j);
+   merged |= growLine(lines[i].a, map[j]);
+   merged |= growLine(lines[i].b, map[j]);
+   //merged |= growMapIntersect(lines[i].a, map, j);
+   //merged |= growMapIntersect(lines[i].b, map, j);
    if(!merged)
     continue;
    else
@@ -480,6 +492,8 @@ void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
  }
 
  for(int i = 0; i < newLines.size(); i++) {
+  newLines[i].growa = GROWFILTER;
+  newLines[i].growb = GROWFILTER;
   newLines[i].shrinka = SHRINKFILTER;
   newLines[i].shrinkb = SHRINKFILTER;
   map.push_back(newLines[i]);

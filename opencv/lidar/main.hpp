@@ -44,6 +44,7 @@
 #define IMUTHETACORRECTORDIV 100
 #define THETACORRECTORDIV 10
 
+#define GROWFILTER 10
 #define SHRINKFILTER 100
 
 enum {
@@ -63,6 +64,8 @@ const std::vector<cv::Point> robotIcon = {
 typedef struct Line {
  cv::Point a;
  cv::Point b;
+ int growa;
+ int growb;
  int shrinka;
  int shrinkb;
 } Line;
