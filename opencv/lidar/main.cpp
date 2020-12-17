@@ -279,10 +279,8 @@ bool growLineMap(Point point, vector<Line> &map, int n) {
   Point pointError;
   int distError;
   int refNorm;
-  if(!testLines(map[i], grownLine, angularError, pointError, distError, refNorm))
-   continue;
-
-  map.erase(map.begin() + i);
+  if(testLines(map[i], grownLine, angularError, pointError, distError, refNorm))
+   map.erase(map.begin() + i);
  }
 
  map[n] = grownLine;
@@ -381,12 +379,11 @@ bool computeErrors(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &
    Point pointError;
    int distError;
    int refNorm;
-   if(!testLines(lines[i], map[j], angularError, pointError, distError, refNorm))
-    continue;
-
-   pointErrorSum += pointError * refNorm;
-   angularErrorSum += angularError * refNorm;
-   weightSum += refNorm;
+   if(testLines(lines[i], map[j], angularError, pointError, distError, refNorm)) {
+    pointErrorSum += pointError * refNorm;
+    angularErrorSum += angularError * refNorm;
+    weightSum += refNorm;
+   }
   }
  }
 
