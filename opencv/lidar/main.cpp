@@ -165,11 +165,6 @@ void mapToRobot(vector<Line> &linesIn, vector<Line> &linesOut, Point odometryPoi
  }
 }
 
-double lineAngle(Line line) {
- Point diff = line.b - line.a;
- return atan2(diff.y, diff.x);
-}
-
 double ratioPointLine(Point point, Line line) {
  Point diff = line.b - line.a;
  double scalarProduct;
@@ -212,6 +207,11 @@ bool growLine(Point point, Line &line, Line &grownLine) {
  }
 
  return false;
+}
+
+double lineAngle(Line line) {
+ Point diff = line.b - line.a;
+ return atan2(diff.y, diff.x);
 }
 
 double diffAngle(Line line1, Line line2) {
@@ -457,6 +457,26 @@ void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
    return sqDist(a) > sqDist(b);
   });
  }
+}
+
+void mapFiltersDecay(vector<Line> &map) {
+ static int n = 0;
+
+ if(n == MAPFILTERSDECAY) {
+  for(int i = 0; i < map.size(); i++) {
+   if(map[i].growa < GROWFILTER)
+    map[i].growa++;
+   if(map[i].growb < GROWFILTER)
+    map[i].growb++;
+   if(map[i].shrinka < SHRINKFILTER)
+     map[i].shrinka++;
+   if(map[i].shrinkb < SHRINKFILTER)
+    map[i].shrinkb++;
+  }
+  n = 0;
+ }
+
+ n++;
 }
 
 void drawPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) {
@@ -746,6 +766,8 @@ int main(int argc, char* argv[]) {
     mapping(robotLines, mapLines, map);
     mapCleaner(polarPoints, map, odometryPoint, theta);
    }
+
+   mapFiltersDecay(map);
 
    mapRobot.clear();
    mapToRobot(map, mapRobot, odometryPoint, theta);

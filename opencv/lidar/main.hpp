@@ -46,6 +46,7 @@
 
 #define GROWFILTER 10
 #define SHRINKFILTER 100
+#define MAPFILTERSDECAY 10
 
 enum {
  SELECTNONE,
