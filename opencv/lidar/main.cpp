@@ -751,11 +751,11 @@ int main(int argc, char* argv[]) {
     if(computeErrors(robotLines, mapLines, map,
                      pointError, angularError)) {
 
-     odometryPoint -= pointError / ODOMETRYCORRECTORDIV;
+     odometryPoint -= pointError / (ODOMETRYCORRECTORDIV + i);
 #ifdef IMU
-     thetaCorrector += int(angularError * double(PI16) / M_PI) / IMUTHETACORRECTORDIV;
+     thetaCorrector += int(angularError * double(PI16) / M_PI) / (IMUTHETACORRECTORDIV + i);
 #else
-     theta += int(angularError * double(PI16) / M_PI) / THETACORRECTORDIV;
+     theta += int(angularError * double(PI16) / M_PI) / (THETACORRECTORDIV + i);
 #endif
     }
    }
