@@ -184,25 +184,6 @@ double ratioPointLine(Point point, Line line) {
  return ratio;
 }
 
-Point pointDistancePointLine(Point point, Line line) {
- double ratio = ratioPointLine(point, line);
- Point h;
- Point diff = line.b - line.a;
- Point result = Point(0, 0);
-
- if(ratio) {
-  h.x = line.a.x + int(double(diff.x) * ratio);
-  h.y = line.a.y + int(double(diff.y) * ratio);
-  result = point - h;
- }
-
- return result;
-}
-
-int distancePointLine(Point point, Line line) {
- return int(sqrt(sqNorm(pointDistancePointLine(point, line))));
-}
-
 bool growLine(Point point, Line &line, Line &grownLine) {
  Point diff = line.b - line.a;
  double ratio = ratioPointLine(point, line);
@@ -246,16 +227,34 @@ double diffAngle(Line line1, Line line2) {
  return result;
 }
 
-bool testLines(Line line1, Line line2, double angularTolerance, int distTolerance) {
- double absAngularError = fabs(diffAngle(line1, line2));
- if(absAngularError > angularTolerance)
+Point pointDistancePointLine(Point point, Line line) {
+ double ratio = ratioPointLine(point, line);
+ Point h;
+ Point diff = line.b - line.a;
+ Point result = Point(0, 0);
+
+ if(ratio) {
+  h.x = line.a.x + int(double(diff.x) * ratio);
+  h.y = line.a.y + int(double(diff.y) * ratio);
+  result = point - h;
+ }
+
+ return result;
+}
+
+bool testLines(Line line1, Line line2, double &angularError,
+               Point &pointError, int &distError, int &refNorm) {
+
+ angularError = diffAngle(line1, line2);
+ if(fabs(angularError) > LARGEANGULARTOLERANCE)
   return false;
 
- int distError = distancePointLine((line1.a + line1.b) / 2, line2);
- if(distError > distTolerance)
+ pointError = pointDistancePointLine((line1.a + line1.b) / 2, line2);
+ distError = int(sqrt(sqNorm(pointError)));
+ if(distError > LARGEDISTTOLERANCE)
   return false;
 
- int refNorm = int(sqrt(sqDist(line2)));
+ refNorm = int(sqrt(sqDist(line2)));
  int distance1 = ratioPointLine(line1.a, line2) * refNorm;
  int distance2 = ratioPointLine(line1.b, line2) * refNorm;
  if((distance1 < 0 || distance1 > refNorm) &&
@@ -276,20 +275,11 @@ bool growLineMap(Point point, vector<Line> &map, int n) {
   if(i == n)
    continue;
 
-  double absAngularError = fabs(diffAngle(map[i], grownLine));
-  if(absAngularError > LARGEANGULARTOLERANCE)
-   continue;
-
-  int distError = distancePointLine((map[i].a + map[i].b) / 2, grownLine);
-  if(distError > LARGEDISTTOLERANCE)
-   continue;
-
-  int refNorm = int(sqrt(sqDist(grownLine)));
-  int distance1 = ratioPointLine(map[i].a, grownLine) * refNorm;
-  int distance2 = ratioPointLine(map[i].b, grownLine) * refNorm;
-  if((distance1 < 0 || distance1 > refNorm) &&
-     (distance2 < 0 || distance2 > refNorm) &&
-     distance1 * distance2 > 0)
+  double angularError;
+  Point pointError;
+  int distError;
+  int refNorm;
+  if(!testLines(map[i], grownLine, angularError, pointError, distError, refNorm))
    continue;
 
   map.erase(map.begin() + i);
@@ -387,23 +377,11 @@ bool computeErrors(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &
    continue;
 
   for(int j = 0; j < map.size(); j++) {
-
-   double angularError = diffAngle(lines[i], map[j]);
-   double absAngularError = fabs(angularError);
-   if(absAngularError > LARGEANGULARTOLERANCE)
-    continue;
-
-   Point pointError = pointDistancePointLine((lines[i].a + lines[i].b) / 2, map[j]);
-   int distError = int(sqrt(sqNorm(pointError)));
-   if(distError > LARGEDISTTOLERANCE)
-    continue;
-
-   int refNorm = int(sqrt(sqDist(map[j])));
-   int distance1 = ratioPointLine(lines[i].a, map[j]) * refNorm;
-   int distance2 = ratioPointLine(lines[i].b, map[j]) * refNorm;
-   if((distance1 < 0 || distance1 > refNorm) &&
-      (distance2 < 0 || distance2 > refNorm) &&
-      distance1 * distance2 > 0)
+   double angularError;
+   Point pointError;
+   int distError;
+   int refNorm;
+   if(!testLines(lines[i], map[j], angularError, pointError, distError, refNorm))
     continue;
 
    pointErrorSum += pointError * refNorm;
@@ -434,25 +412,16 @@ void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
    continue;
 
   for(int j = 0; j < map.size(); j++) {
-   double absAngularError = fabs(diffAngle(lines[i], map[j]));
-   if(absAngularError > LARGEANGULARTOLERANCE * 2)
-    continue;
-
-   int distError = distancePointLine((lines[i].a + lines[i].b) / 2, map[j]);
-   if(distError > LARGEDISTTOLERANCE * 2)
-    continue;
-
-   int refNorm = int(sqrt(sqDist(map[j])));
-   int distance1 = ratioPointLine(lines[i].a, map[j]) * refNorm;
-   int distance2 = ratioPointLine(lines[i].b, map[j]) * refNorm;
-   if((distance1 < 0 || distance1 > refNorm) &&
-      (distance2 < 0 || distance2 > refNorm) &&
-      distance1 * distance2 > 0)
+   double angularError;
+   Point pointError;
+   int distError;
+   int refNorm;
+   if(!testLines(lines[i], map[j], angularError, pointError, distError, refNorm))
     continue;
 
    newLine = false;
 
-   if(absAngularError > SMALLANGULARTOLERANCE)
+   if(fabs(angularError) > SMALLANGULARTOLERANCE)
     continue;
 
    if(distError > SMALLDISTTOLERANCE)
