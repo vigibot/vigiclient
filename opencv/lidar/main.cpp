@@ -711,15 +711,25 @@ int main(int argc, char* argv[]) {
 
  VideoCapture capture;
  capture.open(0);
- capture.set(CAP_PROP_FRAME_WIDTH, width);
- capture.set(CAP_PROP_FRAME_HEIGHT, height);
- capture.set(CAP_PROP_FPS, fps);
- while(run) {
-  capture.read(image);
-  //usleep(10000);
-  //image = Mat::zeros(Size(width, height), CV_8UC3);
 
-  bool updated = readModem(fd, remoteFrame);
+ bool captureEnabled = capture.isOpened();
+ if(captureEnabled) {
+  capture.set(CAP_PROP_FRAME_WIDTH, width);
+  capture.set(CAP_PROP_FRAME_HEIGHT, height);
+  capture.set(CAP_PROP_FPS, fps);
+ }
+
+ while(run) {
+  bool updated;
+
+  if(captureEnabled) {
+   capture.read(image);
+   updated = readModem(fd, remoteFrame);
+  } else {
+   image = Mat::zeros(Size(width, height), CV_8UC3);
+   while(!readModem(fd, remoteFrame));
+   updated = true;
+  }
 
   if(updated)
    odometry(odometryPoint, theta);
