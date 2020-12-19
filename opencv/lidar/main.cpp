@@ -190,19 +190,19 @@ bool growLine(Point point, Line &line, Line &grownLine) {
   h.y = line.a.y + int(double(diff.y) * ratio);
 
   if(ratio < 0) {
+   if(line.growa)
+    line.growa--;
    if(line.growa == 0) {
     grownLine.a = h;
-    line.growa = GROWFILTER;
     return true;
-   } else
-    line.growa--;
+   }
   } else {
+   if(line.growb)
+    line.growb--;
    if(line.growb == 0) {
     grownLine.b = h;
-    line.growb = GROWFILTER;
     return true;
-   } else
-    line.growb--;
+   }
   }
  }
 
@@ -448,6 +448,13 @@ void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
    newLines.push_back(lines[i]);
    change = true;
   }
+ }
+
+ for(int i = 0; i < map.size(); i++) {
+  if(map[i].growa == 0)
+   map[i].growa = GROWFILTER;
+  if(map[i].growb == 0)
+   map[i].growb = GROWFILTER;
  }
 
  for(int i = 0; i < newLines.size(); i++) {
