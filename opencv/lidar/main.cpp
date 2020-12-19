@@ -369,10 +369,10 @@ bool computeErrors(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &
  int weightSum = 0;
 
  for(int i = 0; i < lines.size(); i++) {
-  Line line = {Point(0, 0), Point((robotLines[i].a + robotLines[i].b) / 2)};
+  /*Line line = {Point(0, 0), Point((robotLines[i].a + robotLines[i].b) / 2)};
   double angle = fabs(diffAngle(line, robotLines[i]));
   if(angle < LARGEANGULARTOLERANCE || fabs(angle - M_PI) < LARGEANGULARTOLERANCE)
-   continue;
+   continue;*/
 
   for(int j = 0; j < map.size(); j++) {
    double angularError;
@@ -401,13 +401,12 @@ void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
  bool change = false;
 
  for(int i = 0; i < lines.size(); i++) {
-  bool newLine = true;
-
-  Line line = {Point(0, 0), Point((robotLines[i].a + robotLines[i].b) / 2)};
+  /*Line line = {Point(0, 0), Point((robotLines[i].a + robotLines[i].b) / 2)};
   double angle = fabs(diffAngle(line, robotLines[i]));
   if(angle < LARGEANGULARTOLERANCE || fabs(angle - M_PI) < LARGEANGULARTOLERANCE)
-   continue;
+   continue;*/
 
+  bool newLine = true;
   for(int j = 0; j < map.size(); j++) {
    double angularError;
    Point pointError;
