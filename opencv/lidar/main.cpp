@@ -317,6 +317,9 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odomet
  vector<Point> closerPoints;
 
  for(int i = 0; i < polarPoints.size(); i++) {
+  if(polarPoints[i].distance < LARGEDISTTOLERANCE)
+   continue;
+
   Point closerPoint = Point((polarPoints[i].distance - LARGEDISTTOLERANCE) * sin16(polarPoints[i].theta) / ONE16,
                             (polarPoints[i].distance - LARGEDISTTOLERANCE) * cos16(polarPoints[i].theta) / ONE16);
 
@@ -324,41 +327,48 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odomet
                                odometryPoint.y + (closerPoint.x * sin16(theta) + closerPoint.y * cos16(theta)) / ONE16));
  }
 
- for(int i = 0; i < closerPoints.size(); i++) {
-  Line shorterLine = {odometryPoint, closerPoints[i]};
-  for(int j = 0; j < map.size(); j++) {
+ for(int i = 0; i < map.size(); i++) {
+  bool shrinka = true;
+  bool shrinkb = true;
+  for(int j = 0; j < closerPoints.size(); j++) {
+   Line shorterLine = {odometryPoint, closerPoints[j]};
 
    Point intersectPoint;
-   if(intersect(shorterLine, map[j], intersectPoint)) {
+   if(!intersect(shorterLine, map[i], intersectPoint))
+    continue;
 
-    double absAngularError = fabs(diffAngle(shorterLine, map[j]));
-    if(absAngularError < LARGEANGULARTOLERANCE ||
-       absAngularError > M_PI - LARGEANGULARTOLERANCE)
-     continue;
+   /*double absAngularError = fabs(diffAngle(shorterLine, map[i]));
+   if(absAngularError < SMALLANGULARTOLERANCE ||
+      absAngularError > M_PI - SMALLANGULARTOLERANCE)
+    continue;*/
 
-    if(sqDist(map[j].a, intersectPoint) < sqDist(map[j].b, intersectPoint)) {
-     if(map[j].shrinka == 0) {
-      map[j].a = intersectPoint;
-      map[j].shrinka = SHRINKFILTER;
-     } else
-      map[j].shrinka--;
-    } else {
-     if(map[j].shrinkb == 0) {
-      map[j].b = intersectPoint;
-      map[j].shrinkb = SHRINKFILTER;
-     } else
-      map[j].shrinkb--;
+   if(sqDist(map[i].a, intersectPoint) < sqDist(map[i].b, intersectPoint)) {
+    if(shrinka) {
+     shrinka = false;
+     map[i].shrinka--;
     }
-
-    if(sqDist(map[j]) < DISTMIN * DISTMIN) {
-     map.erase(map.begin() + j);
-     j--;
+    if(map[i].shrinka == 0)
+     map[i].a = intersectPoint;
+   } else {
+    if(shrinkb) {
+     shrinkb = false;
+     map[i].shrinkb--;
     }
+    if(map[i].shrinkb == 0)
+     map[i].b = intersectPoint;
    }
 
+   if(sqDist(map[i]) < DISTMIN * DISTMIN) {
+    map.erase(map.begin() + i);
+    i--;
+   }
   }
- }
 
+  if(map[i].shrinka == 0)
+   map[i].shrinka = SHRINKFILTER;
+  if(map[i].shrinkb == 0)
+   map[i].shrinkb = SHRINKFILTER;
+ }
 }
 
 bool computeErrors(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map,
