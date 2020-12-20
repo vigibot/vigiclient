@@ -718,6 +718,20 @@ void bgrInit() {
  }
 }
 
+void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t theta) {
+ static uint16_t oldTheta = 0;
+ int16_t deltaTheta = theta - oldTheta;
+ int16_t size = polarPoints.size();
+
+ for(int i = 0; i < size; i++)
+  polarPoints[i].theta += (size - i) * deltaTheta / size;
+
+ while(polarPoints[0].theta > PI16)
+  polarPoints.erase(polarPoints.begin());
+
+ oldTheta = theta;
+}
+
 int main(int argc, char* argv[]) {
  if(argc != 4) {
   width = WIDTH;
@@ -794,6 +808,8 @@ int main(int argc, char* argv[]) {
    odometry(odometryPoint, theta);
 
   if(readLidar(ld, polarPoints)) {
+   dedistortTheta(polarPoints, theta);
+
    robotPoints.clear();
    lidarToRobot(polarPoints, robotPoints);
 
