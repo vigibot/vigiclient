@@ -646,7 +646,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    mapDiv--;
  } else {
   if(!buttonMore && oldButtonMore) {
-   if(select < SELECTMAPBEAMS)
+   if(select < SELECTBEAMS)
     select++;
    else
     select = SELECTNONE;
@@ -654,7 +654,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    if(select > SELECTNONE)
     select--;
    else
-    select = SELECTMAPBEAMS;
+    select = SELECTBEAMS;
   }
  }
  oldButtonLess = buttonLess;
@@ -662,26 +662,36 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  oldButtonReset = buttonReset;
  oldButtonOk = buttonOk;
 
- if(select == SELECTNONE)
-  return;
+ switch(select) {
+  case SELECTNONE:
+   return;
 
- if(select == SELECTMAP) {
-  drawPoints(image, robotPoints, false, mapDiv);
-  drawLines(image, robotLines, robotLines, false, mapDiv);
-  drawLines(image, mapRobot, map, true, mapDiv);
-  drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
- } else {
-  drawPoints(image, robotPoints, true, mapDiv);
-  drawLines(image, robotLines, robotLines, false, mapDiv);
-  drawLines(image, mapRobot, map, true, mapDiv);
-  drawRobot(image, robotIcon, FILLED, Point(0, 0), 0, mapDiv);
+  case SELECTMAP:
+   drawPoints(image, robotPoints, false, mapDiv);
+   drawLines(image, robotLines, robotLines, false, mapDiv);
+   drawLines(image, mapRobot, map, true, mapDiv);
+   drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
+   break;
+
+  case SELECTMAPBEAMS:
+   drawPoints(image, robotPoints, true, mapDiv);
+   drawLines(image, robotLines, robotLines, false, mapDiv);
+   drawLines(image, mapRobot, map, true, mapDiv);
+   drawRobot(image, robotIcon, FILLED, Point(0, 0), 0, mapDiv);
+   break;
+
+  case SELECTBEAMS:
+   drawPoints(image, robotPoints, true, mapDiv);
+   drawLines(image, robotLines, robotLines, false, mapDiv);
+   drawRobot(image, robotIcon, FILLED, Point(0, 0), 0, mapDiv);
+   break;
  }
 
  char text[80];
  if(tune)
   sprintf(text, "%d mm per pixel", mapDiv);
- else if(select == SELECTMAPBEAMS)
-  sprintf(text, "%d points %d lines %d on map", robotPoints.size(), robotLines.size(), mapRobot.size());
+ else if(select != SELECTMAP)
+  sprintf(text, "%d points %d lines %d map lines", robotPoints.size(), robotLines.size(), map.size());
  else
   sprintf(text, "X %04d Y %04d Theta %03d", odometryPoint.x, odometryPoint.y, theta * 180 / PI16);
  putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
