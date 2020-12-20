@@ -610,7 +610,7 @@ void watch(Mat &image, double angle, Point center, int diam, Scalar color1, Scal
 
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
                     vector<Line> &map, vector<Line> &mapRobot,
-                    Point &odometryPoint, uint16_t &theta, bool confidence) {
+                    Point &odometryPoint, uint16_t &theta, uint16_t &oldTheta, bool confidence) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -628,6 +628,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
   map.clear();
   odometryPoint = Point(0, 0);
   theta = 0;
+  oldTheta = 0;
 
 #ifdef IMU
   imu->resetFusion();
@@ -718,8 +719,7 @@ void bgrInit() {
  }
 }
 
-void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t theta) {
- static uint16_t oldTheta = 0;
+void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t theta, uint16_t &oldTheta) {
  int16_t deltaTheta = theta - oldTheta;
  int16_t size = polarPoints.size();
 
@@ -771,6 +771,7 @@ int main(int argc, char* argv[]) {
 
  Point odometryPoint = Point(0, 0);
  uint16_t theta = 0;
+ uint16_t oldTheta = 0;
  vector<PolarPoint> polarPoints;
  vector<Point> robotPoints;
  vector<vector<Point>> robotRawLines;
@@ -808,7 +809,7 @@ int main(int argc, char* argv[]) {
    odometry(odometryPoint, theta);
 
   if(readLidar(ld, polarPoints)) {
-   dedistortTheta(polarPoints, theta);
+   dedistortTheta(polarPoints, theta, oldTheta);
 
    robotPoints.clear();
    lidarToRobot(polarPoints, robotPoints);
@@ -829,7 +830,7 @@ int main(int argc, char* argv[]) {
    mapToRobot(map, mapRobot, odometryPoint, theta);
   }
 
-  ui(image, robotPoints, robotLines, map, mapRobot, odometryPoint, theta, confidence);
+  ui(image, robotPoints, robotLines, map, mapRobot, odometryPoint, theta, oldTheta, confidence);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
