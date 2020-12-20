@@ -492,6 +492,58 @@ void mapFiltersDecay(vector<Line> &map) {
  n++;
 }
 
+bool computeConfidence(Point pointError, double angularError) {
+ static int delay = 0;
+ bool moveFast = abs(remoteFrame.vx) > CONFIDENCEMAXVELOCITY ||
+                 abs(remoteFrame.vy) > CONFIDENCEMAXVELOCITY ||
+                 abs(remoteFrame.vz) > CONFIDENCEMAXANGULARVELOCITY;
+
+ if(moveFast)
+  delay = CONFIDENCEDELAY;
+
+ if(delay)
+  delay--;
+
+ if(!delay && sqNorm(pointError) < CONFIDENCEDISTTOLERANCE * CONFIDENCEDISTTOLERANCE &&
+              fabs(angularError) < CONFIDENCEANGULARTOLERANCE)
+  return true;
+
+ return false;
+}
+
+void localization(vector<PolarPoint> &polarPoints, vector<Line> &robotLines,
+                  vector<Line> &mapLines, vector<Line> &map,
+                  Point &odometryPoint, uint16_t &theta, bool &confidence) {
+
+ Point pointError = Point(0, 0);
+ double angularError = 0.0;
+
+ for(int i = 0; i < NBITERATIONS; i++) {
+  mapLines.clear();
+  robotToMap(robotLines, mapLines, odometryPoint, theta);
+
+  if(computeErrors(robotLines, mapLines, map, pointError, angularError)) {
+   odometryPoint -= pointError / (ODOMETRYCORRECTORDIV + i);
+
+#ifdef IMU
+   thetaCorrector += int(angularError * double(PI16) / M_PI) / (IMUTHETACORRECTORDIV + i);
+#else
+   theta += int(angularError * double(PI16) / M_PI) / (THETACORRECTORDIV + i);
+#endif
+
+  }
+ }
+
+ confidence = computeConfidence(pointError, angularError);
+
+ if(confidence || !map.size()) {
+  mapping(robotLines, mapLines, map);
+  mapCleaner(polarPoints, map, odometryPoint, theta);
+ }
+
+ mapFiltersDecay(map);
+}
+
 void drawPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) {
  const Point centerPoint = Point(width / 2, height / 2);
 
@@ -656,25 +708,6 @@ void bgrInit() {
  }
 }
 
-bool computeConfidence(Point pointError, double angularError) {
- static int delay = 0;
- bool moveFast = abs(remoteFrame.vx) > CONFIDENCEMAXVELOCITY ||
-                 abs(remoteFrame.vy) > CONFIDENCEMAXVELOCITY ||
-                 abs(remoteFrame.vz) > CONFIDENCEMAXANGULARVELOCITY;
-
- if(moveFast)
-  delay = CONFIDENCEDELAY;
-
- if(delay)
-  delay--;
-
- if(!delay && sqNorm(pointError) < CONFIDENCEDISTTOLERANCE * CONFIDENCEDISTTOLERANCE &&
-              fabs(angularError) < CONFIDENCEANGULARTOLERANCE)
-  return true;
-
- return false;
-}
-
 int main(int argc, char* argv[]) {
  if(argc != 4) {
   width = WIDTH;
@@ -751,7 +784,6 @@ int main(int argc, char* argv[]) {
    odometry(odometryPoint, theta);
 
   if(readLidar(ld, polarPoints)) {
-
    robotPoints.clear();
    lidarToRobot(polarPoints, robotPoints);
 
@@ -765,32 +797,7 @@ int main(int argc, char* argv[]) {
     return sqDist(a) > sqDist(b);
    });
 
-   Point pointError = Point(0, 0);
-   double angularError = 0.0;
-   for(int i = 0; i < NBITERATIONS; i++) {
-    mapLines.clear();
-    robotToMap(robotLines, mapLines, odometryPoint, theta);
-
-    if(computeErrors(robotLines, mapLines, map,
-                     pointError, angularError)) {
-
-     odometryPoint -= pointError / (ODOMETRYCORRECTORDIV + i);
-#ifdef IMU
-     thetaCorrector += int(angularError * double(PI16) / M_PI) / (IMUTHETACORRECTORDIV + i);
-#else
-     theta += int(angularError * double(PI16) / M_PI) / (THETACORRECTORDIV + i);
-#endif
-    }
-   }
-
-   confidence = computeConfidence(pointError, angularError);
-
-   if(confidence || !map.size()) {
-    mapping(robotLines, mapLines, map);
-    mapCleaner(polarPoints, map, odometryPoint, theta);
-   }
-
-   mapFiltersDecay(map);
+   localization(polarPoints, robotLines, mapLines, map, odometryPoint, theta, confidence);
 
    mapRobot.clear();
    mapToRobot(map, mapRobot, odometryPoint, theta);
