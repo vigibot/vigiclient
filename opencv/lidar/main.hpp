@@ -9,11 +9,6 @@
 #define DIAM1 20
 #define DIAM2 10
 
-#define LIDARXMIN -100
-#define LIDARXMAX 100
-#define LIDARYMIN -100
-#define LIDARYMAX 100
-
 #define EPSILON 50.0
 #define DISTMARGIN 3
 #define DISTCLAMP 50

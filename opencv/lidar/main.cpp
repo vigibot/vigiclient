@@ -134,10 +134,15 @@ void lidarToRobot(vector<PolarPoint> &pointsIn, vector<Point> &pointsOut) {
  for(int i = 0; i < pointsIn.size(); i++) {
   int x = pointsIn[i].distance * sin16(pointsIn[i].theta) / ONE16;
   int y = pointsIn[i].distance * cos16(pointsIn[i].theta) / ONE16;
+  pointsOut.push_back(Point(x, y));
+ }
+}
 
-  if(x > LIDARXMAX || x < LIDARXMIN ||
-     y > LIDARYMAX || y < LIDARYMIN)
-   pointsOut.push_back(Point(x, y));
+void robotToLidar(vector<Point> &pointsIn, vector<PolarPoint> &pointsOut) {
+ for(int i = 0; i < pointsIn.size(); i++) {
+  int distance = int(sqrt(sqNorm(pointsIn[i])));
+  uint16_t theta = angleDoubleToAngle16(atan2(pointsIn[i].x, pointsIn[i].y));
+  pointsOut.push_back({distance, theta});
  }
 }
 
@@ -610,7 +615,8 @@ void watch(Mat &image, double angle, Point center, int diam, Scalar color1, Scal
 
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
                     vector<Line> &map, vector<Line> &mapRobot,
-                    Point &odometryPoint, uint16_t &theta, uint16_t &oldTheta, bool confidence) {
+                    Point &odometryPoint, Point &oldOdometryPoint,
+                    uint16_t &theta, uint16_t &oldTheta, bool confidence) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -627,6 +633,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  if(!buttonReset && oldButtonReset) {
   map.clear();
   odometryPoint = Point(0, 0);
+  oldOdometryPoint = Point(0, 0);
   theta = 0;
   oldTheta = 0;
 
@@ -720,8 +727,8 @@ void bgrInit() {
 }
 
 void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t theta, uint16_t &oldTheta) {
- int16_t deltaTheta = theta - oldTheta;
  int16_t size = polarPoints.size();
+ int16_t deltaTheta = theta - oldTheta;
 
  for(int i = 0; i < size; i++)
   polarPoints[i].theta += (size - i) * deltaTheta / size;
@@ -730,6 +737,20 @@ void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t theta, uint16_t &o
   polarPoints.erase(polarPoints.begin());
 
  oldTheta = theta;
+}
+
+void dedistortOdometry(vector<Point> &robotPoints, Point odometryPoint, Point &oldOdometryPoint, uint16_t theta) {
+ int size = robotPoints.size();
+ Point deltaOdometry = odometryPoint - oldOdometryPoint;
+
+ for(int i = 0; i < size; i++) {
+  Point correction = (size - i) * deltaOdometry / size;
+
+  robotPoints[i] -= Point((correction.x * cos16(-theta) - correction.y * sin16(-theta)) / ONE16,
+                          (correction.x * sin16(-theta) + correction.y * cos16(-theta)) / ONE16);
+ }
+
+ oldOdometryPoint = odometryPoint;
 }
 
 int main(int argc, char* argv[]) {
@@ -770,6 +791,7 @@ int main(int argc, char* argv[]) {
  telemetryFrame.header[3] = ' ';
 
  Point odometryPoint = Point(0, 0);
+ Point oldOdometryPoint = Point(0, 0);
  uint16_t theta = 0;
  uint16_t oldTheta = 0;
  vector<PolarPoint> polarPoints;
@@ -814,6 +836,10 @@ int main(int argc, char* argv[]) {
    robotPoints.clear();
    lidarToRobot(polarPoints, robotPoints);
 
+   dedistortOdometry(robotPoints, odometryPoint, oldOdometryPoint, theta);
+   polarPoints.clear();
+   robotToLidar(robotPoints, polarPoints);
+
    robotRawLines.clear();
    extractRawLines(polarPoints, robotPoints, robotRawLines);
 
@@ -830,7 +856,7 @@ int main(int argc, char* argv[]) {
    mapToRobot(map, mapRobot, odometryPoint, theta);
   }
 
-  ui(image, robotPoints, robotLines, map, mapRobot, odometryPoint, theta, oldTheta, confidence);
+  ui(image, robotPoints, robotLines, map, mapRobot, odometryPoint, oldOdometryPoint, theta, oldTheta, confidence);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
