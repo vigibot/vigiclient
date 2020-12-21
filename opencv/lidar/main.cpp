@@ -396,7 +396,7 @@ bool computeErrors(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &
    int refNorm;
    if(testLines(lines[i], map[j], angularError, pointError, distError, refNorm)) {
 
-    if(map[j].validation < VALIDATIONFILTER)
+    if(map[j].validation < VALIDATIONFILTERPASS)
      map[j].validation++;
 
     pointErrorSum += pointError * refNorm;
@@ -488,9 +488,9 @@ void mapFiltersDecay(vector<Line> &map) {
  if(n == MAPFILTERSDECAY) {
   for(int i = 0; i < map.size(); i++) {
 
-   if(map[i].validation > -VALIDATIONFILTER && map[i].validation < VALIDATIONFILTER)
+   if(map[i].validation > VALIDATIONFILTERKILL && map[i].validation < VALIDATIONFILTERPASS)
     map[i].validation--;
-   else if(map[i].validation == -VALIDATIONFILTER) {
+   else if(map[i].validation == VALIDATIONFILTERKILL) {
     map.erase(map.begin() + i);
     i--;
    }
@@ -554,7 +554,7 @@ void localization(vector<PolarPoint> &polarPoints, vector<Line> &robotLines,
 
  confidence = computeConfidence(pointError, angularError);
 
- if(confidence || !map.size()) {
+ if(confidence || map.empty()) {
   mapping(robotLines, mapLines, map);
   mapCleaner(polarPoints, map, odometryPoint, theta);
  }
@@ -801,7 +801,7 @@ void readMapFile(vector<Line> &map, Point &odometryPoint, uint16_t &theta) {
    Point b;
    item["a"] >> a;
    item["b"] >> b;
-   map.push_back({a, b, VALIDATIONFILTER, GROWFILTER, GROWFILTER, SHRINKFILTER, SHRINKFILTER});
+   map.push_back({a, b, VALIDATIONFILTERPASS, GROWFILTER, GROWFILTER, SHRINKFILTER, SHRINKFILTER});
   }
 
   fs.release();
