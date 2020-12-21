@@ -753,6 +753,49 @@ void dedistortOdometry(vector<Point> &robotPoints, Point odometryPoint, Point &o
  oldOdometryPoint = odometryPoint;
 }
 
+void writeMapFile(vector<Line> &map, Point odometryPoint, uint16_t theta) {
+ FileStorage fs(MAPFILE, FileStorage::WRITE);
+
+ if(fs.isOpened()) {
+  fs << "odometryPoint" << odometryPoint;
+  fs << "theta" << theta;
+
+  fs << "map" << "[";
+  for(int i = 0; i < map.size(); i++) {
+   fs << "{";
+   fs << "a" << map[i].a;
+   fs << "b" << map[i].b;
+   fs << "}";
+  }
+  fs << "]";
+
+  fs.release();
+ } else
+  fprintf(stderr, "Error writing map file\n");
+}
+
+void readMapFile(vector<Line> &map, Point &odometryPoint, uint16_t &theta) {
+ FileStorage fs(MAPFILE, FileStorage::READ);
+
+ if(fs.isOpened()) {
+  fs["odometryPoint"] >> odometryPoint;
+  fs["theta"] >> theta;
+
+  FileNode fn = fs["map"];
+  for(FileNodeIterator it = fn.begin(); it != fn.end(); it++) {
+   FileNode item = *it;
+   Point a;
+   Point b;
+   item["a"] >> a;
+   item["b"] >> b;
+   map.push_back({a, b, GROWFILTER, GROWFILTER, SHRINKFILTER, SHRINKFILTER});
+  }
+
+  fs.release();
+ } else
+  fprintf(stderr, "Error reading map file\n");
+}
+
 int main(int argc, char* argv[]) {
  signal(SIGTERM, signal_callback_handler);
 
@@ -792,10 +835,6 @@ int main(int argc, char* argv[]) {
  telemetryFrame.header[2] = ' ';
  telemetryFrame.header[3] = ' ';
 
- Point odometryPoint = Point(0, 0);
- Point oldOdometryPoint = Point(0, 0);
- uint16_t theta = 0;
- uint16_t oldTheta = 0;
  vector<PolarPoint> polarPoints;
  vector<Point> robotPoints;
  vector<vector<Point>> robotRawLines;
@@ -804,6 +843,13 @@ int main(int argc, char* argv[]) {
  vector<Line> map;
  vector<Line> mapRobot;
  bool confidence = false;
+
+ Point odometryPoint = Point(0, 0);
+ uint16_t theta = 0;
+ readMapFile(map, odometryPoint, theta);
+ Point oldOdometryPoint = odometryPoint;
+ uint16_t oldTheta = theta;
+ thetaCorrector = theta;
 
  bgrInit();
 
@@ -878,6 +924,8 @@ int main(int argc, char* argv[]) {
  }
 
  stopLidar(ld);
+
+ writeMapFile(map, odometryPoint, theta);
 
  return 0;
 }
