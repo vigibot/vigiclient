@@ -395,6 +395,10 @@ bool computeErrors(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &
    int distError;
    int refNorm;
    if(testLines(lines[i], map[j], angularError, pointError, distError, refNorm)) {
+
+    if(map[j].validation < VALIDATIONFILTER)
+     map[j].validation++;
+
     pointErrorSum += pointError * refNorm;
     angularErrorSum += angularError * refNorm;
     weightSum += refNorm;
@@ -463,6 +467,7 @@ void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
  }
 
  for(int i = 0; i < newLines.size(); i++) {
+  newLines[i].validation = 0;
   newLines[i].growa = GROWFILTER;
   newLines[i].growb = GROWFILTER;
   newLines[i].shrinka = SHRINKFILTER;
@@ -482,6 +487,14 @@ void mapFiltersDecay(vector<Line> &map) {
 
  if(n == MAPFILTERSDECAY) {
   for(int i = 0; i < map.size(); i++) {
+
+   if(map[i].validation > -VALIDATIONFILTER && map[i].validation < VALIDATIONFILTER)
+    map[i].validation--;
+   else if(map[i].validation == -VALIDATIONFILTER) {
+    map.erase(map.begin() + i);
+    i--;
+   }
+
    if(map[i].growa < GROWFILTER)
     map[i].growa++;
    if(map[i].growb < GROWFILTER)
@@ -788,7 +801,7 @@ void readMapFile(vector<Line> &map, Point &odometryPoint, uint16_t &theta) {
    Point b;
    item["a"] >> a;
    item["b"] >> b;
-   map.push_back({a, b, GROWFILTER, GROWFILTER, SHRINKFILTER, SHRINKFILTER});
+   map.push_back({a, b, VALIDATIONFILTER, GROWFILTER, GROWFILTER, SHRINKFILTER, SHRINKFILTER});
   }
 
   fs.release();
