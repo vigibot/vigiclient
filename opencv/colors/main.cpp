@@ -441,6 +441,8 @@ bool ui(Mat &image, uchar &threshold) {
 }
 
 int main(int argc, char* argv[]) {
+ signal(SIGTERM, signal_callback_handler);
+
  if(argc != 4) {
   width = WIDTH;
   height = HEIGHT;
