@@ -488,9 +488,10 @@ void mapFiltersDecay(vector<Line> &map) {
  if(n == MAPFILTERSDECAY) {
   for(int i = 0; i < map.size(); i++) {
 
-   if(map[i].validation > VALIDATIONFILTERKILL && map[i].validation < VALIDATIONFILTERKEEP * NBITERATIONS)
-    map[i].validation--;
-   else if(map[i].validation == VALIDATIONFILTERKILL) {
+   if(map[i].validation > VALIDATIONFILTERKILL * NBITERATIONS &&
+      map[i].validation < VALIDATIONFILTERKEEP * NBITERATIONS)
+    map[i].validation -= NBITERATIONS;
+   else if(map[i].validation == VALIDATIONFILTERKILL * NBITERATIONS) {
     map.erase(map.begin() + i);
     i--;
    }
