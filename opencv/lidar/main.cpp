@@ -583,12 +583,12 @@ void drawPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) {
  }
 }
 
-void drawLines(Mat &image, vector<Line> &lines, vector<Line> &colors, bool colored, int mapDiv) {
+void drawMap(Mat &image, vector<Line> &mapRobot, vector<Line> &map, bool colored, int mapDiv) {
  const Point centerPoint = Point(width / 2, height / 2);
 
- for(int i = 0; i < lines.size(); i++) {
-  Point point1 = lines[i].a;
-  Point point2 = lines[i].b;
+ for(int i = 0; i < mapRobot.size(); i++) {
+  Point point1 = mapRobot[i].a;
+  Point point2 = mapRobot[i].b;
 
   point1.x /= mapDiv;
   point2.x /= mapDiv;
@@ -597,15 +597,20 @@ void drawLines(Mat &image, vector<Line> &lines, vector<Line> &colors, bool color
   point1 += centerPoint;
   point2 += centerPoint;
 
-  Point diff = colors[i].b - colors[i].a;
-  double angleDeg = atan2(diff.y, diff.x) * 180.0 / M_PI;
-
   Scalar color;
   if(colored) {
-   uchar hue = uchar(angleDeg / 2.0 + 90.0) % 180;
-   line(image, point1, point2, hueToBgr[hue], 2, LINE_AA);
+   if(map[i].validation < VALIDATIONFILTERKEEP * NBITERATIONS)
+    color = Scalar::all(mapInteger(map[i].validation, VALIDATIONFILTERKILL * NBITERATIONS, VALIDATIONFILTERKEEP * NBITERATIONS, 0, 255));
+   else {
+    Point diff = map[i].b - map[i].a;
+    double angleDeg = atan2(diff.y, diff.x) * 180.0 / M_PI;
+    uchar hue = uchar(angleDeg / 2.0 + 90.0) % 180;
+    color = hueToBgr[hue];
+   }
   } else
-   line(image, point1, point2, Scalar::all(255), 2, LINE_AA);
+   color = Scalar::all(255);
+
+  line(image, point1, point2, color, 2, LINE_AA);
  }
 }
 
@@ -674,7 +679,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    mapDiv--;
  } else {
   if(!buttonMore && oldButtonMore) {
-   if(select < SELECTBEAMS)
+   if(select < SELECTPOINTSBEAMS)
     select++;
    else
     select = SELECTNONE;
@@ -682,7 +687,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    if(select > SELECTNONE)
     select--;
    else
-    select = SELECTBEAMS;
+    select = SELECTPOINTSBEAMS;
   }
  }
  oldButtonLess = buttonLess;
@@ -695,22 +700,27 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    return;
 
   case SELECTMAP:
-   drawPoints(image, robotPoints, false, mapDiv);
-   drawLines(image, robotLines, robotLines, false, mapDiv);
-   drawLines(image, mapRobot, map, true, mapDiv);
+   drawMap(image, mapRobot, map, true, mapDiv);
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    break;
 
-  case SELECTMAPBEAMS:
+  case SELECTMAPPOINTS:
+   drawPoints(image, robotPoints, false, mapDiv);
+   drawMap(image, robotLines, robotLines, false, mapDiv);
+   drawMap(image, mapRobot, map, true, mapDiv);
+   drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
+   break;
+
+  case SELECTMAPPOINTSBEAMS:
    drawPoints(image, robotPoints, true, mapDiv);
-   drawLines(image, robotLines, robotLines, false, mapDiv);
-   drawLines(image, mapRobot, map, true, mapDiv);
+   drawMap(image, robotLines, robotLines, false, mapDiv);
+   drawMap(image, mapRobot, map, true, mapDiv);
    drawRobot(image, robotIcon, FILLED, Point(0, 0), 0, mapDiv);
    break;
 
-  case SELECTBEAMS:
+  case SELECTPOINTSBEAMS:
    drawPoints(image, robotPoints, true, mapDiv);
-   drawLines(image, robotLines, robotLines, false, mapDiv);
+   drawMap(image, robotLines, robotLines, false, mapDiv);
    drawRobot(image, robotIcon, FILLED, Point(0, 0), 0, mapDiv);
    break;
  }
@@ -718,7 +728,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  char text[80];
  if(tune)
   sprintf(text, "%d mm per pixel", mapDiv);
- else if(select != SELECTMAP)
+ else if(select == SELECTMAPPOINTSBEAMS)
   sprintf(text, "%d points %d lines %d map lines", robotPoints.size(), robotLines.size(), map.size());
  else
   sprintf(text, "X %04d Y %04d Theta %03d", odometryPoint.x, odometryPoint.y, theta * 180 / PI16);
