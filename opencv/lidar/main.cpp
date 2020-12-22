@@ -519,28 +519,9 @@ void mapFiltersDecay(vector<Line> &map) {
  n++;
 }
 
-bool computeConfidence(Point pointError, double angularError) {
- static int delay = 0;
- bool moveFast = abs(remoteFrame.vx) > CONFIDENCEMAXVELOCITY ||
-                 abs(remoteFrame.vy) > CONFIDENCEMAXVELOCITY ||
-                 abs(remoteFrame.vz) > CONFIDENCEMAXANGULARVELOCITY;
-
- if(moveFast)
-  delay = CONFIDENCEDELAY;
-
- if(delay)
-  delay--;
-
- if(!delay && sqNorm(pointError) < CONFIDENCEDISTTOLERANCE * CONFIDENCEDISTTOLERANCE &&
-              fabs(angularError) < CONFIDENCEANGULARTOLERANCE)
-  return true;
-
- return false;
-}
-
 void localization(vector<PolarPoint> &polarPoints, vector<Line> &robotLines,
                   vector<Line> &mapLines, vector<Line> &map,
-                  Point &odometryPoint, uint16_t &theta, bool &confidence) {
+                  Point &odometryPoint, uint16_t &theta) {
 
  Point pointError = Point(0, 0);
  double angularError = 0.0;
@@ -561,12 +542,8 @@ void localization(vector<PolarPoint> &polarPoints, vector<Line> &robotLines,
   }
  }
 
- confidence = computeConfidence(pointError, angularError);
-
- if(confidence || map.empty()) {
-  mapping(robotLines, mapLines, map);
-  mapCleaner(polarPoints, map, odometryPoint, theta);
- }
+ mapping(robotLines, mapLines, map);
+ mapCleaner(polarPoints, map, odometryPoint, theta);
 
  mapFiltersDecay(map);
 }
@@ -643,7 +620,7 @@ void watch(Mat &image, double angle, Point center, int diam, Scalar color1, Scal
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
                     vector<Line> &map, vector<Line> &mapRobot,
                     Point &odometryPoint, Point &oldOdometryPoint,
-                    uint16_t &theta, uint16_t &oldTheta, bool confidence, int time) {
+                    uint16_t &theta, uint16_t &oldTheta, int time) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -735,7 +712,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  else
   sprintf(text, "X %04d Y %04d Theta %03d", odometryPoint.x, odometryPoint.y, theta * 180 / PI16);
  putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
- putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(confidence ? 255 : 128), 1);
+ putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
 }
 
 void odometry(Point &odometryPoint, uint16_t &theta) {
@@ -877,7 +854,6 @@ int main(int argc, char* argv[]) {
  vector<Line> mapLines;
  vector<Line> map;
  vector<Line> mapRobot;
- bool confidence = false;
 
  Point odometryPoint = Point(0, 0);
  uint16_t theta = 0;
@@ -942,13 +918,13 @@ int main(int argc, char* argv[]) {
     return sqDist(a) > sqDist(b);
    });
 
-   localization(polarPoints, robotLines, mapLines, map, odometryPoint, theta, confidence);
+   localization(polarPoints, robotLines, mapLines, map, odometryPoint, theta);
 
    mapRobot.clear();
    mapToRobot(map, mapRobot, odometryPoint, theta);
   }
 
-  ui(image, robotPoints, robotLines, map, mapRobot, odometryPoint, oldOdometryPoint, theta, oldTheta, confidence, time);
+  ui(image, robotPoints, robotLines, map, mapRobot, odometryPoint, oldOdometryPoint, theta, oldTheta, time);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
