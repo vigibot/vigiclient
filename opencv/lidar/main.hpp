@@ -59,6 +59,9 @@ const std::vector<cv::Point> robotIcon = {
 typedef struct Line {
  cv::Point a;
  cv::Point b;
+ cv::Point intega;
+ cv::Point integb;
+ int integ;
  int validation;
  int growa;
  int growb;

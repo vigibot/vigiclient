@@ -400,16 +400,12 @@ bool computeErrors(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &
    Point pointError;
    int distError;
    int refNorm;
-   if(testLines(lines[i], map[j], angularError, pointError, distError, refNorm)) {
+   if(map[j].validation >= VALIDATIONFILTERKEEP &&
+      testLines(lines[i], map[j], angularError, pointError, distError, refNorm)) {
 
-    if(map[j].validation < VALIDATIONFILTERKEEP * NBITERATIONS)
-     map[j].validation++;
-    else {
-     pointErrorSum += pointError * refNorm;
-     angularErrorSum += angularError * refNorm;
-     weightSum += refNorm;
-    }
-
+    pointErrorSum += pointError * refNorm;
+    angularErrorSum += angularError * refNorm;
+    weightSum += refNorm;
    }
   }
  }
@@ -444,6 +440,17 @@ void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
 
    newLine = false;
 
+   if(map[j].validation < VALIDATIONFILTERKEEP) {
+    map[j].intega += lines[i].a;
+    map[j].integb += lines[i].b;
+    map[j].integ++;
+    map[j].validation++;
+
+    map[j].a = map[j].intega / map[j].integ;
+    map[j].b = map[j].integb / map[j].integ;
+    continue;
+   }
+
    if(fabs(angularError) > SMALLANGULARTOLERANCE)
     continue;
 
@@ -475,6 +482,9 @@ void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
  }
 
  for(int i = 0; i < newLines.size(); i++) {
+  newLines[i].intega = newLines[i].a;
+  newLines[i].integb = newLines[i].b;
+  newLines[i].integ = 1;
   newLines[i].validation = 0;
   newLines[i].growa = GROWFILTER;
   newLines[i].growb = GROWFILTER;
@@ -496,10 +506,10 @@ void mapFiltersDecay(vector<Line> &map) {
  if(n == MAPFILTERSDECAY) {
   for(int i = 0; i < map.size(); i++) {
 
-   if(map[i].validation > VALIDATIONFILTERKILL * NBITERATIONS &&
-      map[i].validation < VALIDATIONFILTERKEEP * NBITERATIONS)
-    map[i].validation -= NBITERATIONS;
-   else if(map[i].validation <= VALIDATIONFILTERKILL * NBITERATIONS) {
+   if(map[i].validation > VALIDATIONFILTERKILL &&
+      map[i].validation < VALIDATIONFILTERKEEP)
+    map[i].validation--;
+   else if(map[i].validation <= VALIDATIONFILTERKILL) {
     map.erase(map.begin() + i);
     i--;
    }
@@ -578,8 +588,8 @@ void drawMap(Mat &image, vector<Line> &mapRobot, vector<Line> &map, bool colored
 
   Scalar color;
   if(colored) {
-   if(map[i].validation < VALIDATIONFILTERKEEP * NBITERATIONS)
-    color = Scalar::all(mapInteger(map[i].validation, VALIDATIONFILTERKILL * NBITERATIONS, VALIDATIONFILTERKEEP * NBITERATIONS, 0, 255));
+   if(map[i].validation < VALIDATIONFILTERKEEP)
+    color = Scalar::all(mapInteger(map[i].validation, VALIDATIONFILTERKILL, VALIDATIONFILTERKEEP, 0, 255));
    else {
     Point diff = map[i].b - map[i].a;
     double angleDeg = atan2(diff.y, diff.x) * 180.0 / M_PI;
@@ -797,7 +807,8 @@ void readMapFile(vector<Line> &map, Point &odometryPoint, uint16_t &theta) {
    Point b;
    item["a"] >> a;
    item["b"] >> b;
-   map.push_back({a, b, VALIDATIONFILTERKEEP * NBITERATIONS, GROWFILTER, GROWFILTER, SHRINKFILTER, SHRINKFILTER});
+   map.push_back({a, b, Point(0, 0), Point(0, 0), 0, VALIDATIONFILTERKEEP,
+                  GROWFILTER, GROWFILTER, SHRINKFILTER, SHRINKFILTER});
   }
 
   fs.release();
