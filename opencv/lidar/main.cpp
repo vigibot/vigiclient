@@ -404,10 +404,12 @@ bool computeErrors(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &
 
     if(map[j].validation < VALIDATIONFILTERKEEP * NBITERATIONS)
      map[j].validation++;
+    else {
+     pointErrorSum += pointError * refNorm;
+     angularErrorSum += angularError * refNorm;
+     weightSum += refNorm;
+    }
 
-    pointErrorSum += pointError * refNorm;
-    angularErrorSum += angularError * refNorm;
-    weightSum += refNorm;
    }
   }
  }
