@@ -284,8 +284,10 @@ bool growLineMap(Point point, vector<Line> &map, int n) {
   Point pointError;
   int distError;
   int refNorm;
-  if(testLines(map[i], grownLine, angularError, pointError, distError, refNorm))
+  if(testLines(map[i], grownLine, angularError, pointError, distError, refNorm)) {
    map.erase(map.begin() + i);
+   i--;
+  }
  }
 
  map[n] = grownLine;
