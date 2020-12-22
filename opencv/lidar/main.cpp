@@ -643,7 +643,7 @@ void watch(Mat &image, double angle, Point center, int diam, Scalar color1, Scal
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
                     vector<Line> &map, vector<Line> &mapRobot,
                     Point &odometryPoint, Point &oldOdometryPoint,
-                    uint16_t &theta, uint16_t &oldTheta, bool confidence) {
+                    uint16_t &theta, uint16_t &oldTheta, bool confidence, int time) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -731,7 +731,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  if(tune)
   sprintf(text, "%d mm per pixel", mapDiv);
  else if(select == SELECTMAPPOINTSBEAMS)
-  sprintf(text, "%d points %d lines %d map lines", robotPoints.size(), robotLines.size(), map.size());
+  sprintf(text, "%d points %d lines %d map lines %d ms", robotPoints.size(), robotLines.size(), map.size(), time);
  else
   sprintf(text, "X %04d Y %04d Theta %03d", odometryPoint.x, odometryPoint.y, theta * 180 / PI16);
  putText(image, text, Point(5, 15), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
@@ -893,6 +893,9 @@ int main(int argc, char* argv[]) {
  VideoCapture capture;
  capture.open(0);
 
+ TickMeter tickMeter;
+ int time = 0;
+
  bool captureEnabled = capture.isOpened();
  if(captureEnabled) {
   fprintf(stderr, "Configuring capture\n");
@@ -903,16 +906,18 @@ int main(int argc, char* argv[]) {
   fprintf(stderr, "Error starting capture\n");
 
  while(run) {
-  bool updated;
-
   if(captureEnabled) {
    capture.read(image);
-   updated = readModem(fd, remoteFrame);
   } else {
    image = Mat::zeros(Size(width, height), CV_8UC3);
-   while(!readModem(fd, remoteFrame) && run);
-   updated = true;
+   int wait = 1000000 / fps - time * 1000;
+   if(wait > 0)
+    usleep(wait);
   }
+
+  tickMeter.start();
+
+  bool updated = readModem(fd, remoteFrame);
 
   if(updated)
    odometry(odometryPoint, theta);
@@ -943,7 +948,7 @@ int main(int argc, char* argv[]) {
    mapToRobot(map, mapRobot, odometryPoint, theta);
   }
 
-  ui(image, robotPoints, robotLines, map, mapRobot, odometryPoint, oldOdometryPoint, theta, oldTheta, confidence);
+  ui(image, robotPoints, robotLines, map, mapRobot, odometryPoint, oldOdometryPoint, theta, oldTheta, confidence, time);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
@@ -960,6 +965,10 @@ int main(int argc, char* argv[]) {
   }
 
   fwrite(image.data, size, 1, stdout);
+
+  tickMeter.stop();
+  time = tickMeter.getTimeMilli();
+  tickMeter.reset();
  }
 
  if(captureEnabled) {
