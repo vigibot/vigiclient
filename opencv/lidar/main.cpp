@@ -21,6 +21,8 @@ void signal_callback_handler(int signum) {
 }
 
 void imuThread() {
+ fprintf(stderr, "Starting IMU thread\n");
+
  int oldStdout = dup(fileno(stdout));
  dup2(fileno(stderr), fileno(stdout));
 
@@ -44,6 +46,8 @@ void imuThread() {
   while(imu->IMURead())
    imuData = imu->getIMUData();
  }
+
+ fprintf(stderr, "Stopping IMU thread\n");
 }
 
 int sqNorm(Point point) {
@@ -813,6 +817,8 @@ void readMapFile(vector<Line> &map, Point &odometryPoint, uint16_t &theta) {
 }
 
 int main(int argc, char* argv[]) {
+ fprintf(stderr, "Starting\n");
+
  signal(SIGTERM, signal_callback_handler);
 
  if(argc != 4) {
@@ -827,13 +833,13 @@ int main(int argc, char* argv[]) {
 
  int fd = serialOpen(DEVROBOT, DEVDEBIT);
  if(fd == -1) {
-  fprintf(stderr, "Error opening serial port\n");
+  fprintf(stderr, "Error opening Vigibot serial port\n");
   return 1;
  }
 
  int ld = serialOpen(LIDARPORT, LIDARRATE);
  if(ld == -1) {
-  fprintf(stderr, "Error opening serial port\n");
+  fprintf(stderr, "Error opening lidar serial port\n");
   return 1;
  }
 
@@ -841,6 +847,7 @@ int main(int argc, char* argv[]) {
  thread imuThr(imuThread);
 #endif
 
+ fprintf(stderr, "Starting lidar\n");
  startLidar(ld);
 
  Mat image;
@@ -862,6 +869,7 @@ int main(int argc, char* argv[]) {
 
  Point odometryPoint = Point(0, 0);
  uint16_t theta = 0;
+ fprintf(stderr, "Reading map file\n");
  readMapFile(map, odometryPoint, theta);
  Point oldOdometryPoint = odometryPoint;
  uint16_t oldTheta = theta;
@@ -869,15 +877,18 @@ int main(int argc, char* argv[]) {
 
  bgrInit();
 
+ fprintf(stderr, "Starting capture\n");
  VideoCapture capture;
  capture.open(0);
 
  bool captureEnabled = capture.isOpened();
  if(captureEnabled) {
+  fprintf(stderr, "Configuring capture\n");
   capture.set(CAP_PROP_FRAME_WIDTH, width);
   capture.set(CAP_PROP_FRAME_HEIGHT, height);
   capture.set(CAP_PROP_FPS, fps);
- }
+ } else
+  fprintf(stderr, "Error starting capture\n");
 
  while(run) {
   bool updated;
@@ -887,7 +898,7 @@ int main(int argc, char* argv[]) {
    updated = readModem(fd, remoteFrame);
   } else {
    image = Mat::zeros(Size(width, height), CV_8UC3);
-   while(!readModem(fd, remoteFrame));
+   while(!readModem(fd, remoteFrame) && run);
    updated = true;
   }
 
@@ -939,9 +950,17 @@ int main(int argc, char* argv[]) {
   fwrite(image.data, size, 1, stdout);
  }
 
+ if(captureEnabled) {
+  fprintf(stderr, "Stopping capture\n");
+  capture.release();
+ }
+
+ fprintf(stderr, "Stopping lidar\n");
  stopLidar(ld);
 
+ fprintf(stderr, "Writing map file\n");
  writeMapFile(map, odometryPoint, theta);
 
+ fprintf(stderr, "Stopping\n");
  return 0;
 }
