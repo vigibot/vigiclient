@@ -349,8 +349,7 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odomet
     continue;
 
    double absAngularError = fabs(diffAngle(shorterLine, map[i]));
-   if(absAngularError < SMALLANGULARTOLERANCE ||
-      absAngularError > M_PI - SMALLANGULARTOLERANCE)
+   if(absAngularError < LARGEANGULARTOLERANCE || absAngularError > M_PI - LARGEANGULARTOLERANCE)
     continue;
 
    if(sqDist(map[i].a, intersectPoint) < sqDist(map[i].b, intersectPoint)) {
@@ -382,14 +381,14 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odomet
  }
 }
 
-bool computeErrors(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map,
+bool computeErrors(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line> &map,
                    Point &pointErrorOut, double &angularErrorOut) {
 
  Point pointErrorSum = Point(0, 0);
  double angularErrorSum = 0.0;
  int weightSum = 0;
 
- for(int i = 0; i < lines.size(); i++) {
+ for(int i = 0; i < mapLines.size(); i++) {
   /*Line line = {Point(0, 0), Point((robotLines[i].a + robotLines[i].b) / 2)};
   double angle = fabs(diffAngle(line, robotLines[i]));
   if(angle < LARGEANGULARTOLERANCE || fabs(angle - M_PI) < LARGEANGULARTOLERANCE)
@@ -401,7 +400,7 @@ bool computeErrors(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &
    int distError;
    int refNorm;
    if(map[j].validation >= VALIDATIONFILTERKEEP &&
-      testLines(lines[i], map[j], angularError, pointError, distError, refNorm)) {
+      testLines(mapLines[i], map[j], angularError, pointError, distError, refNorm)) {
 
     pointErrorSum += pointError * refNorm;
     angularErrorSum += angularError * refNorm;
@@ -419,11 +418,11 @@ bool computeErrors(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &
   return false;
 }
 
-void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
+void mapping(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line> &map) {
  vector<Line> newLines;
  bool change = false;
 
- for(int i = 0; i < lines.size(); i++) {
+ for(int i = 0; i < mapLines.size(); i++) {
   /*Line line = {Point(0, 0), Point((robotLines[i].a + robotLines[i].b) / 2)};
   double angle = fabs(diffAngle(line, robotLines[i]));
   if(angle < LARGEANGULARTOLERANCE || fabs(angle - M_PI) < LARGEANGULARTOLERANCE)
@@ -435,14 +434,14 @@ void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
    Point pointError;
    int distError;
    int refNorm;
-   if(!testLines(lines[i], map[j], angularError, pointError, distError, refNorm))
+   if(!testLines(mapLines[i], map[j], angularError, pointError, distError, refNorm))
     continue;
 
    newLine = false;
 
    if(map[j].validation < VALIDATIONFILTERKEEP) {
-    map[j].intega += lines[i].a;
-    map[j].integb += lines[i].b;
+    map[j].intega += mapLines[i].a;
+    map[j].integb += mapLines[i].b;
     map[j].integ++;
     map[j].validation++;
 
@@ -451,15 +450,12 @@ void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
     continue;
    }
 
-   if(fabs(angularError) > SMALLANGULARTOLERANCE)
-    continue;
-
-   if(distError > SMALLDISTTOLERANCE)
+   if(fabs(angularError) > SMALLANGULARTOLERANCE || distError > SMALLDISTTOLERANCE)
     continue;
 
    bool merged = false;
-   merged |= growLineMap(lines[i].a, map, j);
-   merged |= growLineMap(lines[i].b, map, j);
+   merged |= growLineMap(mapLines[i].a, map, j);
+   merged |= growLineMap(mapLines[i].b, map, j);
    if(!merged)
     continue;
    else
@@ -469,7 +465,7 @@ void mapping(vector<Line> &robotLines, vector<Line> &lines, vector<Line> &map) {
   }
 
   if(newLine) {
-   newLines.push_back(lines[i]);
+   newLines.push_back(mapLines[i]);
    change = true;
   }
  }
@@ -506,8 +502,7 @@ void mapFiltersDecay(vector<Line> &map) {
  if(n == MAPFILTERSDECAY) {
   for(int i = 0; i < map.size(); i++) {
 
-   if(map[i].validation > VALIDATIONFILTERKILL &&
-      map[i].validation < VALIDATIONFILTERKEEP)
+   if(map[i].validation > VALIDATIONFILTERKILL && map[i].validation < VALIDATIONFILTERKEEP)
     map[i].validation--;
    else if(map[i].validation <= VALIDATIONFILTERKILL) {
     map.erase(map.begin() + i);
@@ -529,8 +524,7 @@ void mapFiltersDecay(vector<Line> &map) {
  n++;
 }
 
-void localization(vector<PolarPoint> &polarPoints, vector<Line> &robotLines,
-                  vector<Line> &mapLines, vector<Line> &map,
+void localization(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line> &map,
                   Point &odometryPoint, uint16_t &theta) {
 
  Point pointError = Point(0, 0);
@@ -541,21 +535,16 @@ void localization(vector<PolarPoint> &polarPoints, vector<Line> &robotLines,
   robotToMap(robotLines, mapLines, odometryPoint, theta);
 
   if(computeErrors(robotLines, mapLines, map, pointError, angularError)) {
-   odometryPoint -= pointError / (ODOMETRYCORRECTORDIV + i);
+   odometryPoint -= pointError / (i + 1);
 
 #ifdef IMU
-   thetaCorrector += int(angularError * double(PI16) / M_PI) / (IMUTHETACORRECTORDIV + i);
+   thetaCorrector += int(angularError * double(PI16) / M_PI) / IMUTHETACORRECTORDIV;
 #else
-   theta += int(angularError * double(PI16) / M_PI) / (THETACORRECTORDIV + i);
+   theta += int(angularError * double(PI16) / M_PI) / (i + 1);
 #endif
 
   }
  }
-
- mapping(robotLines, mapLines, map);
- mapCleaner(polarPoints, map, odometryPoint, theta);
-
- mapFiltersDecay(map);
 }
 
 void drawPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) {
@@ -929,7 +918,10 @@ int main(int argc, char* argv[]) {
     return sqDist(a) > sqDist(b);
    });
 
-   localization(polarPoints, robotLines, mapLines, map, odometryPoint, theta);
+   localization(robotLines, mapLines, map, odometryPoint, theta);
+   mapping(robotLines, mapLines, map);
+   mapCleaner(polarPoints, map, odometryPoint, theta);
+   mapFiltersDecay(map);
 
    mapRobot.clear();
    mapToRobot(map, mapRobot, odometryPoint, theta);
