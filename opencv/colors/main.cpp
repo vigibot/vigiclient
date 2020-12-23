@@ -441,6 +441,8 @@ bool ui(Mat &image, uchar &threshold) {
 }
 
 int main(int argc, char* argv[]) {
+ fprintf(stderr, "Starting\n");
+
  signal(SIGTERM, signal_callback_handler);
 
  if(argc != 4) {
@@ -471,11 +473,20 @@ int main(int argc, char* argv[]) {
  colorsInit();
  bgrInit();
 
+ fprintf(stderr, "Starting capture\n");
  VideoCapture capture;
  capture.open(0);
- capture.set(CAP_PROP_FRAME_WIDTH, width);
- capture.set(CAP_PROP_FRAME_HEIGHT, height);
- capture.set(CAP_PROP_FPS, fps);
+
+ if(capture.isOpened()) {
+  fprintf(stderr, "Configuring capture\n");
+  capture.set(CAP_PROP_FRAME_WIDTH, width);
+  capture.set(CAP_PROP_FRAME_HEIGHT, height);
+  capture.set(CAP_PROP_FPS, fps);
+ } else {
+  fprintf(stderr, "Error starting capture\n");
+  return 1;
+ }
+
  while(run) {
   capture.read(image);
 
@@ -502,5 +513,9 @@ int main(int argc, char* argv[]) {
   fwrite(image.data, size, 1, stdout);
  }
 
+ fprintf(stderr, "Stopping capture\n");
+ capture.release();
+
+ fprintf(stderr, "Stopping\n");
  return 0;
 }
