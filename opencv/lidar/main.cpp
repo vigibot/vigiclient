@@ -742,7 +742,8 @@ void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t theta, uint16_t &o
  for(int i = 0; i < size; i++)
   polarPoints[i].theta += (size - i) * deltaTheta / size;
 
- while(polarPoints[0].theta > PI16 && polarPoints.size() > 1)
+ //while(polarPoints[0].theta > PI16 && polarPoints.size() > 1)
+ while(polarPoints[0].theta - polarPoints[polarPoints.size() - 1].theta > PI16 && polarPoints.size() > 1)
   polarPoints.erase(polarPoints.begin());
 
  oldTheta = theta;
