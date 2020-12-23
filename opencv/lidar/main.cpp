@@ -267,9 +267,8 @@ bool testLines(Line line1, Line line2, double angularTolerance, int distToleranc
  int distance1 = ratioPointLine(line1.a, line2) * refNorm;
  int distance2 = ratioPointLine(line1.b, line2) * refNorm;
 
- if((distance1 < -lengthMargin || distance1 > refNorm + lengthMargin) &&
-    (distance2 < -lengthMargin || distance2 > refNorm + lengthMargin) &&
-    distance1 * distance2 > 0)
+ if(distance1 < -lengthMargin && distance2 < -lengthMargin ||
+    distance1 > refNorm + lengthMargin && distance2 > refNorm + lengthMargin)
   return false;
 
  return true;
@@ -281,6 +280,7 @@ bool growLineMap(Point point, vector<Line> &map, int n) {
  if(!growLine(point, map[n], grownLine))
   return false;
 
+ bool found = false;
  for(int i = 0; i < map.size(); i++) {
   if(i == n)
    continue;
@@ -290,14 +290,30 @@ bool growLineMap(Point point, vector<Line> &map, int n) {
   int distError;
   int refNorm;
   if(testLines(map[i], grownLine, LARGEANGULARTOLERANCE, LARGEDISTTOLERANCE, 0, angularError, pointError, distError, refNorm)) {
-   map.erase(map.begin() + i);
-   i--;
+
+   if(testLines(map[i], grownLine, SMALLANGULARTOLERANCE, SMALLDISTTOLERANCE, 0, angularError, pointError, distError, refNorm)) {
+    if(sqDist(grownLine) > sqDist(map[i])) {
+     growLine(map[i].a, grownLine, grownLine);
+     growLine(map[i].b, grownLine, grownLine);
+    } else {
+     growLine(grownLine.a, map[i], grownLine);
+     growLine(grownLine.b, map[i], grownLine);
+    }
+    map.erase(map.begin() + i);
+    i--;
+   } else
+    found = true;
+
+   break;
   }
  }
 
- map[n] = grownLine;
+ if(!found) {
+  map[n] = grownLine;
+  return true;
+ }
 
- return true;
+ return false;
 }
 
 bool intersect(Line line1, Line line2, Point &intersectPoint) {
@@ -382,7 +398,7 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odomet
  }
 }
 
-bool computeErrors(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line> &map,
+bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
                    Point &pointErrorOut, double &angularErrorOut) {
 
  Point pointErrorSum = Point(0, 0);
@@ -419,7 +435,7 @@ bool computeErrors(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line
   return false;
 }
 
-void mapping(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line> &map) {
+void mapping(vector<Line> &mapLines, vector<Line> &map) {
  vector<Line> newLines;
  bool change = false;
 
@@ -441,7 +457,7 @@ void mapping(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line> &map
    newLine = false;
 
    if(fabs(angularError) > SMALLANGULARTOLERANCE || distError > SMALLDISTTOLERANCE)
-    continue;
+    break;
 
    if(map[j].validation < VALIDATIONFILTERKEEP) {
     map[j].intega += mapLines[i].a;
@@ -451,17 +467,14 @@ void mapping(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line> &map
 
     map[j].a = map[j].intega / map[j].integ;
     map[j].b = map[j].integb / map[j].integ;
-    continue;
+    break;
    }
 
    bool merged = false;
    merged |= growLineMap(mapLines[i].a, map, j);
    merged |= growLineMap(mapLines[i].b, map, j);
-   if(!merged)
-    continue;
-   else
+   if(merged)
     change = true;
-
    break;
   }
 
@@ -535,7 +548,7 @@ void localization(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line>
   mapLines.clear();
   robotToMap(robotLines, mapLines, odometryPoint, theta);
 
-  if(computeErrors(robotLines, mapLines, map, pointError, angularError)) {
+  if(computeErrors(mapLines, map, pointError, angularError)) {
    odometryPoint -= pointError / (i + 1);
 
 #ifdef IMU
@@ -921,7 +934,7 @@ int main(int argc, char* argv[]) {
    });
 
    localization(robotLines, mapLines, map, odometryPoint, theta);
-   mapping(robotLines, mapLines, map);
+   mapping(mapLines, map);
    mapCleaner(polarPoints, map, odometryPoint, theta);
    mapFiltersDecay(map);
 
