@@ -251,23 +251,24 @@ Point pointDistancePointLine(Point point, Line line) {
  return result;
 }
 
-bool testLines(Line line1, Line line2, double &angularError,
-               Point &pointError, int &distError, int &refNorm) {
+bool testLines(Line line1, Line line2, double angularTolerance, int distTolerance, int lengthMargin,
+               double &angularError, Point &pointError, int &distError, int &refNorm) {
 
  angularError = diffAngle(line1, line2);
- if(fabs(angularError) > LARGEANGULARTOLERANCE)
+ if(fabs(angularError) > angularTolerance)
   return false;
 
  pointError = pointDistancePointLine((line1.a + line1.b) / 2, line2);
  distError = int(sqrt(sqNorm(pointError)));
- if(distError > LARGEDISTTOLERANCE)
+ if(distError > distTolerance)
   return false;
 
  refNorm = int(sqrt(sqDist(line2)));
  int distance1 = ratioPointLine(line1.a, line2) * refNorm;
  int distance2 = ratioPointLine(line1.b, line2) * refNorm;
- if((distance1 < 0 || distance1 > refNorm) &&
-    (distance2 < 0 || distance2 > refNorm) &&
+
+ if((distance1 < -lengthMargin || distance1 > refNorm + lengthMargin) &&
+    (distance2 < -lengthMargin || distance2 > refNorm + lengthMargin) &&
     distance1 * distance2 > 0)
   return false;
 
@@ -288,7 +289,7 @@ bool growLineMap(Point point, vector<Line> &map, int n) {
   Point pointError;
   int distError;
   int refNorm;
-  if(testLines(map[i], grownLine, angularError, pointError, distError, refNorm)) {
+  if(testLines(map[i], grownLine, LARGEANGULARTOLERANCE, LARGEDISTTOLERANCE, 0, angularError, pointError, distError, refNorm)) {
    map.erase(map.begin() + i);
    i--;
   }
@@ -400,7 +401,7 @@ bool computeErrors(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line
    int distError;
    int refNorm;
    if(map[j].validation >= VALIDATIONFILTERKEEP &&
-      testLines(mapLines[i], map[j], angularError, pointError, distError, refNorm)) {
+      testLines(mapLines[i], map[j], LARGEANGULARTOLERANCE, LARGEDISTTOLERANCE, 0, angularError, pointError, distError, refNorm)) {
 
     pointErrorSum += pointError * refNorm;
     angularErrorSum += angularError * refNorm;
@@ -434,10 +435,13 @@ void mapping(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line> &map
    Point pointError;
    int distError;
    int refNorm;
-   if(!testLines(mapLines[i], map[j], angularError, pointError, distError, refNorm))
+   if(!testLines(mapLines[i], map[j], LARGEANGULARTOLERANCE, LARGEDISTTOLERANCE * 2, 0, angularError, pointError, distError, refNorm))
     continue;
 
    newLine = false;
+
+   if(fabs(angularError) > SMALLANGULARTOLERANCE || distError > SMALLDISTTOLERANCE)
+    continue;
 
    if(map[j].validation < VALIDATIONFILTERKEEP) {
     map[j].intega += mapLines[i].a;
@@ -449,9 +453,6 @@ void mapping(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line> &map
     map[j].b = map[j].integb / map[j].integ;
     continue;
    }
-
-   if(fabs(angularError) > SMALLANGULARTOLERANCE || distError > SMALLDISTTOLERANCE)
-    continue;
 
    bool merged = false;
    merged |= growLineMap(mapLines[i].a, map, j);
