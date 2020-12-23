@@ -350,7 +350,7 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odomet
     continue;
 
    double absAngularError = fabs(diffAngle(shorterLine, map[i]));
-   if(absAngularError < LARGEANGULARTOLERANCE || absAngularError > M_PI - LARGEANGULARTOLERANCE)
+   if(absAngularError < SMALLANGULARTOLERANCE || absAngularError > M_PI - SMALLANGULARTOLERANCE)
     continue;
 
    if(sqDist(map[i].a, intersectPoint) < sqDist(map[i].b, intersectPoint)) {
