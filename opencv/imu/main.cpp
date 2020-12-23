@@ -19,6 +19,8 @@ void signal_callback_handler(int signum) {
 }
 
 void imuThread() {
+ fprintf(stderr, "Starting IMU thread\n");
+
  int oldStdout = dup(fileno(stdout));
  dup2(fileno(stderr), fileno(stdout));
 
@@ -42,6 +44,8 @@ void imuThread() {
   while(imu->IMURead())
    imuData = imu->getIMUData();
  }
+
+ fprintf(stderr, "Stopping IMU thread\n");
 }
 
 void watch(Mat &image, double angle, Point center, int diam, Scalar color1, Scalar color2) {
@@ -183,6 +187,8 @@ void autopilot(Mat &image) {
 }
 
 int main(int argc, char* argv[]) {
+ fprintf(stderr, "Starting\n");
+
  signal(SIGTERM, signal_callback_handler);
 
  if(argc != 4) {
@@ -211,13 +217,33 @@ int main(int argc, char* argv[]) {
  telemetryFrame.header[2] = ' ';
  telemetryFrame.header[3] = ' ';
 
+ fprintf(stderr, "Starting capture\n");
  VideoCapture capture;
  capture.open(0);
- capture.set(CAP_PROP_FRAME_WIDTH, width);
- capture.set(CAP_PROP_FRAME_HEIGHT, height);
- capture.set(CAP_PROP_FPS, fps);
+
+ TickMeter tickMeter;
+ int time = 0;
+
+ bool captureEnabled = capture.isOpened();
+ if(captureEnabled) {
+  fprintf(stderr, "Configuring capture\n");
+  capture.set(CAP_PROP_FRAME_WIDTH, width);
+  capture.set(CAP_PROP_FRAME_HEIGHT, height);
+  capture.set(CAP_PROP_FPS, fps);
+ } else
+  fprintf(stderr, "Error starting capture\n");
+
  while(run) {
-  capture.read(image);
+  if(captureEnabled) {
+   capture.read(image);
+  } else {
+   image = Mat::zeros(Size(width, height), CV_8UC3);
+   int wait = 1000000 / fps - time * 1000;
+   if(wait > 0)
+    usleep(wait);
+  }
+
+  tickMeter.start();
 
   bool updated = readModem(fd, remoteFrame);
 
@@ -237,7 +263,17 @@ int main(int argc, char* argv[]) {
   }
 
   fwrite(image.data, size, 1, stdout);
+
+  tickMeter.stop();
+  time = tickMeter.getTimeMilli();
+  tickMeter.reset();
  }
 
+ if(captureEnabled) {
+  fprintf(stderr, "Stopping capture\n");
+  capture.release();
+ }
+
+ fprintf(stderr, "Stopping\n");
  return 0;
 }
