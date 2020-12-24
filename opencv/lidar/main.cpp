@@ -403,7 +403,7 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
 
  Point pointErrorSum = Point(0, 0);
  double angularErrorSum = 0.0;
- int weightSum = 0;
+ int n = 0;
 
  for(int i = 0; i < mapLines.size(); i++) {
   /*Line line = {Point(0, 0), Point((robotLines[i].a + robotLines[i].b) / 2)};
@@ -419,16 +419,19 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
    if(map[j].validation >= VALIDATIONFILTERKEEP &&
       testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, 0, pointError, angularError, distError, refNorm)) {
 
-    pointErrorSum += pointError * refNorm;
-    angularErrorSum += angularError * refNorm;
-    weightSum += refNorm;
+    //pointErrorSum += pointError * refNorm;
+    //angularErrorSum += angularError * refNorm;
+    //n += refNorm;
+    pointErrorSum += pointError;
+    angularErrorSum += angularError;
+    n++;
    }
   }
  }
 
- if(weightSum) {
-  pointErrorOut = pointErrorSum / weightSum;
-  angularErrorOut = angularErrorSum / weightSum;
+ if(n) {
+  pointErrorOut = pointErrorSum / n;
+  angularErrorOut = angularErrorSum / n;
 
   return true;
  } else
