@@ -919,9 +919,9 @@ int main(int argc, char* argv[]) {
    robotPoints.clear();
    lidarToRobot(polarPoints, robotPoints);
 
-   dedistortOdometry(robotPoints, odometryPoint, oldOdometryPoint, theta);
-   polarPoints.clear();
-   robotToLidar(robotPoints, polarPoints);
+   //dedistortOdometry(robotPoints, odometryPoint, oldOdometryPoint, theta);
+   //polarPoints.clear();
+   //robotToLidar(robotPoints, polarPoints);
 
    robotRawLines.clear();
    extractRawLines(polarPoints, robotPoints, robotRawLines);
