@@ -251,8 +251,8 @@ Point pointDistancePointLine(Point point, Line line) {
  return result;
 }
 
-bool testLines(Line line1, Line line2, double angularTolerance, int distTolerance, int lengthMargin,
-               double &angularError, Point &pointError, int &distError, int &refNorm) {
+bool testLines(Line line1, Line line2, int distTolerance, double angularTolerance, int lengthMargin,
+               Point &pointError, double &angularError, int &distError, int &refNorm) {
 
  angularError = diffAngle(line1, line2);
  if(fabs(angularError) > angularTolerance)
@@ -285,13 +285,13 @@ bool growLineMap(Point point, vector<Line> &map, int n) {
   if(i == n)
    continue;
 
-  double angularError;
   Point pointError;
+  double angularError;
   int distError;
   int refNorm;
-  if(testLines(map[i], grownLine, LARGEANGULARTOLERANCE, LARGEDISTTOLERANCE, 0, angularError, pointError, distError, refNorm)) {
+  if(testLines(map[i], grownLine, LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, 0, pointError, angularError, distError, refNorm)) {
 
-   if(testLines(map[i], grownLine, SMALLANGULARTOLERANCE, SMALLDISTTOLERANCE, 0, angularError, pointError, distError, refNorm)) {
+   if(testLines(map[i], grownLine, SMALLDISTTOLERANCE, SMALLANGULARTOLERANCE, 0, pointError, angularError, distError, refNorm)) {
     if(sqDist(grownLine) > sqDist(map[i])) {
      growLine(map[i].a, grownLine, grownLine);
      growLine(map[i].b, grownLine, grownLine);
@@ -412,12 +412,12 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
    continue;*/
 
   for(int j = 0; j < map.size(); j++) {
-   double angularError;
    Point pointError;
+   double angularError;
    int distError;
    int refNorm;
    if(map[j].validation >= VALIDATIONFILTERKEEP &&
-      testLines(mapLines[i], map[j], LARGEANGULARTOLERANCE, LARGEDISTTOLERANCE, 0, angularError, pointError, distError, refNorm)) {
+      testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, 0, pointError, angularError, distError, refNorm)) {
 
     pointErrorSum += pointError * refNorm;
     angularErrorSum += angularError * refNorm;
@@ -447,11 +447,11 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
 
   bool newLine = true;
   for(int j = 0; j < map.size(); j++) {
-   double angularError;
    Point pointError;
+   double angularError;
    int distError;
    int refNorm;
-   if(!testLines(mapLines[i], map[j], LARGEANGULARTOLERANCE, LARGEDISTTOLERANCE * 2, 0, angularError, pointError, distError, refNorm))
+   if(!testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE * 2, 0, pointError, angularError, distError, refNorm))
     continue;
 
    newLine = false;
