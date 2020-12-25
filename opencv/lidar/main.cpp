@@ -157,25 +157,15 @@ Point rotate(Point point, uint16_t theta) {
 
 void robotToMap(vector<Line> &linesIn, vector<Line> &linesOut, Point odometryPoint, uint16_t theta) {
  for(int i = 0; i < linesIn.size(); i++) {
-  linesOut.push_back({
-   Point(odometryPoint.x + (linesIn[i].a.x * cos16(theta) - linesIn[i].a.y * sin16(theta)) / ONE16,
-         odometryPoint.y + (linesIn[i].a.x * sin16(theta) + linesIn[i].a.y * cos16(theta)) / ONE16),
-   Point(odometryPoint.x + (linesIn[i].b.x * cos16(theta) - linesIn[i].b.y * sin16(theta)) / ONE16,
-         odometryPoint.y + (linesIn[i].b.x * sin16(theta) + linesIn[i].b.y * cos16(theta)) / ONE16)
-  });
+  linesOut.push_back({odometryPoint + rotate(linesIn[i].a, theta),
+                      odometryPoint + rotate(linesIn[i].b, theta)});
  }
 }
 
 void mapToRobot(vector<Line> &linesIn, vector<Line> &linesOut, Point odometryPoint, uint16_t theta) {
  for(int i = 0; i < linesIn.size(); i++) {
-  Point point1 = linesIn[i].a - odometryPoint;
-  Point point2 = linesIn[i].b - odometryPoint;
-  linesOut.push_back({
-   Point((point1.x * cos16(-theta) - point1.y * sin16(-theta)) / ONE16,
-         (point1.x * sin16(-theta) + point1.y * cos16(-theta)) / ONE16),
-   Point((point2.x * cos16(-theta) - point2.y * sin16(-theta)) / ONE16,
-         (point2.x * sin16(-theta) + point2.y * cos16(-theta)) / ONE16)
-  });
+  linesOut.push_back({rotate(linesIn[i].a - odometryPoint, -theta),
+                      rotate(linesIn[i].b - odometryPoint, -theta)});
  }
 }
 
@@ -356,8 +346,7 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odomet
   Point closerPoint = Point((polarPoints[i].distance - LARGEDISTTOLERANCE) * sin16(polarPoints[i].theta) / ONE16,
                             (polarPoints[i].distance - LARGEDISTTOLERANCE) * cos16(polarPoints[i].theta) / ONE16);
 
-  closerPoints.push_back(Point(odometryPoint.x + (closerPoint.x * cos16(theta) - closerPoint.y * sin16(theta)) / ONE16,
-                               odometryPoint.y + (closerPoint.x * sin16(theta) + closerPoint.y * cos16(theta)) / ONE16));
+  closerPoints.push_back(odometryPoint + rotate(closerPoint, theta));
  }
 
  for(int i = 0; i < map.size(); i++) {
@@ -424,9 +413,6 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
    if(map[j].validation >= VALIDATIONFILTERKEEP &&
       testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, 0, pointError, angularError, distError, refNorm)) {
 
-    //pointErrorSum += pointError * refNorm;
-    //angularErrorSum += angularError * refNorm;
-    //n += refNorm;
     pointErrorSum += pointError;
     angularErrorSum += angularError;
     n++;
@@ -619,9 +605,7 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point odometr
 
  vector<Point> polygon;
  for(int i = 0; i < robotIcon.size(); i++) {
-  Point point = odometryPoint;
-  point.x += (robotIcon[i].x * cos16(theta) - robotIcon[i].y * sin16(theta)) / ONE16;
-  point.y += (robotIcon[i].x * sin16(theta) + robotIcon[i].y * cos16(theta)) / ONE16;
+  Point point = odometryPoint + rotate(robotIcon[i], theta);
   point.x /= mapDiv;
   point.y /= -mapDiv;
   point += centerPoint;
@@ -761,8 +745,10 @@ void odometry(Point &odometryPoint, uint16_t &theta) {
  theta += remoteFrame.vz * VZMUL;
 #endif
 
- odometryPoint.x += (remoteFrame.vx * cos16(theta) - remoteFrame.vy * sin16(theta)) / ONE16 / VXDIV;
- odometryPoint.y += (remoteFrame.vx * sin16(theta) + remoteFrame.vy * cos16(theta)) / ONE16 / VYDIV;
+ Point point = rotate(Point(remoteFrame.vx, remoteFrame.vy), theta);
+ point.x /= VXDIV;
+ point.y /= VYDIV;
+ odometryPoint += point;
 }
 
 void bgrInit() {
@@ -794,9 +780,7 @@ void dedistortOdometry(vector<Point> &robotPoints, Point odometryPoint, Point &o
 
  for(int i = 0; i < size; i++) {
   Point correction = (size - i) * deltaOdometry / size;
-
-  robotPoints[i] -= Point((correction.x * cos16(-theta) - correction.y * sin16(-theta)) / ONE16,
-                          (correction.x * sin16(-theta) + correction.y * cos16(-theta)) / ONE16);
+  robotPoints[i] -= rotate(correction, -theta);
  }
 
  oldOdometryPoint = odometryPoint;
