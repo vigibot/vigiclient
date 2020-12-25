@@ -150,6 +150,11 @@ void robotToLidar(vector<Point> &pointsIn, vector<PolarPoint> &pointsOut) {
  }
 }
 
+Point rotate(Point point, uint16_t theta) {
+ return Point((point.x * cos16(theta) - point.y * sin16(theta)) / ONE16,
+              (point.x * sin16(theta) + point.y * cos16(theta)) / ONE16);
+}
+
 void robotToMap(vector<Line> &linesIn, vector<Line> &linesOut, Point odometryPoint, uint16_t theta) {
  for(int i = 0; i < linesIn.size(); i++) {
   linesOut.push_back({
@@ -638,10 +643,7 @@ void drawHist(Mat &image, Point odometryPoint, uint16_t theta, int mapDiv) {
   n = 0;
 
  for(int i = 0; i < HIST; i++) {
-  Point point;
-  Point diff = hist[i] - odometryPoint;
-  point.x = (diff.x * cos16(-theta) - diff.y * sin16(-theta)) / ONE16;
-  point.y = (diff.x * sin16(-theta) + diff.y * cos16(-theta)) / ONE16;
+  Point point = rotate(hist[i] - odometryPoint, -theta);
   point.x /= mapDiv;
   point.y /= -mapDiv;
   point += centerPoint;
