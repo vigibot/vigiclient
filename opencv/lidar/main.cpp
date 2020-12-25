@@ -627,10 +627,29 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point odometr
  drawContours(image, tmp, -1, Scalar::all(255), thickness, LINE_AA);
 }
 
-void watch(Mat &image, double angle, Point center, int diam, Scalar color1, Scalar color2) {
- double angleDeg = angle * 180.0 / M_PI;
- ellipse(image, center, Point(diam, diam), angleDeg, 0.0, 180.0, color1, FILLED, LINE_AA);
- ellipse(image, center, Point(diam, diam), angleDeg, 0.0, -180.0, color2, FILLED, LINE_AA);
+void drawHist(Mat &image, Point odometryPoint, uint16_t theta, int mapDiv) {
+ static Point hist[HIST] = {Point(0, 0)};
+ static int n = 0;
+ const Point centerPoint = Point(width / 2, height / 2);
+ static Point oldPoint = {Point(0, 0)};
+
+ hist[n++] = odometryPoint;
+ if(n == HIST)
+  n = 0;
+
+ for(int i = 0; i < HIST; i++) {
+  Point point;
+  Point diff = hist[i] - odometryPoint;
+  point.x = (diff.x * cos16(-theta) - diff.y * sin16(-theta)) / ONE16;
+  point.y = (diff.x * sin16(-theta) + diff.y * cos16(-theta)) / ONE16;
+  point.x /= mapDiv;
+  point.y /= -mapDiv;
+  point += centerPoint;
+
+  if(i != n)
+   line(image, oldPoint, point, Scalar::all(255), 1, LINE_AA);
+  oldPoint = point;
+ }
 }
 
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
@@ -719,6 +738,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    drawRobot(image, robotIcon, FILLED, Point(0, 0), 0, mapDiv);
    break;
  }
+
+ drawHist(image, odometryPoint, theta, mapDiv);
 
  char text[80];
  if(tune)

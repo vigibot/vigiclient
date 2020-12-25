@@ -5,9 +5,7 @@
 #define IMU
 #define DIRZ -1.0
 #define IMUSLERPPOWER 0.01
-#define MARGIN 5
-#define DIAM1 20
-#define DIAM2 10
+#define HIST 100
 
 #define EPSILON 50.0
 #define DISTMARGIN 3
