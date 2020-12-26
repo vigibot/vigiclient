@@ -34,7 +34,7 @@
 #define MAPFILTERSDECAY 2
 
 #define NBITERATIONS 30
-#define HIST 500
+#define HIST 200
 
 enum {
  SELECTNONE,
