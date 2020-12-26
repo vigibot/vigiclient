@@ -634,10 +634,7 @@ void drawHist(Mat &image, Point odometryPoint, uint16_t theta, int mapDiv) {
 
   if(i != n) {
    int sqDistTolerancePixels = LARGEDISTTOLERANCE / mapDiv;
-   if(sqDist(oldPoint, point) > sqDistTolerancePixels * sqDistTolerancePixels) {
-    for(int j = 0; j < HIST; j++)
-     hist[j] = odometryPoint;
-   } else
+   if(sqDist(oldPoint, point) < sqDistTolerancePixels * sqDistTolerancePixels)
     line(image, oldPoint, point, Scalar::all(255), 1, LINE_AA);
   }
   oldPoint = point;
