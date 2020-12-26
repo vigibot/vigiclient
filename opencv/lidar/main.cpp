@@ -655,7 +655,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  static bool oldButtonReset = false;
  static bool oldButtonOk = false;
  static bool tune = false;
- static int select = SELECTMAP;
+ static int select = SELECTMAPPOINTS;
  static int mapDiv = MAPDIV;
 
  if(!buttonReset && oldButtonReset) {
