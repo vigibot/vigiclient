@@ -976,6 +976,9 @@ int main(int argc, char* argv[]) {
   tickMeter.stop();
   time = tickMeter.getTimeMilli();
   tickMeter.reset();
+
+  if(time > 1000 / fps)
+   fprintf(stderr, "Timeout error %d ms\n", time);
  }
 
  if(captureEnabled) {
