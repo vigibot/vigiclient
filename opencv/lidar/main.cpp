@@ -198,6 +198,7 @@ bool growLine(Point point, Line &line, Line &grownLine) {
     line.growa--;
    if(line.growa == 0) {
     grownLine.a = h;
+    grownLine.growa = GROWFILTER;
     return true;
    }
   } else {
@@ -205,6 +206,7 @@ bool growLine(Point point, Line &line, Line &grownLine) {
     line.growb--;
    if(line.growb == 0) {
     grownLine.b = h;
+    grownLine.growb = GROWFILTER;
     return true;
    }
   }
@@ -476,13 +478,6 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
    newLines.push_back(mapLines[i]);
    change = true;
   }
- }
-
- for(int i = 0; i < map.size(); i++) {
-  if(map[i].growa == 0)
-   map[i].growa = GROWFILTER;
-  if(map[i].growb == 0)
-   map[i].growb = GROWFILTER;
  }
 
  for(int i = 0; i < newLines.size(); i++) {
