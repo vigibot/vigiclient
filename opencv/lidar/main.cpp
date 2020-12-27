@@ -620,23 +620,24 @@ void drawHist(Mat &image, Point odometryPoint, uint16_t theta, int mapDiv) {
  static Point hist[HIST] = {Point(0, 0)};
  static int n = 0;
  const Point centerPoint = Point(width / 2, height / 2);
- static Point oldPoint = {Point(0, 0)};
+ static Point oldPoint = Point(0, 0);
 
  hist[n++] = odometryPoint;
  if(n == HIST)
   n = 0;
 
  for(int i = 0; i < HIST; i++) {
-  Point point = rotate(hist[i] - odometryPoint, -theta);
+  Point point = rotate(hist[(i + n) % HIST] - odometryPoint, -theta);
   point.x /= mapDiv;
   point.y /= -mapDiv;
   point += centerPoint;
 
-  if(i != 0 && i != n) {
+  if(i != 0) {
    int sqDistTolerancePixels = LARGEDISTTOLERANCE / mapDiv;
    if(sqDist(oldPoint, point) < sqDistTolerancePixels * sqDistTolerancePixels)
     line(image, oldPoint, point, Scalar::all(255), 1, LINE_AA);
   }
+
   oldPoint = point;
  }
 }
