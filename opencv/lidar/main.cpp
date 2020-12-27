@@ -342,11 +342,8 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odomet
  vector<Point> closerPoints;
 
  for(int i = 0; i < polarPoints.size(); i++) {
-  if(polarPoints[i].distance < LARGEDISTTOLERANCE)
-   continue;
-
-  Point closerPoint = Point((polarPoints[i].distance - LARGEDISTTOLERANCE) * sin16(polarPoints[i].theta) / ONE16,
-                            (polarPoints[i].distance - LARGEDISTTOLERANCE) * cos16(polarPoints[i].theta) / ONE16);
+  Point closerPoint = Point((polarPoints[i].distance / 2) * sin16(polarPoints[i].theta) / ONE16,
+                            (polarPoints[i].distance / 2) * cos16(polarPoints[i].theta) / ONE16);
 
   closerPoints.push_back(odometryPoint + rotate(closerPoint, theta));
  }
