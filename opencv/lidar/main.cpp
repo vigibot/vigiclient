@@ -286,7 +286,7 @@ bool growLineMap(Point point, vector<Line> &map, int n) {
   int refNorm;
   if(testLines(map[i], grownLine, LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, 0, pointError, angularError, distError, refNorm)) {
 
-   if(testLines(map[i], grownLine, SMALLDISTTOLERANCE, SMALLANGULARTOLERANCE, 0, pointError, angularError, distError, refNorm)) {
+   if(fabs(angularError) < SMALLANGULARTOLERANCE && distError < SMALLDISTTOLERANCE) {
     if(sqDist(grownLine) > sqDist(map[i])) {
      growLine(map[i].a, grownLine, grownLine);
      growLine(map[i].b, grownLine, grownLine);
