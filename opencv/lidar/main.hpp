@@ -33,7 +33,7 @@
 #define SHRINKFILTER 5
 #define MAPFILTERSDECAY 2
 
-#define NBITERATIONS 30
+#define NBITERATIONS 10
 #define HIST 200
 
 enum {
