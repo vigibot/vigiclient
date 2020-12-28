@@ -396,7 +396,7 @@ bool ui(Mat &image, uchar &threshold) {
 
    int baseline;
    Size textSize = getTextSize(text, FONT_HERSHEY_PLAIN, s, 1, &baseline);
-   Point2f textCenter(-textSize.width / 2, textSize.height / 2);
+   Point2f textCenter = Point(-textSize.width / 2, textSize.height / 2);
 
    putText(image, text, features[i].center + textCenter, FONT_HERSHEY_PLAIN, s, Scalar::all(0), 1);
    putText(image, text, features[i].center + textCenter + Point2f(1.0, 1.0), FONT_HERSHEY_PLAIN, s, Scalar::all(255), 1);
