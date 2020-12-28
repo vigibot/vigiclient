@@ -592,18 +592,6 @@ void drawMap(Mat &image, vector<Line> &map, bool colored, Point odometryPoint, u
  }
 }
 
-void drawPatrolPoints(Mat &image, vector<Point> &points, Point odometryPoint, uint16_t theta, int mapDiv) {
- const Point centerPoint = Point(width / 2, height / 2);
-
- for(int i = 0; i < points.size(); i++) {
-  Point point = rotate(points[i] - odometryPoint, -theta);
-  point.x /= mapDiv;
-  point.y /= -mapDiv;
-
-  circle(image, centerPoint + point, 10, Scalar(0, 255, 0), 2, LINE_AA);
- }
-}
-
 void drawHist(Mat &image, Point odometryPoint, uint16_t theta, int mapDiv) {
  static Point hist[HIST] = {Point(0, 0)};
  static int n = 0;
@@ -623,10 +611,31 @@ void drawHist(Mat &image, Point odometryPoint, uint16_t theta, int mapDiv) {
   if(i != 0) {
    int sqDistTolerancePixels = LARGEDISTTOLERANCE / mapDiv;
    if(sqDist(oldPoint, point) < sqDistTolerancePixels * sqDistTolerancePixels)
-    line(image, oldPoint, point, Scalar::all(255), 1, LINE_AA);
+    line(image, oldPoint, point, Scalar::all(200), 1, LINE_AA);
   }
 
   oldPoint = point;
+ }
+}
+
+void drawPatrolPoints(Mat &image, vector<Point> &points, Point odometryPoint, uint16_t theta, int mapDiv) {
+ const Point centerPoint = Point(width / 2, height / 2);
+
+ for(int i = 0; i < points.size(); i++) {
+  Point point = rotate(points[i] - odometryPoint, -theta);
+  point.x /= mapDiv;
+  point.y /= -mapDiv;
+  point += centerPoint;
+
+  char text[8];
+  sprintf(text, "%d", i);
+
+  int baseline;
+  Size textSize = getTextSize(text, FONT_HERSHEY_PLAIN, 1.0, 1, &baseline);
+  Point textPoint = Point(-textSize.width / 2, textSize.height / 2) + point;
+
+  putText(image, text, textPoint, FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
+  putText(image, text, textPoint + Point(1, 1), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
  }
 }
 
@@ -668,8 +677,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
   case SELECTMAPPOINTS:
    if(!buttonOk && oldButtonOk)
     patrolPoints.push_back(odometryPoint);
-   //else if(!buttonCancel && oldButtonCancel && !patrolPoints.empty())
-    //patrolPoints.pop_back();
+   else if(!buttonCancel && oldButtonCancel && !patrolPoints.empty())
+    patrolPoints.pop_back();
    break;
 
   case SELECTMAPPOINTSBEAMS:
@@ -721,8 +730,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
 
   case SELECTMAP:
    drawMap(image, map, true, odometryPoint, theta, mapDiv);
-   drawPatrolPoints(image, patrolPoints, odometryPoint, theta, mapDiv);
    drawHist(image, odometryPoint, theta, mapDiv);
+   drawPatrolPoints(image, patrolPoints, odometryPoint, theta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    sprintf(text, "X %04d Y %04d Theta %03d", odometryPoint.x, odometryPoint.y, theta * 180 / PI16);
    break;
@@ -731,8 +740,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    drawLidarPoints(image, robotPoints, false, mapDiv);
    drawMap(image, robotLines, false, Point(0, 0), 0.0, mapDiv);
    drawMap(image, map, true, odometryPoint, theta, mapDiv);
-   drawPatrolPoints(image, patrolPoints, odometryPoint, theta, mapDiv);
    drawHist(image, odometryPoint, theta, mapDiv);
+   drawPatrolPoints(image, patrolPoints, odometryPoint, theta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    sprintf(text, "X %04d Y %04d Theta %03d", odometryPoint.x, odometryPoint.y, theta * 180 / PI16);
    break;
