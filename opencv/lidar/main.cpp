@@ -662,60 +662,70 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
- bool buttonCancel = remoteFrame.switchs & 0b01000000;
  bool buttonOk = remoteFrame.switchs & 0b10000000;
+ bool buttonCancel = remoteFrame.switchs & 0b01000000;
  static bool oldButtonLess = false;
  static bool oldButtonMore = false;
- static bool oldButtonCancel = false;
  static bool oldButtonOk = false;
+ static bool oldButtonCancel = false;
+ static int buttonOkCount = 0;
+ static int buttonCancelCount = 0;
  static bool tune = false;
  static int select = SELECTMAPPOINTS;
  static int mapDiv = MAPDIV;
 
- switch(select) {
-  case SELECTMAP:
-  case SELECTMAPPOINTS:
-   if(!buttonOk && oldButtonOk) {
-    bool found = false;
-    for(int i = 0; i < patrolPoints.size(); i++) {
-     if(sqDist(odometryPoint, patrolPoints[i]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
-      patrolPoints[i] = odometryPoint;
-      found = true;
-      break;
-     }
-    }
-    if(!found)
-     patrolPoints.push_back(odometryPoint);
-   } else if(!buttonCancel && oldButtonCancel && !patrolPoints.empty()) {
-    bool found = false;
-    for(int i = 0; i < patrolPoints.size(); i++) {
-     if(sqDist(odometryPoint, patrolPoints[i]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
-      patrolPoints.erase(patrolPoints.begin() + i);
-      found = true;
-      break;
-     }
-    }
-    if(!found)
-     patrolPoints.pop_back();
-   }
-   break;
+ if(buttonOk) {
+  buttonOkCount++;
+  if(buttonOkCount == 15)
+   tune = !tune;
 
-  case SELECTMAPPOINTSBEAMS:
-  case SELECTPOINTSBEAMS:
-   if(!buttonOk && oldButtonOk) {
-    tune = !tune;
-   } else if(!buttonCancel && oldButtonCancel) {
-    map.clear();
-    odometryPoint = Point(0, 0);
-    oldOdometryPoint = Point(0, 0);
-    theta = 0;
-    oldTheta = 0;
+ } else if(buttonCancel) {
+  buttonCancelCount++;
+  if(buttonCancelCount == 15) {
+
+   map.clear();
+   odometryPoint = Point(0, 0);
+   oldOdometryPoint = Point(0, 0);
+   theta = 0;
+   oldTheta = 0;
 #ifdef IMU
-    imu->resetFusion();
-    thetaCorrector = 0;
+   imu->resetFusion();
+   thetaCorrector = 0;
 #endif
+
+  }
+ } else if(!buttonOk && oldButtonOk) {
+  if(buttonOkCount < 15) {
+
+   bool found = false;
+   for(int i = 0; i < patrolPoints.size(); i++) {
+    if(sqDist(odometryPoint, patrolPoints[i]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
+     patrolPoints[i] = odometryPoint;
+     found = true;
+     break;
+    }
    }
-   break;
+   if(!found)
+    patrolPoints.push_back(odometryPoint);
+
+  }
+  buttonOkCount = 0;
+ } else if(!buttonCancel && oldButtonCancel) {
+  if(buttonCancelCount < 15 && !patrolPoints.empty()) {
+
+   bool found = false;
+   for(int i = 0; i < patrolPoints.size(); i++) {
+    if(sqDist(odometryPoint, patrolPoints[i]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
+     patrolPoints.erase(patrolPoints.begin() + i);
+     found = true;
+     break;
+    }
+   }
+   if(!found)
+    patrolPoints.pop_back();
+
+  }
+  buttonCancelCount = 0;
  }
 
  if(tune) {
@@ -745,14 +755,23 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  char text[80];
  switch(select) {
   case SELECTNONE:
-   return;
+   drawPatrolPoints(image, patrolPoints, odometryPoint, theta, mapDiv);
+   drawRobot(image, robotIcon, 1, mapDiv);
+   if(tune)
+    sprintf(text, "%d mm per pixel", mapDiv);
+   else
+    sprintf(text, "");
+   break;
 
   case SELECTMAP:
    drawMap(image, map, true, odometryPoint, theta, mapDiv);
    drawHist(image, odometryPoint, theta, mapDiv);
    drawPatrolPoints(image, patrolPoints, odometryPoint, theta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
-   sprintf(text, "X %04d Y %04d Theta %03d", odometryPoint.x, odometryPoint.y, theta * 180 / PI16);
+   if(tune)
+    sprintf(text, "%d mm per pixel", mapDiv);
+   else
+    sprintf(text, "X %04d Y %04d Theta %03d", odometryPoint.x, odometryPoint.y, theta * 180 / PI16);
    break;
 
   case SELECTMAPPOINTS:
@@ -762,7 +781,10 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    drawHist(image, odometryPoint, theta, mapDiv);
    drawPatrolPoints(image, patrolPoints, odometryPoint, theta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
-   sprintf(text, "X %04d Y %04d Theta %03d", odometryPoint.x, odometryPoint.y, theta * 180 / PI16);
+   if(tune)
+    sprintf(text, "%d mm per pixel", mapDiv);
+   else
+    sprintf(text, "X %04d Y %04d Theta %03d", odometryPoint.x, odometryPoint.y, theta * 180 / PI16);
    break;
 
   case SELECTMAPPOINTSBEAMS:
