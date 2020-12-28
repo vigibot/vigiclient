@@ -155,17 +155,17 @@ Point rotate(Point point, uint16_t theta) {
               (point.x * sin16(theta) + point.y * cos16(theta)) / ONE16);
 }
 
-void robotToMap(vector<Line> &linesIn, vector<Line> &linesOut, Point odometryPoint, uint16_t theta) {
+void robotToMap(vector<Line> &linesIn, vector<Line> &linesOut, Point robotPoint, uint16_t robotTheta) {
  for(int i = 0; i < linesIn.size(); i++) {
-  linesOut.push_back({odometryPoint + rotate(linesIn[i].a, theta),
-                      odometryPoint + rotate(linesIn[i].b, theta)});
+  linesOut.push_back({robotPoint + rotate(linesIn[i].a, robotTheta),
+                      robotPoint + rotate(linesIn[i].b, robotTheta)});
  }
 }
 
-/*void mapToRobot(vector<Line> &linesIn, vector<Line> &linesOut, Point odometryPoint, uint16_t theta) {
+/*void mapToRobot(vector<Line> &linesIn, vector<Line> &linesOut, Point robotPoint, uint16_t robotTheta) {
  for(int i = 0; i < linesIn.size(); i++) {
-  linesOut.push_back({rotate(linesIn[i].a - odometryPoint, -theta),
-                      rotate(linesIn[i].b - odometryPoint, -theta)});
+  linesOut.push_back({rotate(linesIn[i].a - robotPoint, -robotTheta),
+                      rotate(linesIn[i].b - robotPoint, -robotTheta)});
  }
 }*/
 
@@ -338,21 +338,21 @@ bool intersect(Line line1, Line line2, Point &intersectPoint) {
  return true;
 }
 
-void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point odometryPoint, uint16_t theta) {
+void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotPoint, uint16_t robotTheta) {
  vector<Point> closerPoints;
 
  for(int i = 0; i < polarPoints.size(); i++) {
   Point closerPoint = Point((polarPoints[i].distance / 2) * sin16(polarPoints[i].theta) / ONE16,
                             (polarPoints[i].distance / 2) * cos16(polarPoints[i].theta) / ONE16);
 
-  closerPoints.push_back(odometryPoint + rotate(closerPoint, theta));
+  closerPoints.push_back(robotPoint + rotate(closerPoint, robotTheta));
  }
 
  for(int i = 0; i < map.size(); i++) {
   bool shrinka = true;
   bool shrinkb = true;
   for(int j = 0; j < closerPoints.size(); j++) {
-   Line shorterLine = {odometryPoint, closerPoints[j]};
+   Line shorterLine = {robotPoint, closerPoints[j]};
 
    Point intersectPoint;
    if(!intersect(shorterLine, map[i], intersectPoint))
@@ -525,22 +525,22 @@ void mapFiltersDecay(vector<Line> &map) {
 }
 
 void localization(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line> &map,
-                  Point &odometryPoint, uint16_t &theta) {
+                  Point &robotPoint, uint16_t &robotTheta) {
 
  Point pointError = Point(0, 0);
  double angularError = 0.0;
 
  for(int i = 0; i < NBITERATIONS; i++) {
   mapLines.clear();
-  robotToMap(robotLines, mapLines, odometryPoint, theta);
+  robotToMap(robotLines, mapLines, robotPoint, robotTheta);
 
   if(computeErrors(mapLines, map, pointError, angularError)) {
-   odometryPoint -= pointError / (i + 1);
+   robotPoint -= pointError / (i + 1);
 
 #ifdef IMU
-   thetaCorrector += int(angularError * double(PI16) / M_PI) / IMUTHETACORRECTORDIV;
+   robotThetaCorrector += int(angularError * double(PI16) / M_PI) / IMUTHETACORRECTORDIV;
 #else
-   theta += int(angularError * double(PI16) / M_PI) / (i + 1);
+   robotTheta += int(angularError * double(PI16) / M_PI) / (i + 1);
 #endif
 
   }
@@ -561,12 +561,12 @@ void drawLidarPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) 
  }
 }
 
-void drawMap(Mat &image, vector<Line> &map, bool colored, Point odometryPoint, uint16_t theta, int mapDiv) {
+void drawMap(Mat &image, vector<Line> &map, bool colored, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  const Point centerPoint = Point(width / 2, height / 2);
 
  for(int i = 0; i < map.size(); i++) {
-  Point point1 = rotate(map[i].a - odometryPoint, -theta);
-  Point point2 = rotate(map[i].b - odometryPoint, -theta);
+  Point point1 = rotate(map[i].a - robotPoint, -robotTheta);
+  Point point2 = rotate(map[i].b - robotPoint, -robotTheta);
 
   point1.x /= mapDiv;
   point2.x /= mapDiv;
@@ -592,18 +592,18 @@ void drawMap(Mat &image, vector<Line> &map, bool colored, Point odometryPoint, u
  }
 }
 
-void drawHist(Mat &image, Point odometryPoint, uint16_t theta, int mapDiv) {
+void drawHist(Mat &image, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  static Point hist[HIST] = {Point(0, 0)};
  static int n = 0;
  const Point centerPoint = Point(width / 2, height / 2);
  static Point oldPoint = Point(0, 0);
 
- hist[n++] = odometryPoint;
+ hist[n++] = robotPoint;
  if(n == HIST)
   n = 0;
 
  for(int i = 0; i < HIST; i++) {
-  Point point = rotate(hist[(i + n) % HIST] - odometryPoint, -theta);
+  Point point = rotate(hist[(i + n) % HIST] - robotPoint, -robotTheta);
   point.x /= mapDiv;
   point.y /= -mapDiv;
   point += centerPoint;
@@ -618,11 +618,11 @@ void drawHist(Mat &image, Point odometryPoint, uint16_t theta, int mapDiv) {
  }
 }
 
-void drawPatrolPoints(Mat &image, vector<Point> &points, Point odometryPoint, uint16_t theta, int mapDiv) {
+void drawPatrolPoints(Mat &image, vector<Point> &points, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  const Point centerPoint = Point(width / 2, height / 2);
 
  for(int i = 0; i < points.size(); i++) {
-  Point point = rotate(points[i] - odometryPoint, -theta);
+  Point point = rotate(points[i] - robotPoint, -robotTheta);
   point.x /= mapDiv;
   point.y /= -mapDiv;
   point += centerPoint;
@@ -657,8 +657,8 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, int mapDiv) {
 
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
                     vector<Line> &map, vector<Point> &patrolPoints,
-                    Point &odometryPoint, Point &oldOdometryPoint,
-                    uint16_t &theta, uint16_t &oldTheta, int time) {
+                    Point &robotPoint, Point &oldRobotPoint,
+                    uint16_t &robotTheta, uint16_t &oldRobotTheta, int time) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -684,13 +684,13 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
   if(buttonCancelCount == 15) {
 
    map.clear();
-   odometryPoint = Point(0, 0);
-   oldOdometryPoint = Point(0, 0);
-   theta = 0;
-   oldTheta = 0;
+   robotPoint = Point(0, 0);
+   oldRobotPoint = Point(0, 0);
+   robotTheta = 0;
+   oldRobotTheta = 0;
 #ifdef IMU
    imu->resetFusion();
-   thetaCorrector = 0;
+   robotThetaCorrector = 0;
 #endif
 
   }
@@ -699,14 +699,14 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
 
    bool found = false;
    for(int i = 0; i < patrolPoints.size(); i++) {
-    if(sqDist(odometryPoint, patrolPoints[i]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
-     patrolPoints[i] = odometryPoint;
+    if(sqDist(robotPoint, patrolPoints[i]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
+     patrolPoints[i] = robotPoint;
      found = true;
      break;
     }
    }
    if(!found)
-    patrolPoints.push_back(odometryPoint);
+    patrolPoints.push_back(robotPoint);
 
   }
   buttonOkCount = 0;
@@ -715,7 +715,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
 
    bool found = false;
    for(int i = 0; i < patrolPoints.size(); i++) {
-    if(sqDist(odometryPoint, patrolPoints[i]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
+    if(sqDist(robotPoint, patrolPoints[i]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
      patrolPoints.erase(patrolPoints.begin() + i);
      found = true;
      break;
@@ -755,7 +755,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  char text[80];
  switch(select) {
   case SELECTNONE:
-   drawPatrolPoints(image, patrolPoints, odometryPoint, theta, mapDiv);
+   drawPatrolPoints(image, patrolPoints, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    if(tune)
     sprintf(text, "%d mm per pixel", mapDiv);
@@ -764,33 +764,33 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    break;
 
   case SELECTMAP:
-   drawMap(image, map, true, odometryPoint, theta, mapDiv);
-   drawHist(image, odometryPoint, theta, mapDiv);
-   drawPatrolPoints(image, patrolPoints, odometryPoint, theta, mapDiv);
+   drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
+   drawHist(image, robotPoint, robotTheta, mapDiv);
+   drawPatrolPoints(image, patrolPoints, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    if(tune)
     sprintf(text, "%d mm per pixel", mapDiv);
    else
-    sprintf(text, "X %04d Y %04d Theta %03d", odometryPoint.x, odometryPoint.y, theta * 180 / PI16);
+    sprintf(text, "X %04d Y %04d Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
    break;
 
   case SELECTMAPPOINTS:
    drawLidarPoints(image, robotPoints, false, mapDiv);
    drawMap(image, robotLines, false, Point(0, 0), 0.0, mapDiv);
-   drawMap(image, map, true, odometryPoint, theta, mapDiv);
-   drawHist(image, odometryPoint, theta, mapDiv);
-   drawPatrolPoints(image, patrolPoints, odometryPoint, theta, mapDiv);
+   drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
+   drawHist(image, robotPoint, robotTheta, mapDiv);
+   drawPatrolPoints(image, patrolPoints, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    if(tune)
     sprintf(text, "%d mm per pixel", mapDiv);
    else
-    sprintf(text, "X %04d Y %04d Theta %03d", odometryPoint.x, odometryPoint.y, theta * 180 / PI16);
+    sprintf(text, "X %04d Y %04d Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
    break;
 
   case SELECTMAPPOINTSBEAMS:
    drawLidarPoints(image, robotPoints, true, mapDiv);
    drawMap(image, robotLines, false, Point(0, 0), 0.0, mapDiv);
-   drawMap(image, map, true, odometryPoint, theta, mapDiv);
+   drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, FILLED, mapDiv);
    if(tune)
     sprintf(text, "%d mm per pixel", mapDiv);
@@ -813,19 +813,6 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  putText(image, text, Point(6, 16), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
 }
 
-void odometry(Point &odometryPoint, uint16_t &theta) {
-#ifdef IMU
- theta = angleDoubleToAngle16(imuData.fusionPose.z() * DIRZ) + thetaCorrector;
-#else
- theta += remoteFrame.vz * VZMUL;
-#endif
-
- Point point = rotate(Point(remoteFrame.vx, remoteFrame.vy), theta);
- point.x /= VXDIV;
- point.y /= VYDIV;
- odometryPoint += point;
-}
-
 void bgrInit() {
  for(uchar i = 0; i < 180; i++) {
   Mat imageHsv = Mat(1, 1, CV_8UC3, Scalar(i, 255, 255));
@@ -835,9 +822,9 @@ void bgrInit() {
  }
 }
 
-void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t theta, uint16_t &oldTheta) {
+void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t robotTheta, uint16_t &oldRobotTheta) {
  int16_t size = polarPoints.size();
- int16_t deltaTheta = theta - oldTheta;
+ int16_t deltaTheta = robotTheta - oldRobotTheta;
 
  for(int i = 0; i < size; i++)
   polarPoints[i].theta += (size - i) * deltaTheta / size;
@@ -846,22 +833,22 @@ void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t theta, uint16_t &o
  while(polarPoints[0].theta - polarPoints[polarPoints.size() - 1].theta > PI16 && polarPoints.size() > 1)
   polarPoints.erase(polarPoints.begin());
 
- oldTheta = theta;
+ oldRobotTheta = robotTheta;
 }
 
-void dedistortOdometry(vector<Point> &robotPoints, Point odometryPoint, Point &oldOdometryPoint, uint16_t theta) {
+/*void dedistortLinear(vector<Point> &robotPoints, Point robotPoint, Point &oldRobotPoint, uint16_t robotTheta) {
  int size = robotPoints.size();
- Point deltaOdometry = odometryPoint - oldOdometryPoint;
+ Point delta = robotPoint - oldRobotPoint;
 
  for(int i = 0; i < size; i++) {
-  Point correction = (size - i) * deltaOdometry / size;
-  robotPoints[i] -= rotate(correction, -theta);
+  Point correction = (size - i) * delta / size;
+  robotPoints[i] -= rotate(correction, -robotTheta);
  }
 
- oldOdometryPoint = odometryPoint;
-}
+ oldRobotPoint = robotPoint;
+}*/
 
-void writeMapFile(vector<Line> &map, vector<Point> patrolPoints, Point odometryPoint, uint16_t theta) {
+void writeMapFile(vector<Line> &map, vector<Point> patrolPoints, Point robotPoint, uint16_t robotTheta) {
  FileStorage fs(MAPFILE, FileStorage::WRITE);
 
  if(fs.isOpened()) {
@@ -879,15 +866,15 @@ void writeMapFile(vector<Line> &map, vector<Point> patrolPoints, Point odometryP
    fs << patrolPoints[i];
   fs << "]";
 
-  fs << "odometryPoint" << odometryPoint;
-  fs << "theta" << theta;
+  fs << "robotPoint" << robotPoint;
+  fs << "robotTheta" << robotTheta;
 
   fs.release();
  } else
   fprintf(stderr, "Error writing map file\n");
 }
 
-void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &odometryPoint, uint16_t &theta) {
+void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &robotPoint, uint16_t &robotTheta) {
  FileStorage fs(MAPFILE, FileStorage::READ);
 
  if(fs.isOpened()) {
@@ -910,12 +897,51 @@ void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &odometry
    patrolPoints.push_back(point);
   }
 
-  fs["odometryPoint"] >> odometryPoint;
-  fs["theta"] >> theta;
+  fs["robotPoint"] >> robotPoint;
+  fs["robotTheta"] >> robotTheta;
 
   fs.release();
  } else
   fprintf(stderr, "Error reading map file\n");
+}
+
+void autopilot(vector<Point> patrolPoints, Point &robotPoint, uint16_t &robotTheta) {
+ static bool enabled = false;
+ int vx;
+ int vy;
+ int vz;
+
+ if(patrolPoints.size() >= 2 && sqDist(robotPoint, patrolPoints[0]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE)
+  enabled = true;
+ else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
+  enabled = false;
+
+ if(!enabled) {
+  telemetryFrame.vx = remoteFrame.vx;
+  telemetryFrame.vy = remoteFrame.vy;
+  telemetryFrame.vz = remoteFrame.vz;
+  return;
+ }
+
+
+ // TODO
+ vx = 0;
+ vy = 0;
+ vz = 0;
+
+
+ telemetryFrame.vx = vx;
+ telemetryFrame.vy = vy;
+ telemetryFrame.vz = vz;
+
+#ifndef IMU
+ robotTheta += vz * VZMUL;
+#endif
+
+ Point point = rotate(Point(vx, vy), robotTheta);
+ point.x /= VXDIV;
+ point.y /= VYDIV;
+ robotPoint += point;
 }
 
 int main(int argc, char* argv[]) {
@@ -968,13 +994,13 @@ int main(int argc, char* argv[]) {
  vector<Line> map;
  vector<Point> patrolPoints;
 
- Point odometryPoint = Point(0, 0);
- uint16_t theta = 0;
+ Point robotPoint = Point(0, 0);
+ uint16_t robotTheta = 0;
  fprintf(stderr, "Reading map file\n");
- readMapFile(map, patrolPoints, odometryPoint, theta);
- Point oldOdometryPoint = odometryPoint;
- uint16_t oldTheta = theta;
- thetaCorrector = theta;
+ readMapFile(map, patrolPoints, robotPoint, robotTheta);
+ Point oldRobotPoint = robotPoint;
+ uint16_t oldRobotTheta = robotTheta;
+ robotThetaCorrector = robotTheta;
 
  bgrInit();
 
@@ -1008,16 +1034,24 @@ int main(int argc, char* argv[]) {
 
   bool updated = readModem(fd, remoteFrame);
 
-  if(updated)
-   odometry(odometryPoint, theta);
+#ifdef IMU
+  robotTheta = angleDoubleToAngle16(imuData.fusionPose.z() * DIRZ) + robotThetaCorrector;
+#else
+  robotTheta += remoteFrame.vz * VZMUL;
+#endif
+
+  Point point = rotate(Point(remoteFrame.vx, remoteFrame.vy), robotTheta);
+  point.x /= VXDIV;
+  point.y /= VYDIV;
+  robotPoint += point;
 
   if(readLidar(ld, polarPoints)) {
-   dedistortTheta(polarPoints, theta, oldTheta);
+   dedistortTheta(polarPoints, robotTheta, oldRobotTheta);
 
    robotPoints.clear();
    lidarToRobot(polarPoints, robotPoints);
 
-   //dedistortOdometry(robotPoints, odometryPoint, oldOdometryPoint, theta);
+   //dedistortLinear(robotPoints, robotPoint, oldRobotPoint, robotTheta);
    //polarPoints.clear();
    //robotToLidar(robotPoints, polarPoints);
 
@@ -1031,13 +1065,15 @@ int main(int argc, char* argv[]) {
     return sqDist(a) > sqDist(b);
    });
 
-   localization(robotLines, mapLines, map, odometryPoint, theta);
+   localization(robotLines, mapLines, map, robotPoint, robotTheta);
    mapping(mapLines, map);
-   mapCleaner(polarPoints, map, odometryPoint, theta);
+   mapCleaner(polarPoints, map, robotPoint, robotTheta);
    mapFiltersDecay(map);
   }
 
-  ui(image, robotPoints, robotLines, map, patrolPoints, odometryPoint, oldOdometryPoint, theta, oldTheta, time);
+  autopilot(patrolPoints, robotPoint, robotTheta);
+
+  ui(image, robotPoints, robotLines, map, patrolPoints, robotPoint, oldRobotPoint, robotTheta, oldRobotTheta, time);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
@@ -1045,9 +1081,6 @@ int main(int argc, char* argv[]) {
     telemetryFrame.xy[i][1] = remoteFrame.xy[i][1];
    }
    telemetryFrame.z = remoteFrame.z;
-   telemetryFrame.vx = remoteFrame.vx;
-   telemetryFrame.vy = remoteFrame.vy;
-   telemetryFrame.vz = remoteFrame.vz;
    telemetryFrame.switchs = remoteFrame.switchs;
 
    writeModem(fd, telemetryFrame);
@@ -1072,7 +1105,7 @@ int main(int argc, char* argv[]) {
  stopLidar(ld);
 
  fprintf(stderr, "Writing map file\n");
- writeMapFile(map, patrolPoints, odometryPoint, theta);
+ writeMapFile(map, patrolPoints, robotPoint, robotTheta);
 
  fprintf(stderr, "Stopping\n");
  return 0;

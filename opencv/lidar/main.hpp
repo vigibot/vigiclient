@@ -76,6 +76,6 @@ TelemetryFrame telemetryFrame;
 
 RTIMU_DATA imuData;
 RTIMU *imu;
-uint16_t thetaCorrector = 0;
+uint16_t robotThetaCorrector = 0;
 
 cv::Scalar hueToBgr[180];
