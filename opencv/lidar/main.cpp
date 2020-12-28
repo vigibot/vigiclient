@@ -611,7 +611,7 @@ void drawHist(Mat &image, Point odometryPoint, uint16_t theta, int mapDiv) {
   if(i != 0) {
    int sqDistTolerancePixels = LARGEDISTTOLERANCE / mapDiv;
    if(sqDist(oldPoint, point) < sqDistTolerancePixels * sqDistTolerancePixels)
-    line(image, oldPoint, point, Scalar::all(200), 1, LINE_AA);
+    line(image, oldPoint, point, Scalar::all(128), 1, LINE_AA);
   }
 
   oldPoint = point;
@@ -675,10 +675,29 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  switch(select) {
   case SELECTMAP:
   case SELECTMAPPOINTS:
-   if(!buttonOk && oldButtonOk)
-    patrolPoints.push_back(odometryPoint);
-   else if(!buttonCancel && oldButtonCancel && !patrolPoints.empty())
-    patrolPoints.pop_back();
+   if(!buttonOk && oldButtonOk) {
+    bool found = false;
+    for(int i = 0; i < patrolPoints.size(); i++) {
+     if(sqDist(odometryPoint, patrolPoints[i]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
+      patrolPoints[i] = odometryPoint;
+      found = true;
+      break;
+     }
+    }
+    if(!found)
+     patrolPoints.push_back(odometryPoint);
+   } else if(!buttonCancel && oldButtonCancel && !patrolPoints.empty()) {
+    bool found = false;
+    for(int i = 0; i < patrolPoints.size(); i++) {
+     if(sqDist(odometryPoint, patrolPoints[i]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
+      patrolPoints.erase(patrolPoints.begin() + i);
+      found = true;
+      break;
+     }
+    }
+    if(!found)
+     patrolPoints.pop_back();
+   }
    break;
 
   case SELECTMAPPOINTSBEAMS:
@@ -820,13 +839,10 @@ void dedistortOdometry(vector<Point> &robotPoints, Point odometryPoint, Point &o
  oldOdometryPoint = odometryPoint;
 }
 
-void writeMapFile(vector<Line> &map, Point odometryPoint, uint16_t theta) {
+void writeMapFile(vector<Line> &map, vector<Point> patrolPoints, Point odometryPoint, uint16_t theta) {
  FileStorage fs(MAPFILE, FileStorage::WRITE);
 
  if(fs.isOpened()) {
-  fs << "odometryPoint" << odometryPoint;
-  fs << "theta" << theta;
-
   fs << "map" << "[";
   for(int i = 0; i < map.size(); i++) {
    fs << "{";
@@ -836,20 +852,25 @@ void writeMapFile(vector<Line> &map, Point odometryPoint, uint16_t theta) {
   }
   fs << "]";
 
+  fs << "patrolPoints" << "[";
+  for(int i = 0; i < patrolPoints.size(); i++)
+   fs << patrolPoints[i];
+  fs << "]";
+
+  fs << "odometryPoint" << odometryPoint;
+  fs << "theta" << theta;
+
   fs.release();
  } else
   fprintf(stderr, "Error writing map file\n");
 }
 
-void readMapFile(vector<Line> &map, Point &odometryPoint, uint16_t &theta) {
+void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &odometryPoint, uint16_t &theta) {
  FileStorage fs(MAPFILE, FileStorage::READ);
 
  if(fs.isOpened()) {
-  fs["odometryPoint"] >> odometryPoint;
-  fs["theta"] >> theta;
-
-  FileNode fn = fs["map"];
-  for(FileNodeIterator it = fn.begin(); it != fn.end(); it++) {
+  FileNode fn1 = fs["map"];
+  for(FileNodeIterator it = fn1.begin(); it != fn1.end(); it++) {
    FileNode item = *it;
    Point a;
    Point b;
@@ -858,6 +879,17 @@ void readMapFile(vector<Line> &map, Point &odometryPoint, uint16_t &theta) {
    map.push_back({a, b, Point(0, 0), Point(0, 0), 0, VALIDATIONFILTERKEEP,
                   GROWFILTER, GROWFILTER, SHRINKFILTER, SHRINKFILTER});
   }
+
+  FileNode fn2 = fs["patrolPoints"];
+  for(FileNodeIterator it = fn2.begin(); it != fn2.end(); it++) {
+   FileNode item = *it;
+   Point point;
+   item >> point;
+   patrolPoints.push_back(point);
+  }
+
+  fs["odometryPoint"] >> odometryPoint;
+  fs["theta"] >> theta;
 
   fs.release();
  } else
@@ -917,7 +949,7 @@ int main(int argc, char* argv[]) {
  Point odometryPoint = Point(0, 0);
  uint16_t theta = 0;
  fprintf(stderr, "Reading map file\n");
- readMapFile(map, odometryPoint, theta);
+ readMapFile(map, patrolPoints, odometryPoint, theta);
  Point oldOdometryPoint = odometryPoint;
  uint16_t oldTheta = theta;
  thetaCorrector = theta;
@@ -1018,7 +1050,7 @@ int main(int argc, char* argv[]) {
  stopLidar(ld);
 
  fprintf(stderr, "Writing map file\n");
- writeMapFile(map, odometryPoint, theta);
+ writeMapFile(map, patrolPoints, odometryPoint, theta);
 
  fprintf(stderr, "Stopping\n");
  return 0;
