@@ -63,26 +63,26 @@ int sqDist(Point point1, Point point2) {
  return sqNorm(diff);
 }
 
-void extractRawLines(vector<PolarPoint> &polarPoints, vector<Point> &points, vector<vector<Point>> &lines) {
+void extractRawLines(vector<PolarPoint> &polarPoints, vector<Point> &robotPoints, vector<vector<Point>> &robotRawLines) {
  vector<Point> pointsDp;
  vector<Point> pointsNoDp;
- Point oldPoint = Point(0, 0);
+ Point oldRobotPoints = Point(0, 0);
 
- approxPolyDP(points, pointsDp, EPSILON, true);
+ approxPolyDP(robotPoints, pointsDp, EPSILON, true);
 
- for(int i = 0; i < points.size() * 2; i++) {
-  int ii = i % points.size();
+ for(int i = 0; i < robotPoints.size() * 2; i++) {
+  int ii = i % robotPoints.size();
 
   bool dp = false;
   for(int j = 0; j < pointsDp.size(); j++) {
-   if(points[ii] == pointsDp[j]) {
+   if(robotPoints[ii] == pointsDp[j]) {
     dp = true;
     break;
    }
   }
 
-  int sqDst = sqDist(points[ii], oldPoint);
-  oldPoint = points[ii];
+  int sqDst = sqDist(robotPoints[ii], oldRobotPoints);
+  oldRobotPoints = robotPoints[ii];
 
   uint16_t angle = 2 * PI16 / polarPoints.size();
   int distMax = polarPoints[ii].distance * sin16(angle) * DISTMARGIN / ONE16;
@@ -93,14 +93,14 @@ void extractRawLines(vector<PolarPoint> &polarPoints, vector<Point> &points, vec
    int size = pointsNoDp.size();
    if(size >= NBPOINTSMIN && i > size + 1 &&
       sqDist(pointsNoDp[0], pointsNoDp[size - 1]) >= DISTMIN * DISTMIN) {
-    lines.push_back(pointsNoDp);
-    if(i > ii)
+    robotRawLines.push_back(pointsNoDp);
+    if(i > robotPoints.size())
      break;
    }
    pointsNoDp.clear();
 
   } else
-   pointsNoDp.push_back(points[ii]);
+   pointsNoDp.push_back(robotPoints[ii]);
  }
 }
 
