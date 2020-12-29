@@ -117,7 +117,7 @@ void extractRawLinesMike118(vector<PolarPoint> &polarPoints, vector<Point> &robo
  while(pointsDp[0] != robotPoints[i])
   i++;
 
- while(j < pointsDp.size()) {
+ while(j < pointsDp.size() + 1) {
   int ii = i % robotPoints.size();
   int jj = j % pointsDp.size();
 
