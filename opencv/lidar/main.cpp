@@ -1007,7 +1007,7 @@ void autopilot(vector<Point> &patrolPoints, int &patrolPoint, Point &robotPoint,
  if(patrolPoints.size() >= 2 && sqDist(robotPoint, patrolPoints[0]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
   enabled = true;
   patrolPoint = 1;
- } else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
+ } else if(patrolPoints.size() < 2 || remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
   enabled = false;
 
  if(!enabled) {
@@ -1019,7 +1019,7 @@ void autopilot(vector<Point> &patrolPoints, int &patrolPoint, Point &robotPoint,
 
  if(gotoPoint(patrolPoints[patrolPoint], vy, vz, robotPoint, robotTheta)) {
   patrolPoint++;
-  if(patrolPoint == patrolPoints.size())
+  if(patrolPoint >= patrolPoints.size())
    patrolPoint = 0;
  }
 
