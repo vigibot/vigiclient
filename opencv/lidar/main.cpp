@@ -681,11 +681,11 @@ void drawHist(Mat &image, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  }
 }
 
-void drawPatrolPoints(Mat &image, vector<Point> &points, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+void drawPatrolPoints(Mat &image, vector<Point> &patrolPoints, int patrolPoint, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  const Point centerPoint = Point(width / 2, height / 2);
 
- for(int i = 0; i < points.size(); i++) {
-  Point point = rotate(points[i] - robotPoint, -robotTheta);
+ for(int i = 0; i < patrolPoints.size(); i++) {
+  Point point = rotate(patrolPoints[i] - robotPoint, -robotTheta);
   point.x /= mapDiv;
   point.y /= -mapDiv;
   point += centerPoint;
@@ -698,7 +698,7 @@ void drawPatrolPoints(Mat &image, vector<Point> &points, Point robotPoint, uint1
   Point textPoint = Point(-textSize.width / 2, textSize.height / 2) + point;
 
   putText(image, text, textPoint, FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
-  putText(image, text, textPoint + Point(1, 1), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
+  putText(image, text, textPoint + Point(1, 1), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), i == patrolPoint ? 2 : 1);
  }
 }
 
@@ -719,7 +719,7 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, int mapDiv) {
 }
 
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
-                    vector<Line> &map, vector<Point> &patrolPoints,
+                    vector<Line> &map, vector<Point> &patrolPoints, int patrolPoint,
                     Point &robotPoint, Point &oldRobotPoint,
                     uint16_t &robotTheta, uint16_t &oldRobotTheta, int time) {
 
@@ -818,7 +818,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  char text[80];
  switch(select) {
   case SELECTNONE:
-   drawPatrolPoints(image, patrolPoints, robotPoint, robotTheta, mapDiv);
+   drawPatrolPoints(image, patrolPoints, patrolPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    if(tune)
     sprintf(text, "%d mm per pixel", mapDiv);
@@ -829,7 +829,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
   case SELECTMAP:
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotTheta, mapDiv);
-   drawPatrolPoints(image, patrolPoints, robotPoint, robotTheta, mapDiv);
+   drawPatrolPoints(image, patrolPoints, patrolPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    if(tune)
     sprintf(text, "%d mm per pixel", mapDiv);
@@ -842,7 +842,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    drawMap(image, robotLines, false, Point(0, 0), 0.0, mapDiv);
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotTheta, mapDiv);
-   drawPatrolPoints(image, patrolPoints, robotPoint, robotTheta, mapDiv);
+   drawPatrolPoints(image, patrolPoints, patrolPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    if(tune)
     sprintf(text, "%d mm per pixel", mapDiv);
@@ -968,15 +968,41 @@ void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &robotPoi
   fprintf(stderr, "Error reading map file\n");
 }
 
-void autopilot(vector<Point> patrolPoints, Point &robotPoint, uint16_t &robotTheta) {
- static bool enabled = false;
- int vx;
- int vy;
- int vz;
+bool gotoPoint(Point point, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t robotTheta) {
+ Point deltaPoint;
+ int sqDist;
+ uint16_t gotoTheta;
+ int16_t deltaTheta;
+ int16_t derivTheta;
+ static int16_t oldDeltaTheta = 0;
 
- if(patrolPoints.size() >= 2 && sqDist(robotPoint, patrolPoints[0]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE)
+ deltaPoint = point - robotPoint;
+ sqDist = sqNorm(deltaPoint);
+
+ if(sqDist <= SMALLDISTTOLERANCE * SMALLDISTTOLERANCE)
+  return true;
+
+ gotoTheta = angleDoubleToAngle16(atan2(deltaPoint.y, deltaPoint.x)) - HALFPI16;
+ deltaTheta = gotoTheta - robotTheta;
+ derivTheta = deltaTheta - oldDeltaTheta;
+ oldDeltaTheta = deltaTheta;
+
+ vy = GOTOPOINTVELOCITY;
+ vz = constrain(deltaTheta / KPTHETA + derivTheta / KDTHETA, -127, 127);
+
+ return false;
+}
+
+void autopilot(vector<Point> &patrolPoints, int &patrolPoint, Point &robotPoint, uint16_t &robotTheta) {
+ static bool enabled = false;
+ static int8_t vx = 0;
+ static int8_t vy = 0;
+ static int8_t vz = 0;
+
+ if(patrolPoints.size() >= 2 && sqDist(robotPoint, patrolPoints[0]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
   enabled = true;
- else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
+  patrolPoint = 1;
+ } else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
   enabled = false;
 
  if(!enabled) {
@@ -986,12 +1012,11 @@ void autopilot(vector<Point> patrolPoints, Point &robotPoint, uint16_t &robotThe
   return;
  }
 
-
- // TODO
- vx = 0;
- vy = 0;
- vz = 0;
-
+ if(gotoPoint(patrolPoints[patrolPoint], vy, vz, robotPoint, robotTheta)) {
+  patrolPoint++;
+  if(patrolPoint == patrolPoints.size())
+   patrolPoint = 0;
+ }
 
  telemetryFrame.vx = vx;
  telemetryFrame.vy = vy;
@@ -1064,6 +1089,7 @@ int main(int argc, char* argv[]) {
  Point oldRobotPoint = robotPoint;
  uint16_t oldRobotTheta = robotTheta;
  robotThetaCorrector = robotTheta;
+ int patrolPoint = 0;
 
  bgrInit();
 
@@ -1134,9 +1160,10 @@ int main(int argc, char* argv[]) {
    mapFiltersDecay(map);
   }
 
-  autopilot(patrolPoints, robotPoint, robotTheta);
+  autopilot(patrolPoints, patrolPoint, robotPoint, robotTheta);
 
-  ui(image, robotPoints, robotLines, map, patrolPoints, robotPoint, oldRobotPoint, robotTheta, oldRobotTheta, time);
+  ui(image, robotPoints, robotLines, map, patrolPoints, patrolPoint,
+     robotPoint, oldRobotPoint, robotTheta, oldRobotTheta, time);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {

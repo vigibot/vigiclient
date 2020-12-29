@@ -36,6 +36,10 @@
 #define NBITERATIONS 10
 #define HIST 500
 
+#define GOTOPOINTVELOCITY 127
+#define KPTHETA 50
+#define KDTHETA 100
+
 enum {
  SELECTNONE,
  SELECTMAP,
