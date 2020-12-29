@@ -349,7 +349,7 @@ bool growLineMap(Point point, vector<Line> &map, int n) {
      if(j == n)
       continue;
 
-     if(testLines(map[j], grownLine, SMALLDISTTOLERANCE, SMALLANGULARTOLERANCE, 0, pointError, angularError, distError, refNorm)) {
+     if(testLines(map[j], grownLine, LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, 0, pointError, angularError, distError, refNorm)) {
       if(sqDist(grownLine) > sqDist(map[j]))
        map.erase(map.begin() + j);
       else {
@@ -1008,7 +1008,8 @@ void autopilot(vector<Point> &patrolPoints, int &patrolPoint, Point &robotPoint,
  static int8_t vy = 0;
  static int8_t vz = 0;
 
- if(patrolPoints.size() >= 2 && sqDist(robotPoint, patrolPoints[0]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
+ if(!enabled && patrolPoints.size() >= 2 &&
+    sqDist(robotPoint, patrolPoints[0]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
   enabled = true;
   patrolPoint = 1;
  } else if(patrolPoints.size() < 2 || remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
