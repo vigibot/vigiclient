@@ -8,7 +8,7 @@
 #define IMUTHETACORRECTORDIV 100
 
 #define EPSILON 50.0
-#define DISTMARGIN 3
+#define DISTCOEF 3
 #define DISTCLAMP 50
 #define NBPOINTSMIN 5
 #define DISTMIN 200

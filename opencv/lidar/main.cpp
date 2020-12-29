@@ -67,6 +67,7 @@ void extractRawLines(vector<PolarPoint> &polarPoints, vector<Point> &robotPoints
  vector<Point> pointsDp;
  vector<Point> pointsNoDp;
  Point oldRobotPoints = Point(0, 0);
+ uint16_t angle = 2 * PI16 / polarPoints.size();
 
  approxPolyDP(robotPoints, pointsDp, EPSILON, true);
 
@@ -84,8 +85,7 @@ void extractRawLines(vector<PolarPoint> &polarPoints, vector<Point> &robotPoints
   int sqDst = sqDist(robotPoints[ii], oldRobotPoints);
   oldRobotPoints = robotPoints[ii];
 
-  uint16_t angle = 2 * PI16 / polarPoints.size();
-  int distMax = polarPoints[ii].distance * sin16(angle) * DISTMARGIN / ONE16;
+  int distMax = polarPoints[ii].distance * sin16(angle) * DISTCOEF / ONE16;
   if(distMax < DISTCLAMP)
    distMax = DISTCLAMP;
 
@@ -557,7 +557,8 @@ void drawLidarPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) 
 
   if(beams)
    line(image, centerPoint, centerPoint + point, Scalar::all(i ? 64 : 255), 1, LINE_AA);
-  circle(image, centerPoint + point, i ? 1 : 3, i ? Scalar::all(255) : Scalar(0, 0, 255), FILLED, LINE_AA);
+  else
+   circle(image, centerPoint + point, i ? 1 : 3, i ? Scalar::all(255) : Scalar(0, 0, 255), FILLED, LINE_AA);
  }
 }
 
