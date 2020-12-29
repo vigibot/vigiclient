@@ -976,25 +976,27 @@ void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &robotPoi
 }
 
 bool gotoPoint(Point point, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t robotTheta) {
- Point deltaPoint;
- int sqDist;
- uint16_t gotoTheta;
- int16_t deltaTheta;
- int16_t derivTheta;
+ Point deltaPoint = point - robotPoint;
+ int sqDist = sqNorm(deltaPoint);
  static int16_t oldDeltaTheta = 0;
-
- deltaPoint = point - robotPoint;
- sqDist = sqNorm(deltaPoint);
 
  if(sqDist <= SMALLDISTTOLERANCE * SMALLDISTTOLERANCE)
   return true;
 
- gotoTheta = angleDoubleToAngle16(atan2(deltaPoint.y, deltaPoint.x)) - HALFPI16;
- deltaTheta = gotoTheta - robotTheta;
- derivTheta = deltaTheta - oldDeltaTheta;
+ uint16_t gotoTheta = angleDoubleToAngle16(atan2(deltaPoint.y, deltaPoint.x)) - HALFPI16;
+ int16_t deltaTheta = gotoTheta - robotTheta;
+ int16_t derivTheta = deltaTheta - oldDeltaTheta;
  oldDeltaTheta = deltaTheta;
 
- vy = GOTOPOINTVELOCITY;
+ bool reverseGear = false;
+ if(abs(deltaTheta) > PI16 / 180 * GOTOPOINTANGLEREVERSEGEAR) {
+  deltaTheta += PI16;
+  reverseGear = true;
+ }
+
+ vy = constrain(GOTOPOINTVELOCITY - abs(deltaTheta) * GOTOPOINTVELOCITY * 180 / PI16 / GOTOPOINTANGLESTOP, 0, GOTOPOINTVELOCITY);
+ if(reverseGear)
+  vy = -vy;
  vz = constrain(deltaTheta / KPTHETA + derivTheta / KDTHETA, -127, 127);
 
  return false;
