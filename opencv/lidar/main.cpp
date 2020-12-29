@@ -922,6 +922,8 @@ void writeMapFile(vector<Line> &map, vector<Point> patrolPoints, Point robotPoin
  if(fs.isOpened()) {
   fs << "map" << "[";
   for(int i = 0; i < map.size(); i++) {
+   if(map[i].validation < VALIDATIONFILTERKEEP)
+    continue;
    fs << "{";
    fs << "a" << map[i].a;
    fs << "b" << map[i].b;
