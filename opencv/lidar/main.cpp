@@ -63,7 +63,7 @@ int sqDist(Point point1, Point point2) {
  return sqNorm(diff);
 }
 
-void extractRawLines(vector<PolarPoint> &polarPoints, vector<Point> &robotPoints, vector<vector<Point>> &robotRawLines) {
+void extractRawLinesPascal(vector<PolarPoint> &polarPoints, vector<Point> &robotPoints, vector<vector<Point>> &robotRawLines) {
  vector<Point> pointsDp;
  vector<Point> pointsNoDp;
  Point oldRobotPoints = Point(0, 0);
@@ -101,6 +101,52 @@ void extractRawLines(vector<PolarPoint> &polarPoints, vector<Point> &robotPoints
 
   } else
    pointsNoDp.push_back(robotPoints[ii]);
+ }
+}
+
+void extractRawLinesMike118(vector<PolarPoint> &polarPoints, vector<Point> &robotPoints, vector<vector<Point>> &robotRawLines) {
+ vector<Point> pointsDp;
+ vector<Point> pointsNoDp;
+ int i = 0;
+ int j = 0;
+ bool newLine = false;
+ Point oldRobotPoints = robotPoints[robotPoints.size() - 1];
+ uint16_t angle = 2 * PI16 / polarPoints.size();
+
+ approxPolyDP(robotPoints, pointsDp, EPSILON, true);
+ while(pointsDp[0] != robotPoints[i])
+  i++;
+
+ while(j < pointsDp.size()) {
+  int ii = i % robotPoints.size();
+  int jj = j % pointsDp.size();
+
+  if(robotPoints[ii] == pointsDp[jj]) {
+   j++;
+   newLine = true;
+  } else {
+   int sqDst = sqDist(robotPoints[ii], oldRobotPoints);
+
+   int distMax = polarPoints[ii].distance * sin16(angle) * DISTCOEF / ONE16;
+   if(distMax < DISTCLAMP)
+    distMax = DISTCLAMP;
+
+   if(sqDst < distMax * distMax)
+    pointsNoDp.push_back(robotPoints[ii]);
+   else
+    newLine = true;
+  }
+
+  if(newLine) {
+   if(pointsNoDp.size() >= NBPOINTSMIN &&
+      sqDist(pointsNoDp[0], pointsNoDp[pointsNoDp.size() - 1]) >= DISTMIN * DISTMIN)
+    robotRawLines.push_back(pointsNoDp);
+   pointsNoDp.clear();
+   newLine = false;
+  }
+
+  oldRobotPoints = robotPoints[ii];
+  i++;
  }
 }
 
@@ -1057,7 +1103,7 @@ int main(int argc, char* argv[]) {
    //robotToLidar(robotPoints, polarPoints);
 
    robotRawLines.clear();
-   extractRawLines(polarPoints, robotPoints, robotRawLines);
+   extractRawLinesMike118(polarPoints, robotPoints, robotRawLines);
 
    robotLines.clear();
    fitLines(robotRawLines, robotLines);
