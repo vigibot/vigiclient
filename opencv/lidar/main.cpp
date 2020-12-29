@@ -698,7 +698,12 @@ void drawPatrolPoints(Mat &image, vector<Point> &patrolPoints, int patrolPoint, 
   Point textPoint = Point(-textSize.width / 2, textSize.height / 2) + point;
 
   putText(image, text, textPoint, FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
-  putText(image, text, textPoint + Point(1, 1), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), i == patrolPoint ? 2 : 1);
+  putText(image, text, textPoint + Point(1, 1), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
+
+  if(i == patrolPoint) {
+   circle(image, point, textSize.width / 2 + 3, Scalar::all(0), 1, LINE_AA);
+   circle(image, point + Point(1, 1), textSize.width / 2 + 3, Scalar::all(255), 1, LINE_AA);
+  }
  }
 }
 
