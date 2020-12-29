@@ -333,8 +333,8 @@ bool growLineMap(Point point, vector<Line> &map, int n) {
   int distError;
   int refNorm;
   if(testLines(map[i], grownLine, LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, 0, pointError, angularError, distError, refNorm)) {
-
    if(distError < SMALLDISTTOLERANCE && fabs(angularError) < SMALLANGULARTOLERANCE) {
+
     if(sqDist(grownLine) > sqDist(map[i])) {
      growLine(map[i].a, grownLine, grownLine);
      growLine(map[i].b, grownLine, grownLine);
@@ -344,6 +344,22 @@ bool growLineMap(Point point, vector<Line> &map, int n) {
     }
     map.erase(map.begin() + i);
     i--;
+
+    for(int j = 0; j < map.size(); j++) {
+     if(j == n)
+      continue;
+
+     if(testLines(map[j], grownLine, SMALLDISTTOLERANCE, SMALLANGULARTOLERANCE, 0, pointError, angularError, distError, refNorm)) {
+      if(sqDist(grownLine) > sqDist(map[j]))
+       map.erase(map.begin() + j);
+      else {
+       map.erase(map.begin() + n);
+       break;
+      }
+      j--;
+     }
+    }
+
    } else
     found = true;
 
