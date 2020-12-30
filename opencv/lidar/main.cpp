@@ -92,7 +92,7 @@ void extractRawLinesPascal(vector<PolarPoint> &polarPoints, vector<Point> &robot
   if(dp || sqDst > distMax * distMax) {
    int size = pointsNoDp.size();
    if(size >= NBPOINTSMIN && i > size + 1 &&
-      sqDist(pointsNoDp[0], pointsNoDp[size - 1]) >= DISTMIN * DISTMIN) {
+      sqDist(pointsNoDp[0], pointsNoDp[size - 1]) >= LINESIZEMIN * LINESIZEMIN) {
     robotRawLines.push_back(pointsNoDp);
     if(i > robotPoints.size())
      break;
@@ -139,7 +139,7 @@ void extractRawLinesMike118(vector<PolarPoint> &polarPoints, vector<Point> &robo
 
   if(newLine) {
    if(pointsNoDp.size() >= NBPOINTSMIN &&
-      sqDist(pointsNoDp[0], pointsNoDp[pointsNoDp.size() - 1]) >= DISTMIN * DISTMIN)
+      sqDist(pointsNoDp[0], pointsNoDp[pointsNoDp.size() - 1]) >= LINESIZEMIN * LINESIZEMIN)
     robotRawLines.push_back(pointsNoDp);
    pointsNoDp.clear();
    newLine = false;
@@ -370,7 +370,7 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
      map[i].b = intersectPoint;
    }
 
-   if(sqDist(map[i]) < DISTMIN * DISTMIN) {
+   if(sqDist(map[i]) < LINESIZEMIN * LINESIZEMIN) {
     map.erase(map.begin() + i);
     i--;
    }
