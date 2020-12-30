@@ -903,7 +903,7 @@ bool gotoPoint(Point point, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t r
  int sqDist = sqNorm(deltaPoint);
  static int16_t oldDeltaTheta = 0;
 
- if(sqDist <= SMALLDISTTOLERANCE * SMALLDISTTOLERANCE)
+ if(sqDist <= GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE)
   return true;
 
  uint16_t gotoTheta = angleDoubleToAngle16(atan2(deltaPoint.y, deltaPoint.x)) - HALFPI16;
