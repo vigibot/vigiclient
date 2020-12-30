@@ -229,33 +229,21 @@ double ratioPointLine(Point point, Line line) {
  return ratio;
 }
 
-bool growLine(Point point, Line &line, Line &grownLine) {
+bool growLine(Line &line, Point point) {
  Point diff = line.b - line.a;
  double ratio = ratioPointLine(point, line);
  Point h;
- grownLine = line;
 
  if(ratio < 0 || ratio > 1) {
   h.x = line.a.x + int(double(diff.x) * ratio);
   h.y = line.a.y + int(double(diff.y) * ratio);
 
-  if(ratio < 0) {
-   if(line.growa)
-    line.growa--;
-   if(line.growa == 0) {
-    grownLine.a = h;
-    grownLine.growa = GROWFILTER;
-    return true;
-   }
-  } else {
-   if(line.growb)
-    line.growb--;
-   if(line.growb == 0) {
-    grownLine.b = h;
-    grownLine.growb = GROWFILTER;
-    return true;
-   }
-  }
+  if(ratio < 0)
+   line.a = h;
+  else
+   line.b = h;
+
+  return true;
  }
 
  return false;
@@ -315,64 +303,6 @@ bool testLines(Line line1, Line line2, int distTolerance, double angularToleranc
   return false;
 
  return true;
-}
-
-bool growLineMap(Point point, vector<Line> &map, int n) {
- Line grownLine;
-
- if(!growLine(point, map[n], grownLine))
-  return false;
-
- bool found = false;
- for(int i = 0; i < map.size(); i++) {
-  if(i == n)
-   continue;
-
-  Point pointError;
-  double angularError;
-  int distError;
-  int refNorm;
-  if(testLines(map[i], grownLine, LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, 0, pointError, angularError, distError, refNorm)) {
-   if(distError < SMALLDISTTOLERANCE && fabs(angularError) < SMALLANGULARTOLERANCE) {
-
-    if(sqDist(grownLine) > sqDist(map[i])) {
-     growLine(map[i].a, grownLine, grownLine);
-     growLine(map[i].b, grownLine, grownLine);
-    } else {
-     growLine(grownLine.a, map[i], grownLine);
-     growLine(grownLine.b, map[i], grownLine);
-    }
-    map.erase(map.begin() + i);
-    i--;
-
-    for(int j = 0; j < map.size(); j++) {
-     if(j == n)
-      continue;
-
-     if(testLines(map[j], grownLine, LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, 0, pointError, angularError, distError, refNorm)) {
-      if(sqDist(grownLine) > sqDist(map[j]))
-       map.erase(map.begin() + j);
-      else {
-       map.erase(map.begin() + n);
-       break;
-      }
-      j--;
-     }
-    }
-
-   } else
-    found = true;
-
-   break;
-  }
- }
-
- if(!found) {
-  map[n] = grownLine;
-  return true;
- }
-
- return false;
 }
 
 bool intersect(Line line1, Line line2, Point &intersectPoint) {
@@ -458,32 +388,33 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
 
  Point pointErrorSum = Point(0, 0);
  double angularErrorSum = 0.0;
- int n = 0;
+ int p = 0;
+ int a = 0;
 
  for(int i = 0; i < mapLines.size(); i++) {
-  /*Line line = {Point(0, 0), Point((robotLines[i].a + robotLines[i].b) / 2)};
-  double angle = fabs(diffAngle(line, robotLines[i]));
-  if(angle < LARGEANGULARTOLERANCE || fabs(angle - M_PI) < LARGEANGULARTOLERANCE)
-   continue;*/
-
   for(int j = 0; j < map.size(); j++) {
    Point pointError;
    double angularError;
    int distError;
    int refNorm;
-   if(map[j].validation >= VALIDATIONFILTERKEEP &&
-      testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, 0, pointError, angularError, distError, refNorm)) {
 
+   if(map[j].validation >= VALIDATIONFILTERSTART &&
+      testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, 0, pointError, angularError, distError, refNorm)) {
     pointErrorSum += pointError;
-    angularErrorSum += angularError;
-    n++;
+    p++;
+    if(map[j].validation >= VALIDATIONFILTERKEEP) {
+     angularErrorSum += angularError;
+     a++;
+    }
    }
+
   }
  }
 
- if(n) {
-  pointErrorOut = pointErrorSum / n;
-  angularErrorOut = angularErrorSum / n;
+ if(p) {
+  pointErrorOut = pointErrorSum / p;
+  if(a)
+   angularErrorOut = angularErrorSum / a;
 
   return true;
  } else
@@ -495,12 +426,8 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
  bool change = false;
 
  for(int i = 0; i < mapLines.size(); i++) {
-  /*Line line = {Point(0, 0), Point((robotLines[i].a + robotLines[i].b) / 2)};
-  double angle = fabs(diffAngle(line, robotLines[i]));
-  if(angle < LARGEANGULARTOLERANCE || fabs(angle - M_PI) < LARGEANGULARTOLERANCE)
-   continue;*/
-
   bool newLine = true;
+
   for(int j = 0; j < map.size(); j++) {
    Point pointError;
    double angularError;
@@ -525,12 +452,15 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
     break;
    }
 
-   bool merged = false;
-   merged |= growLineMap(mapLines[i].a, map, j);
-   merged |= growLineMap(mapLines[i].b, map, j);
-   if(merged)
+   bool growed = false;
+   growed |= growLine(map[j], mapLines[i].a);
+   growed |= growLine(map[j], mapLines[i].b);
+   if(growed)
     change = true;
-   break;
+   //else
+    //continue;
+
+   // Merge the few duplicate map lines
   }
 
   if(newLine) {
@@ -543,9 +473,7 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
   newLines[i].intega = newLines[i].a;
   newLines[i].integb = newLines[i].b;
   newLines[i].integ = 1;
-  newLines[i].validation = 0;
-  newLines[i].growa = GROWFILTER;
-  newLines[i].growb = GROWFILTER;
+  newLines[i].validation = VALIDATIONFILTERSTART;
   newLines[i].shrinka = SHRINKFILTER;
   newLines[i].shrinkb = SHRINKFILTER;
   map.push_back(newLines[i]);
@@ -571,10 +499,6 @@ void mapFiltersDecay(vector<Line> &map) {
     i--;
    }
 
-   if(map[i].growa < GROWFILTER)
-    map[i].growa++;
-   if(map[i].growb < GROWFILTER)
-    map[i].growb++;
    if(map[i].shrinka < SHRINKFILTER)
      map[i].shrinka++;
    if(map[i].shrinkb < SHRINKFILTER)
@@ -955,8 +879,7 @@ void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &robotPoi
    Point b;
    item["a"] >> a;
    item["b"] >> b;
-   map.push_back({a, b, Point(0, 0), Point(0, 0), 0, VALIDATIONFILTERKEEP,
-                  GROWFILTER, GROWFILTER, SHRINKFILTER, SHRINKFILTER});
+   map.push_back({a, b, Point(0, 0), Point(0, 0), 0, VALIDATIONFILTERKEEP, SHRINKFILTER, SHRINKFILTER});
   }
 
   FileNode fn2 = fs["patrolPoints"];

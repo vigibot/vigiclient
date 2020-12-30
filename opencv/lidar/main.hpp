@@ -24,12 +24,12 @@
 
 #define LARGEDISTTOLERANCE 300
 #define LARGEANGULARTOLERANCE (30.0 * M_PI / 180.0)
-#define SMALLDISTTOLERANCE 100
-#define SMALLANGULARTOLERANCE (10.0 * M_PI / 180.0)
+#define SMALLDISTTOLERANCE 40
+#define SMALLANGULARTOLERANCE (2.0 * M_PI / 180.0)
 
 #define VALIDATIONFILTERKILL -5
-#define VALIDATIONFILTERKEEP 10
-#define GROWFILTER 5
+#define VALIDATIONFILTERSTART 0
+#define VALIDATIONFILTERKEEP 5
 #define SHRINKFILTER 5
 #define MAPFILTERSDECAY 2
 
@@ -65,8 +65,6 @@ typedef struct Line {
  cv::Point integb;
  int integ;
  int validation;
- int growa;
- int growb;
  int shrinka;
  int shrinkb;
 } Line;
