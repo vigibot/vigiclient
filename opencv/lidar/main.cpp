@@ -343,6 +343,7 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
  for(int i = 0; i < map.size(); i++) {
   bool shrinka = true;
   bool shrinkb = true;
+
   for(int j = 0; j < closerPoints.size(); j++) {
    Line shorterLine = {robotPoint, closerPoints[j]};
 
@@ -380,6 +381,55 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
    map[i].shrinka = SHRINKFILTER;
   if(map[i].shrinkb == 0)
    map[i].shrinkb = SHRINKFILTER;
+ }
+
+ for(int i = 0; i < map.size(); i++) {
+  vector<int> id;
+
+  if(map[i].validation < VALIDATIONFILTERKEEP)
+   continue;
+
+  id.push_back(i);
+  for(int j = i + 1; j < map.size(); j++) {
+   if(map[i].validation < VALIDATIONFILTERKEEP)
+    continue;
+
+   Point pointError;
+   double angularError;
+   int distError;
+   int refNorm;
+   if(testLines(map[i], map[j], SMALLDISTTOLERANCE, SMALLANGULARTOLERANCE, SMALLDISTTOLERANCE,
+                pointError, angularError, distError, refNorm))
+    id.push_back(j);
+  }
+
+  int nbLines = id.size();
+  if(nbLines > 1) {
+
+   for(int j = 0; j < nbLines; j++) {
+    for(int k = 0; k < nbLines; k++) {
+     growLine(map[id[j]], map[id[k]].a);
+     growLine(map[id[j]], map[id[k]].b);
+    }
+   }
+
+   Line averageLine = map[i];
+   int nbAverage = 1;
+   for(int j = nbLines - 1; j > 0; j--) {
+    if(sqDist(map[i].a, map[j].a) < LARGEDISTTOLERANCE * LARGEDISTTOLERANCE &&
+       sqDist(map[i].b, map[j].b) < LARGEDISTTOLERANCE * LARGEDISTTOLERANCE) {
+     averageLine.a += map[id[j]].a;
+     averageLine.b += map[id[j]].b;
+     map.erase(map.begin() + id[j]);
+     nbAverage++;
+    }
+   }
+
+   averageLine.a /= nbAverage;
+   averageLine.b /= nbAverage;
+   map[i] = averageLine;
+  }
+
  }
 }
 
@@ -423,6 +473,7 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
 
 void mapping(vector<Line> &mapLines, vector<Line> &map) {
  vector<Line> newLines;
+ bool change = false;
 
  for(int i = 0; i < mapLines.size(); i++) {
   bool newLine = true;
@@ -451,8 +502,11 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
     break;
    }
 
-   growLine(map[j], mapLines[i].a);
-   growLine(map[j], mapLines[i].b);
+   bool grown = false;
+   grown |= growLine(map[j], mapLines[i].a);
+   grown |= growLine(map[j], mapLines[i].b);
+   if(grown)
+    change = true;
   }
 
   if(newLine)
@@ -467,6 +521,13 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
   newLines[i].shrinka = SHRINKFILTER;
   newLines[i].shrinkb = SHRINKFILTER;
   map.push_back(newLines[i]);
+  change = true;
+ }
+
+ if(change) {
+  sort(map.begin(), map.end(), [](const Line &a, const Line &b) {
+   return sqDist(a) > sqDist(b);
+  });
  }
 }
 
