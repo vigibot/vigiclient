@@ -423,7 +423,6 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
 
 void mapping(vector<Line> &mapLines, vector<Line> &map) {
  vector<Line> newLines;
- bool change = false;
 
  for(int i = 0; i < mapLines.size(); i++) {
   bool newLine = true;
@@ -452,21 +451,12 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
     break;
    }
 
-   bool growed = false;
-   growed |= growLine(map[j], mapLines[i].a);
-   growed |= growLine(map[j], mapLines[i].b);
-   if(growed)
-    change = true;
-   //else
-    //continue;
-
-   // Merge the few duplicate map lines
+   growLine(map[j], mapLines[i].a);
+   growLine(map[j], mapLines[i].b);
   }
 
-  if(newLine) {
+  if(newLine)
    newLines.push_back(mapLines[i]);
-   change = true;
-  }
  }
 
  for(int i = 0; i < newLines.size(); i++) {
@@ -477,12 +467,6 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
   newLines[i].shrinka = SHRINKFILTER;
   newLines[i].shrinkb = SHRINKFILTER;
   map.push_back(newLines[i]);
- }
-
- if(change) {
-  sort(map.begin(), map.end(), [](const Line &a, const Line &b) {
-   return sqDist(a) > sqDist(b);
-  });
  }
 }
 
@@ -821,7 +805,6 @@ void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t robotTheta, uint16
  for(int i = 0; i < size; i++)
   polarPoints[i].theta += (size - i) * deltaTheta / size;
 
- //while(polarPoints[0].theta > PI16 && polarPoints.size() > 1)
  while(polarPoints[0].theta - polarPoints[polarPoints.size() - 1].theta > PI16 && polarPoints.size() > 1)
   polarPoints.erase(polarPoints.begin());
 
@@ -1082,10 +1065,6 @@ int main(int argc, char* argv[]) {
 
    robotLines.clear();
    fitLines(robotRawLines, robotLines);
-
-   sort(robotLines.begin(), robotLines.end(), [](const Line &a, const Line &b) {
-    return sqDist(a) > sqDist(b);
-   });
 
    localization(robotLines, mapLines, map, robotPoint, robotTheta);
    mapping(mapLines, map);
