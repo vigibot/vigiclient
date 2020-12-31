@@ -354,19 +354,23 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
     continue;
 
    if(sqDist(map[i].a, intersectPoint) < sqDist(map[i].b, intersectPoint)) {
-    if(shrinka) {
-     shrinka = false;
-     map[i].shrinka--;
+    if(!map[i].locka) {
+     if(shrinka) {
+      shrinka = false;
+      map[i].shrinka--;
+     }
+     if(map[i].shrinka == 0)
+      map[i].a = intersectPoint;
     }
-    if(map[i].shrinka == 0)
-     map[i].a = intersectPoint;
    } else {
-    if(shrinkb) {
-     shrinkb = false;
-     map[i].shrinkb--;
+    if(!map[i].lockb) {
+     if(shrinkb) {
+      shrinkb = false;
+      map[i].shrinkb--;
+     }
+     if(map[i].shrinkb == 0)
+      map[i].b = intersectPoint;
     }
-    if(map[i].shrinkb == 0)
-     map[i].b = intersectPoint;
    }
 
    if(sqDist(map[i]) < LINESIZEMIN * LINESIZEMIN) {
@@ -398,6 +402,39 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
     map.erase(map.begin() + j);
     j--;
    }
+  }
+ }
+}
+
+void mapInterLock(vector<Line> &map) {
+ for(int i = 0; i < map.size(); i++) {
+  if(map[i].validation < VALIDATIONFILTERKEEP)
+   continue;
+
+  for(int j = 0; j < map.size(); j++) {
+   if(j == i || map[j].validation < VALIDATIONFILTERKEEP)
+    continue;
+
+   Point intersectPoint;
+   if(!intersect(map[i], map[j], intersectPoint))
+    continue;
+
+   if(!map[i].locka && sqDist(map[i].a, intersectPoint) < LARGEDISTTOLERANCE / 2 * LARGEDISTTOLERANCE / 2) {
+    map[i].a = intersectPoint;
+    map[i].locka = true;
+   } else if(!map[i].lockb && sqDist(map[i].b, intersectPoint) < LARGEDISTTOLERANCE / 2 * LARGEDISTTOLERANCE / 2) {
+    map[i].b = intersectPoint;
+    map[i].lockb = true;
+   }
+
+   if(!map[j].locka && sqDist(map[j].a, intersectPoint) < LARGEDISTTOLERANCE / 2 * LARGEDISTTOLERANCE / 2) {
+    map[j].a = intersectPoint;
+    map[j].locka = true;
+   } else if(!map[j].lockb && sqDist(map[j].b, intersectPoint) < LARGEDISTTOLERANCE / 2 * LARGEDISTTOLERANCE / 2) {
+    map[j].b = intersectPoint;
+    map[j].lockb = true;
+   }
+
   }
  }
 }
@@ -472,8 +509,10 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
     break;
 
    bool grown = false;
-   grown |= growLine(map[j], mapLines[i].a);
-   grown |= growLine(map[j], mapLines[i].b);
+   if(!map[j].locka)
+    grown |= growLine(map[j], mapLines[i].a);
+   if(!map[j].lockb)
+    grown |= growLine(map[j], mapLines[i].b);
    if(grown)
     change = true;
   }
@@ -489,6 +528,8 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
   newLines[i].validation = VALIDATIONFILTERSTART;
   newLines[i].shrinka = SHRINKFILTER;
   newLines[i].shrinkb = SHRINKFILTER;
+  newLines[i].locka = false;
+  newLines[i].lockb = false;
   map.push_back(newLines[i]);
   change = true;
  }
@@ -585,6 +626,11 @@ void drawMap(Mat &image, vector<Line> &map, bool colored, Point robotPoint, uint
     double angleDeg = atan2(diff.y, diff.x) * 180.0 / M_PI;
     uchar hue = uchar(angleDeg / 2.0 + 90.0) % 180;
     color = hueToBgr[hue];
+
+    if(map[i].locka)
+     circle(image, point1, 3, color, FILLED, LINE_AA);
+    if(map[i].lockb)
+     circle(image, point2, 3, color, FILLED, LINE_AA);
    }
   } else
    color = Scalar::all(255);
@@ -864,6 +910,8 @@ void writeMapFile(vector<Line> &map, vector<Point> patrolPoints, Point robotPoin
    fs << "{";
    fs << "a" << map[i].a;
    fs << "b" << map[i].b;
+   fs << "locka" << map[i].locka;
+   fs << "lockb" << map[i].lockb;
    fs << "}";
   }
   fs << "]";
@@ -890,9 +938,13 @@ void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &robotPoi
    FileNode item = *it;
    Point a;
    Point b;
+   bool locka;
+   bool lockb;
    item["a"] >> a;
    item["b"] >> b;
-   map.push_back({a, b, Point(0, 0), Point(0, 0), 0, VALIDATIONFILTERKEEP, SHRINKFILTER, SHRINKFILTER});
+   item["locka"] >> locka;
+   item["lockb"] >> lockb;
+   map.push_back({a, b, Point(0, 0), Point(0, 0), 0, VALIDATIONFILTERKEEP, SHRINKFILTER, SHRINKFILTER, locka, lockb});
   }
 
   FileNode fn2 = fs["patrolPoints"];
@@ -1099,6 +1151,7 @@ int main(int argc, char* argv[]) {
    localization(robotLines, mapLines, map, robotPoint, robotTheta);
    mapping(mapLines, map);
    mapCleaner(polarPoints, map, robotPoint, robotTheta);
+   mapInterLock(map);
    mapFiltersDecay(map);
   }
 
