@@ -514,7 +514,7 @@ void mapFiltersDecay(vector<Line> &map) {
    }
 
    if(map[i].shrinka < SHRINKFILTER)
-     map[i].shrinka++;
+    map[i].shrinka++;
    if(map[i].shrinkb < SHRINKFILTER)
     map[i].shrinkb++;
   }
