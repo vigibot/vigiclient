@@ -397,7 +397,7 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
    double angularError;
    int distError;
    int refNorm;
-   if(testLines(map[i], map[j], LARGEDISTTOLERANCE / 2, LARGEANGULARTOLERANCE / 2, 0,
+   if(testLines(map[i], map[j], LARGEDISTTOLERANCE / 2, LARGEANGULARTOLERANCE / 2, SMALLDISTTOLERANCE,
                 pointError, angularError, distError, refNorm)) {
     map.erase(map.begin() + j);
     j--;
