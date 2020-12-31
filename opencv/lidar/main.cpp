@@ -965,10 +965,10 @@ void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &robotPoi
 
 bool gotoPoint(Point point, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t robotTheta) {
  Point deltaPoint = point - robotPoint;
- int sqDist = sqNorm(deltaPoint);
+ int dist = int(sqrt(sqNorm(deltaPoint)));
  static int16_t oldDeltaTheta = 0;
 
- if(sqDist <= GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE)
+ if(dist <= GOTOPOINTDISTTOLERANCE)
   return true;
 
  uint16_t gotoTheta = angleDoubleToAngle16(atan2(deltaPoint.y, deltaPoint.x)) - HALFPI16;
@@ -982,7 +982,8 @@ bool gotoPoint(Point point, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t r
   reverseGear = true;
  }
 
- vy = constrain(GOTOPOINTVELOCITY - abs(deltaTheta) * GOTOPOINTVELOCITY * 180 / PI16 / GOTOPOINTANGLESTOP, 0, GOTOPOINTVELOCITY);
+ int8_t velocity = constrain(GOTOPOINTVELOCITY - abs(deltaTheta) * GOTOPOINTVELOCITY * 180 / PI16 / GOTOPOINTANGLESTOP, 0, GOTOPOINTVELOCITY);
+ vy = constrain(dist * velocity / GOTOPOINTBRAKEDIST, 0, velocity);
  if(reverseGear)
   vy = -vy;
  vz = constrain(deltaTheta / KPTHETA + derivTheta / KDTHETA, -127, 127);
