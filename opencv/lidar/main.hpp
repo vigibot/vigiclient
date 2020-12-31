@@ -18,7 +18,7 @@
 #define VZMUL 10
 
 #define MAPFILE "/tmp/map.json"
-#define MAPDIV 5
+#define MAPDIV 10
 #define MAPDIVMIN 1
 #define MAPDIVMAX 100
 

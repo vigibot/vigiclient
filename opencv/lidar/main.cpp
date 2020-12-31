@@ -384,12 +384,9 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
  }
 
  for(int i = 0; i < map.size(); i++) {
-  vector<int> id;
-
   if(map[i].validation < VALIDATIONFILTERKEEP)
    continue;
 
-  id.push_back(i);
   for(int j = i + 1; j < map.size(); j++) {
    if(map[i].validation < VALIDATIONFILTERKEEP)
     continue;
@@ -398,38 +395,12 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
    double angularError;
    int distError;
    int refNorm;
-   if(testLines(map[i], map[j], SMALLDISTTOLERANCE, SMALLANGULARTOLERANCE, SMALLDISTTOLERANCE,
-                pointError, angularError, distError, refNorm))
-    id.push_back(j);
-  }
-
-  int nbLines = id.size();
-  if(nbLines > 1) {
-
-   for(int j = 0; j < nbLines; j++) {
-    for(int k = 0; k < nbLines; k++) {
-     growLine(map[id[j]], map[id[k]].a);
-     growLine(map[id[j]], map[id[k]].b);
-    }
+   if(testLines(map[i], map[j], LARGEDISTTOLERANCE / 2, LARGEANGULARTOLERANCE / 2, 0,
+                pointError, angularError, distError, refNorm)) {
+    map.erase(map.begin() + j);
+    j--;
    }
-
-   Line averageLine = map[i];
-   int nbAverage = 1;
-   for(int j = nbLines - 1; j > 0; j--) {
-    if(sqDist(map[i].a, map[j].a) < LARGEDISTTOLERANCE * LARGEDISTTOLERANCE &&
-       sqDist(map[i].b, map[j].b) < LARGEDISTTOLERANCE * LARGEDISTTOLERANCE) {
-     averageLine.a += map[id[j]].a;
-     averageLine.b += map[id[j]].b;
-     map.erase(map.begin() + id[j]);
-     nbAverage++;
-    }
-   }
-
-   averageLine.a /= nbAverage;
-   averageLine.b /= nbAverage;
-   map[i] = averageLine;
   }
-
  }
 }
 
@@ -708,7 +679,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  static int buttonOkCount = 0;
  static int buttonCancelCount = 0;
  static bool tune = false;
- static int select = SELECTMAPPOINTS;
+ static int select = SELECTMAP;
  static int mapDiv = MAPDIV;
 
  if(buttonOk) {
