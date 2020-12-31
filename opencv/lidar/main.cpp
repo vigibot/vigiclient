@@ -318,10 +318,8 @@ bool intersect(Line line1, Line line2, Point &intersectPoint) {
  double y = (pre * (line2.a.y - line2.b.y) - (line1.a.y - line1.b.y) * post) / det;
 
  if(x < min(line1.a.x, line1.b.x) || x > max(line1.a.x, line1.b.x) ||
-    x < min(line2.a.x, line2.b.x) || x > max(line2.a.x, line2.b.x))
-  return false;
-
- if(y < min(line1.a.y, line1.b.y) || y > max(line1.a.y, line1.b.y) ||
+    x < min(line2.a.x, line2.b.x) || x > max(line2.a.x, line2.b.x) ||
+    y < min(line1.a.y, line1.b.y) || y > max(line1.a.y, line1.b.y) ||
     y < min(line2.a.y, line2.b.y) || y > max(line2.a.y, line2.b.y))
   return false;
 
