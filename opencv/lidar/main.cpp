@@ -457,9 +457,6 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
 
    newLine = false;
 
-   if(distError > SMALLDISTTOLERANCE || fabs(angularError) > SMALLANGULARTOLERANCE)
-    break;
-
    if(map[j].validation < VALIDATIONFILTERKEEP) {
     map[j].intega += mapLines[i].a;
     map[j].integb += mapLines[i].b;
@@ -470,6 +467,9 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
     map[j].b = map[j].integb / map[j].integ;
     break;
    }
+
+   if(distError > SMALLDISTTOLERANCE || fabs(angularError) > SMALLANGULARTOLERANCE)
+    break;
 
    bool grown = false;
    grown |= growLine(map[j], mapLines[i].a);
