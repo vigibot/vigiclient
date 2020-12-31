@@ -986,7 +986,7 @@ bool gotoPoint(Point point, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t r
  vy = constrain(dist * velocity / GOTOPOINTBRAKEDIST, 0, velocity);
  if(reverseGear)
   vy = -vy;
- vz = constrain(deltaTheta / KPTHETA + derivTheta / KDTHETA, -127, 127);
+ vz = constrain(deltaTheta / KPTHETA + derivTheta / KDTHETA, -GOTOPOINTVELOCITY, GOTOPOINTVELOCITY);
 
  return false;
 }
