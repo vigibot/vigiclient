@@ -1045,14 +1045,24 @@ void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &robotPoi
   fprintf(stderr, "Error reading map file\n");
 }
 
-bool gotoPoint(Point point, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t robotTheta) {
- Point deltaPoint = point - robotPoint;
+bool gotoPoint(vector<Point> &patrolPoints, int &patrolPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t robotTheta) {
+ Point currentPoint = patrolPoints[patrolPoint];
+ Point deltaPoint = currentPoint - robotPoint;
  int dist = int(sqrt(sqNorm(deltaPoint)));
+ Point nextPoint = patrolPoints[patrolPoint + 1 % patrolPoints.size()];
+ static bool brake = false;
  static int16_t integTheta = 0;
  static int16_t oldDeltaTheta = 0;
 
  if(dist <= GOTOPOINTDISTTOLERANCE)
   return true;
+
+ if(dist > GOTOPOINTBRAKEDIST) {
+  if(fabs(diffAngle({robotPoint, currentPoint}, {currentPoint, nextPoint})) > GOTOPOINTANGLEBRAKE)
+   brake = true;
+  else
+   brake = false;
+ }
 
  uint16_t gotoTheta = angleDoubleToAngle16(atan2(deltaPoint.y, deltaPoint.x)) - HALFPI16;
  int16_t deltaTheta = gotoTheta - robotTheta;
@@ -1071,7 +1081,10 @@ bool gotoPoint(Point point, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t r
  oldDeltaTheta = deltaTheta;
 
  int8_t velocity = constrain(GOTOPOINTVELOCITY - abs(deltaTheta) * GOTOPOINTVELOCITY * 180 / PI16 / GOTOPOINTANGLESTOP, 0, GOTOPOINTVELOCITY);
- vy = constrain(dist * velocity / GOTOPOINTBRAKEDIST, 0, velocity);
+ if(brake)
+  vy = constrain(dist * velocity / GOTOPOINTBRAKEDIST, 0, velocity);
+ else
+  vy = GOTOPOINTVELOCITY;
  if(reverseGear)
   vy = -vy;
  vz = constrain(deltaTheta / KPTHETA + integTheta / KITHETA + derivTheta / KDTHETA, -GOTOPOINTVELOCITY, GOTOPOINTVELOCITY);
@@ -1099,7 +1112,7 @@ void autopilot(vector<Point> &patrolPoints, int &patrolPoint, Point &robotPoint,
   return;
  }
 
- if(gotoPoint(patrolPoints[patrolPoint], vy, vz, robotPoint, robotTheta)) {
+ if(gotoPoint(patrolPoints, patrolPoint, vy, vz, robotPoint, robotTheta)) {
   patrolPoint++;
   if(patrolPoint >= patrolPoints.size())
    patrolPoint = 0;
