@@ -1049,7 +1049,7 @@ bool gotoPoint(vector<Point> &patrolPoints, int &patrolPoint, int8_t &vy, int8_t
  Point currentPoint = patrolPoints[patrolPoint];
  Point deltaPoint = currentPoint - robotPoint;
  int dist = int(sqrt(sqNorm(deltaPoint)));
- Point nextPoint = patrolPoints[patrolPoint + 1 % patrolPoints.size()];
+ Point nextPoint = patrolPoints[(patrolPoint + 1) % patrolPoints.size()];
  static bool brake = false;
  static int16_t integTheta = 0;
  static int16_t oldDeltaTheta = 0;
@@ -1057,7 +1057,7 @@ bool gotoPoint(vector<Point> &patrolPoints, int &patrolPoint, int8_t &vy, int8_t
  if(dist <= GOTOPOINTDISTTOLERANCE)
   return true;
 
- if(dist > GOTOPOINTBRAKEDIST) {
+ if(dist > GOTOPOINTDISTTOLERANCE) {
   if(fabs(diffAngle({robotPoint, currentPoint}, {currentPoint, nextPoint})) > GOTOPOINTANGLEBRAKE)
    brake = true;
   else
