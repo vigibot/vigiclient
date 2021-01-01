@@ -345,12 +345,12 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
   for(int j = 0; j < closerPoints.size(); j++) {
    Line shorterLine = {robotPoint, closerPoints[j]};
 
-   Point intersectPoint;
-   if(!intersect(shorterLine, map[i], intersectPoint))
-    continue;
-
    double absAngularError = fabs(diffAngle(shorterLine, map[i]));
    if(absAngularError < SMALLANGULARTOLERANCE || absAngularError > M_PI - SMALLANGULARTOLERANCE)
+    continue;
+
+   Point intersectPoint;
+   if(!intersect(shorterLine, map[i], intersectPoint))
     continue;
 
    if(sqDist(map[i].a, intersectPoint) < sqDist(map[i].b, intersectPoint)) {
@@ -384,13 +384,15 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
   if(map[i].shrinkb == 0)
    map[i].shrinkb = SHRINKFILTER;
  }
+}
 
+void mapDeduplicate(vector<Line> &map) {
  for(int i = 0; i < map.size(); i++) {
   if(map[i].validation < VALIDATIONFILTERKEEP)
    continue;
 
   for(int j = i + 1; j < map.size(); j++) {
-   if(map[i].validation < VALIDATIONFILTERKEEP)
+   if(map[j].validation < VALIDATIONFILTERKEEP)
     continue;
 
    Point pointError;
@@ -403,6 +405,57 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
     j--;
    }
   }
+ }
+}
+
+void mapDeduplicateAverage(vector<Line> &map) {
+ for(int i = 0; i < map.size(); i++) {
+  vector<int> id;
+
+  if(map[i].validation < VALIDATIONFILTERKEEP)
+   continue;
+
+  id.push_back(i);
+  for(int j = i + 1; j < map.size(); j++) {
+   if(map[j].validation < VALIDATIONFILTERKEEP)
+    continue;
+
+   Point pointError;
+   double angularError;
+   int distError;
+   int refNorm;
+   if(testLines(map[i], map[j], LARGEDISTTOLERANCE / 2, LARGEDISTTOLERANCE / 2, SMALLDISTTOLERANCE,
+                pointError, angularError, distError, refNorm))
+    id.push_back(j);
+  }
+
+  int nbLines = id.size();
+  if(nbLines > 1) {
+
+   for(int j = 0; j < nbLines; j++) {
+    for(int k = 0; k < nbLines; k++) {
+     growLine(map[id[j]], map[id[k]].a);
+     growLine(map[id[j]], map[id[k]].b);
+    }
+   }
+
+   Line averageLine = map[i];
+   int nbAverage = 1;
+   for(int j = nbLines - 1; j > 0; j--) {
+    if(sqDist(map[i].a, map[j].a) < LARGEDISTTOLERANCE / 2 * LARGEDISTTOLERANCE / 2 &&
+       sqDist(map[i].b, map[j].b) < LARGEDISTTOLERANCE / 2 * LARGEDISTTOLERANCE / 2 ) {
+     averageLine.a += map[id[j]].a;
+     averageLine.b += map[id[j]].b;
+     map.erase(map.begin() + id[j]);
+     nbAverage++;
+    }
+   }
+
+   averageLine.a /= nbAverage;
+   averageLine.b /= nbAverage;
+   map[i] = averageLine;
+  }
+
  }
 }
 
@@ -1152,6 +1205,8 @@ int main(int argc, char* argv[]) {
    localization(robotLines, mapLines, map, robotPoint, robotTheta);
    mapping(mapLines, map);
    mapCleaner(polarPoints, map, robotPoint, robotTheta);
+   //mapDeduplicate(map);
+   mapDeduplicateAverage(map);
    mapInterLock(map);
    mapFiltersDecay(map);
   }
