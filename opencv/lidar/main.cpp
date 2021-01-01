@@ -833,7 +833,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
 
    bool found = false;
    for(int i = 0; i < patrolPoints.size(); i++) {
-    if(sqDist(robotPoint, patrolPoints[i]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
+    if(sqDist(robotPoint, patrolPoints[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
      patrolPoints[i] = robotPoint;
      found = true;
      break;
@@ -849,7 +849,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
 
    bool found = false;
    for(int i = 0; i < patrolPoints.size(); i++) {
-    if(sqDist(robotPoint, patrolPoints[i]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
+    if(sqDist(robotPoint, patrolPoints[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
      patrolPoints.erase(patrolPoints.begin() + i);
      found = true;
      break;
@@ -1048,6 +1048,7 @@ void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &robotPoi
 bool gotoPoint(Point point, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t robotTheta) {
  Point deltaPoint = point - robotPoint;
  int dist = int(sqrt(sqNorm(deltaPoint)));
+ static int16_t integTheta = 0;
  static int16_t oldDeltaTheta = 0;
 
  if(dist <= GOTOPOINTDISTTOLERANCE)
@@ -1055,8 +1056,6 @@ bool gotoPoint(Point point, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t r
 
  uint16_t gotoTheta = angleDoubleToAngle16(atan2(deltaPoint.y, deltaPoint.x)) - HALFPI16;
  int16_t deltaTheta = gotoTheta - robotTheta;
- int16_t derivTheta = deltaTheta - oldDeltaTheta;
- oldDeltaTheta = deltaTheta;
 
  bool reverseGear = false;
  if(abs(deltaTheta) > PI16 / 180 * GOTOPOINTANGLEREVERSEGEAR) {
@@ -1064,11 +1063,18 @@ bool gotoPoint(Point point, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t r
   reverseGear = true;
  }
 
+ integTheta += deltaTheta;
+ if(deltaTheta >= 0 && oldDeltaTheta < 0 ||
+    deltaTheta <= 0 && oldDeltaTheta > 0)
+  integTheta = 0;
+ int16_t derivTheta = deltaTheta - oldDeltaTheta;
+ oldDeltaTheta = deltaTheta;
+
  int8_t velocity = constrain(GOTOPOINTVELOCITY - abs(deltaTheta) * GOTOPOINTVELOCITY * 180 / PI16 / GOTOPOINTANGLESTOP, 0, GOTOPOINTVELOCITY);
  vy = constrain(dist * velocity / GOTOPOINTBRAKEDIST, 0, velocity);
  if(reverseGear)
   vy = -vy;
- vz = constrain(deltaTheta / KPTHETA + derivTheta / KDTHETA, -GOTOPOINTVELOCITY, GOTOPOINTVELOCITY);
+ vz = constrain(deltaTheta / KPTHETA + integTheta / KITHETA + derivTheta / KDTHETA, -GOTOPOINTVELOCITY, GOTOPOINTVELOCITY);
 
  return false;
 }
@@ -1080,10 +1086,10 @@ void autopilot(vector<Point> &patrolPoints, int &patrolPoint, Point &robotPoint,
  static int8_t vz = 0;
 
  if(!enabled && patrolPoints.size() >= 2 &&
-    sqDist(robotPoint, patrolPoints[0]) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
+    sqDist(robotPoint, patrolPoints[0]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
   enabled = true;
   patrolPoint = 1;
- } else if(patrolPoints.size() < 2 || remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
+ } else if(patrolPoints.size() < 2 || remoteFrame.vz)
   enabled = false;
 
  if(!enabled) {

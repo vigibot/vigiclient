@@ -158,9 +158,8 @@ void autopilot(Mat &image) {
 
   integ += prop;
   if(prop >= 0 && oldProp < 0 ||
-     prop <= 0 && oldProp > 0) {
+     prop <= 0 && oldProp > 0)
    integ = 0;
-  }
 
   int deriv = prop - oldProp;
   oldProp = prop;
