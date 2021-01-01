@@ -1049,20 +1049,13 @@ bool gotoPoint(vector<Point> &patrolPoints, int &patrolPoint, int8_t &vy, int8_t
  Point currentPoint = patrolPoints[patrolPoint];
  Point deltaPoint = currentPoint - robotPoint;
  int dist = int(sqrt(sqNorm(deltaPoint)));
- Point nextPoint = patrolPoints[(patrolPoint + 1) % patrolPoints.size()];
  static bool brake = false;
  static int16_t integTheta = 0;
  static int16_t oldDeltaTheta = 0;
+ Point nextPoint = patrolPoints[(patrolPoint + 1) % patrolPoints.size()];
 
  if(dist <= GOTOPOINTDISTTOLERANCE)
   return true;
-
- if(dist > GOTOPOINTDISTTOLERANCE) {
-  if(fabs(diffAngle({robotPoint, currentPoint}, {currentPoint, nextPoint})) > GOTOPOINTANGLEBRAKE)
-   brake = true;
-  else
-   brake = false;
- }
 
  uint16_t gotoTheta = angleDoubleToAngle16(atan2(deltaPoint.y, deltaPoint.x)) - HALFPI16;
  int16_t deltaTheta = gotoTheta - robotTheta;
@@ -1079,6 +1072,14 @@ bool gotoPoint(vector<Point> &patrolPoints, int &patrolPoint, int8_t &vy, int8_t
   integTheta = 0;
  int16_t derivTheta = deltaTheta - oldDeltaTheta;
  oldDeltaTheta = deltaTheta;
+
+ if(dist > GOTOPOINTDISTTOLERANCE) {
+  if(fabs(diffAngle({robotPoint, currentPoint}, {currentPoint, nextPoint})) > GOTOPOINTANGLEBRAKE)
+   brake = true;
+  else
+   brake = false;
+  integTheta = 0;
+ }
 
  int8_t velocity = constrain(GOTOPOINTVELOCITY - abs(deltaTheta) * GOTOPOINTVELOCITY * 180 / PI16 / GOTOPOINTANGLESTOP, 0, GOTOPOINTVELOCITY);
  if(brake)
