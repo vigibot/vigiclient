@@ -469,7 +469,7 @@ void mapDeduplicateErase(vector<Line> &map) {
    double angularError;
    int distError;
    int refNorm;
-   if(testLines(map[i], map[j], LARGEDISTTOLERANCE / 2, LARGEANGULARTOLERANCE / 2, 0,
+   if(testLines(map[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, 0,
                 pointError, angularError, distError, refNorm)) {
     map.erase(map.begin() + j);
     j--;
@@ -571,7 +571,7 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
    double angularError;
    int distError;
    int refNorm;
-   if(!testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE * 2, 0,
+   if(!testLines(mapLines[i], map[j], LARGEDISTTOLERANCE * 2, LARGEANGULARTOLERANCE, 0,
       pointError, angularError, distError, refNorm))
     continue;
 
