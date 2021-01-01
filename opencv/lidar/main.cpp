@@ -683,7 +683,25 @@ void drawLidarPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) 
  }
 }
 
-void drawMap(Mat &image, vector<Line> &map, bool colored, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+void drawLidarLines(Mat &image, vector<Line> &robotLines, int mapDiv) {
+ const Point centerPoint = Point(width / 2, height / 2);
+
+ for(int i = 0; i < robotLines.size(); i++) {
+  Point point1 = robotLines[i].a;
+  Point point2 = robotLines[i].b;
+
+  point1.x /= mapDiv;
+  point2.x /= mapDiv;
+  point1.y /= -mapDiv;
+  point2.y /= -mapDiv;
+  point1 += centerPoint;
+  point2 += centerPoint;
+
+  line(image, point1, point2, Scalar::all(255), 2, LINE_AA);
+ }
+}
+
+void drawMap(Mat &image, vector<Line> &map, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  const Point centerPoint = Point(width / 2, height / 2);
 
  for(int i = 0; i < map.size(); i++) {
@@ -698,24 +716,29 @@ void drawMap(Mat &image, vector<Line> &map, bool colored, Point robotPoint, uint
   point2 += centerPoint;
 
   Scalar color;
-  if(colored) {
-   if(map[i].validation < VALIDATIONFILTERKEEP)
-    color = Scalar::all(mapInteger(map[i].validation, VALIDATIONFILTERKILL, VALIDATIONFILTERKEEP, 0, 255));
-   else {
-    Point diff = map[i].b - map[i].a;
-    double angleDeg = atan2(diff.y, diff.x) * 180.0 / M_PI;
-    uchar hue = uchar(angleDeg / 2.0 + 90.0) % 180;
-    color = hueToBgr[hue];
-
-    if(map[i].locka)
-     circle(image, point1, 3, color, FILLED, LINE_AA);
-    if(map[i].lockb)
-     circle(image, point2, 3, color, FILLED, LINE_AA);
-   }
-  } else
-   color = Scalar::all(255);
+  if(map[i].validation < VALIDATIONFILTERKEEP)
+   color = Scalar::all(mapInteger(map[i].validation, VALIDATIONFILTERKILL, VALIDATIONFILTERKEEP, 0, 255));
+  else {
+   Point diff = map[i].b - map[i].a;
+   double angleDeg = atan2(diff.y, diff.x) * 180.0 / M_PI;
+   uchar hue = uchar(angleDeg / 2.0 + 90.0) % 180;
+   color = hueToBgr[hue];
+  }
 
   line(image, point1, point2, color, 2, LINE_AA);
+
+  if(map[i].locka)
+   circle(image, point1, 3, Scalar::all(0), FILLED, LINE_AA);
+  if(map[i].lockb)
+   circle(image, point2, 3, Scalar::all(0), FILLED, LINE_AA);
+
+  for(int j = i + 1; j < map.size(); j++) {
+   if(map[i].a == map[j].a)
+    circle(image, point1, 3, color, FILLED, LINE_AA);
+   if(map[i].b == map[j].b)
+    circle(image, point2, 3, color, FILLED, LINE_AA);
+  }
+
  }
 }
 
@@ -898,7 +921,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    break;
 
   case SELECTMAP:
-   drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
+   drawMap(image, map, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotTheta, mapDiv);
    drawPatrolPoints(image, patrolPoints, patrolPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
@@ -910,8 +933,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
 
   case SELECTMAPPOINTS:
    drawLidarPoints(image, robotPoints, false, mapDiv);
-   drawMap(image, robotLines, false, Point(0, 0), 0.0, mapDiv);
-   drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
+   drawLidarLines(image, robotLines, mapDiv);
+   drawMap(image, map, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotTheta, mapDiv);
    drawPatrolPoints(image, patrolPoints, patrolPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
@@ -923,8 +946,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
 
   case SELECTMAPPOINTSBEAMS:
    drawLidarPoints(image, robotPoints, true, mapDiv);
-   drawMap(image, robotLines, false, Point(0, 0), 0.0, mapDiv);
-   drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
+   drawLidarLines(image, robotLines, mapDiv);
+   drawMap(image, map, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, FILLED, mapDiv);
    if(tune)
     sprintf(text, "%d mm per pixel", mapDiv);
@@ -934,7 +957,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
 
   case SELECTPOINTSBEAMS:
    drawLidarPoints(image, robotPoints, true, mapDiv);
-   drawMap(image, robotLines, false, Point(0, 0), 0.0, mapDiv);
+   drawLidarLines(image, robotLines, mapDiv);
    drawRobot(image, robotIcon, FILLED, mapDiv);
    if(tune)
     sprintf(text, "%d mm per pixel", mapDiv);
