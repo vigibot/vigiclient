@@ -816,14 +816,16 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
   if(buttonCancelCount == 15) {
 
    map.clear();
-   robotPoint = Point(0, 0);
-   oldRobotPoint = Point(0, 0);
-   robotTheta = 0;
-   oldRobotTheta = 0;
+   if(patrolPoints.empty()) {
+    robotPoint = Point(0, 0);
+    oldRobotPoint = Point(0, 0);
+    robotTheta = 0;
+    oldRobotTheta = 0;
 #ifdef IMU
-   imu->resetFusion();
-   robotThetaCorrector = 0;
+    imu->resetFusion();
+    robotThetaCorrector = 0;
 #endif
+   }
 
   }
  } else if(!buttonOk && oldButtonOk) {
