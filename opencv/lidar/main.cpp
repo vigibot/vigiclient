@@ -400,28 +400,6 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
   mapSort(map);
 }
 
-void mapDeduplicateErase(vector<Line> &map) {
- for(int i = 0; i < map.size(); i++) {
-  if(map[i].validation < VALIDATIONFILTERKEEP)
-   continue;
-
-  for(int j = i + 1; j < map.size(); j++) {
-   if(map[j].validation < VALIDATIONFILTERKEEP)
-    continue;
-
-   Point pointError;
-   double angularError;
-   int distError;
-   int refNorm;
-   if(testLines(map[i], map[j], LARGEDISTTOLERANCE / 2, LARGEANGULARTOLERANCE / 2, SMALLDISTTOLERANCE,
-                pointError, angularError, distError, refNorm)) {
-    map.erase(map.begin() + j);
-    j--;
-   }
-  }
- }
-}
-
 void mapDeduplicateAverage(vector<Line> &map) {
  bool sort = false;
 
@@ -440,7 +418,7 @@ void mapDeduplicateAverage(vector<Line> &map) {
    double angularError;
    int distError;
    int refNorm;
-   if(testLines(map[i], map[j], LARGEDISTTOLERANCE / 2, LARGEDISTTOLERANCE / 2, SMALLDISTTOLERANCE,
+   if(testLines(map[i], map[j], SMALLDISTTOLERANCE, SMALLDISTTOLERANCE, SMALLDISTTOLERANCE,
                 pointError, angularError, distError, refNorm))
     id.push_back(j);
   }
@@ -458,8 +436,8 @@ void mapDeduplicateAverage(vector<Line> &map) {
    Line averageLine = map[i];
    int nbAverage = 1;
    for(int j = nbLines - 1; j > 0; j--) {
-    if(sqDist(map[i].a, map[j].a) < LARGEDISTTOLERANCE / 2 * LARGEDISTTOLERANCE / 2 &&
-       sqDist(map[i].b, map[j].b) < LARGEDISTTOLERANCE / 2 * LARGEDISTTOLERANCE / 2 ) {
+    if(sqDist(map[i].a, map[j].a) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE &&
+       sqDist(map[i].b, map[j].b) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
      averageLine.a += map[id[j]].a;
      averageLine.b += map[id[j]].b;
      map.erase(map.begin() + id[j]);
@@ -476,6 +454,28 @@ void mapDeduplicateAverage(vector<Line> &map) {
 
  if(sort)
   mapSort(map);
+}
+
+void mapDeduplicateErase(vector<Line> &map) {
+ for(int i = 0; i < map.size(); i++) {
+  if(map[i].validation < VALIDATIONFILTERKEEP)
+   continue;
+
+  for(int j = i + 1; j < map.size(); j++) {
+   if(map[j].validation < VALIDATIONFILTERKEEP)
+    continue;
+
+   Point pointError;
+   double angularError;
+   int distError;
+   int refNorm;
+   if(testLines(map[i], map[j], LARGEDISTTOLERANCE / 2, LARGEANGULARTOLERANCE / 2, 0,
+                pointError, angularError, distError, refNorm)) {
+    map.erase(map.begin() + j);
+    j--;
+   }
+  }
+ }
 }
 
 void mapInterLock(vector<Line> &map) {
@@ -536,7 +536,8 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
    int refNorm;
 
    if(map[j].validation >= VALIDATIONFILTERSTART &&
-      testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, 0, pointError, angularError, distError, refNorm)) {
+      testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, 0,
+                pointError, angularError, distError, refNorm)) {
     pointErrorSum += pointError;
     p++;
     if(map[j].validation >= VALIDATIONFILTERKEEP) {
@@ -570,7 +571,8 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
    double angularError;
    int distError;
    int refNorm;
-   if(!testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE * 2, 0, pointError, angularError, distError, refNorm))
+   if(!testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE * 2, 0,
+      pointError, angularError, distError, refNorm))
     continue;
 
    newLine = false;
@@ -1230,8 +1232,8 @@ int main(int argc, char* argv[]) {
    localization(robotLines, mapLines, map, robotPoint, robotTheta);
    mapping(mapLines, map);
    mapCleaner(polarPoints, map, robotPoint, robotTheta);
+   mapDeduplicateAverage(map);
    mapDeduplicateErase(map);
-   //mapDeduplicateAverage(map);
    //mapInterLock(map);
    mapFiltersDecay(map);
   }
