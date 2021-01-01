@@ -418,7 +418,7 @@ void mapDeduplicateAverage(vector<Line> &map) {
    double angularError;
    int distError;
    int refNorm;
-   if(testLines(map[i], map[j], SMALLDISTTOLERANCE, SMALLDISTTOLERANCE, SMALLDISTTOLERANCE,
+   if(testLines(map[i], map[j], SMALLDISTTOLERANCE, SMALLANGULARTOLERANCE, 0,
                 pointError, angularError, distError, refNorm))
     id.push_back(j);
   }
