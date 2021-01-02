@@ -311,7 +311,7 @@ bool intersect(Line line1, Line line2, Point &intersectPoint) {
  Point2d d2 = line2.b - line2.a;
 
  double det = d1.x * d2.y - d1.y * d2.x;
- if(fabs(det) < INTERSECTDETMIN)
+ if(det == 0)
   return false;
 
  double t1 = (x.x * d2.y - x.y * d2.x) / det;
@@ -332,7 +332,7 @@ bool intersectLine(Line line1, Line line2, Point &intersectPoint) {
  Point2d d2 = line2.b - line2.a;
 
  double det = d1.x * d2.y - d1.y * d2.x;
- if(fabs(det) < INTERSECTDETMIN)
+ if(det == 0)
   return false;
 
  double t1 = (x.x * d2.y - x.y * d2.x) / det;
@@ -341,7 +341,7 @@ bool intersectLine(Line line1, Line line2, Point &intersectPoint) {
  Point averagePoint = line1.a + line1.b + line2.a + line2.b / 4;
  if(abs(intersectPoint.x - averagePoint.x) <= INTERSECTMAX &&
     abs(intersectPoint.y - averagePoint.y) <= INTERSECTMAX)
- return true;
+  return true;
 
  return false;
 }
@@ -721,6 +721,31 @@ void drawMap(Mat &image, vector<Line> &map, Point robotPoint, uint16_t robotThet
  }
 }
 
+void drawIntersects(Mat &image, vector<Line> &map, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+ const Point centerPoint = Point(width / 2, height / 2);
+
+ for(int i = 0; i < map.size(); i++) {
+  if(map[i].validation < VALIDATIONFILTERKEEP)
+   continue;
+
+  for(int j = i + 1; j < map.size(); j++) {
+   if(map[j].validation < VALIDATIONFILTERKEEP)
+    continue;
+
+   Point intersectPoint;
+   if(!intersect(map[i], map[j], intersectPoint))
+    continue;
+
+   Point point = rotate(intersectPoint - robotPoint, -robotTheta);
+   point.x /= mapDiv;
+   point.y /= -mapDiv;
+   point += centerPoint;
+
+   circle(image, point, 3, Scalar::all(255), FILLED, LINE_AA);
+  }
+ }
+}
+
 void drawHist(Mat &image, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  static Point hist[HIST] = {Point(0, 0)};
  static int n = 0;
@@ -901,6 +926,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
 
   case SELECTMAP:
    drawMap(image, map, robotPoint, robotTheta, mapDiv);
+   drawIntersects(image, map, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotTheta, mapDiv);
    drawPatrolPoints(image, patrolPoints, patrolPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
