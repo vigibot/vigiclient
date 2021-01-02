@@ -1066,10 +1066,12 @@ bool gotoPoint(vector<Point> &patrolPoints, int &patrolPoint, int8_t &vy, int8_t
   reverseGear = true;
  }
 
- integTheta += deltaTheta;
  if(deltaTheta >= 0 && oldDeltaTheta < 0 ||
     deltaTheta <= 0 && oldDeltaTheta > 0)
   integTheta = 0;
+ integTheta += deltaTheta;
+ integTheta = constrain(integTheta, -GOTOPOINTVELOCITYTHETA * KITHETA, GOTOPOINTVELOCITYTHETA * KITHETA);
+
  int16_t derivTheta = deltaTheta - oldDeltaTheta;
  oldDeltaTheta = deltaTheta;
 
@@ -1087,7 +1089,7 @@ bool gotoPoint(vector<Point> &patrolPoints, int &patrolPoint, int8_t &vy, int8_t
   vy = GOTOPOINTVELOCITY;
  if(reverseGear)
   vy = -vy;
- vz = constrain(deltaTheta / KPTHETA + integTheta / KITHETA + derivTheta / KDTHETA, -GOTOPOINTVELOCITY, GOTOPOINTVELOCITY);
+ vz = constrain(deltaTheta / KPTHETA + integTheta / KITHETA + derivTheta / KDTHETA, -GOTOPOINTVELOCITYTHETA, GOTOPOINTVELOCITYTHETA);
 
  return false;
 }
