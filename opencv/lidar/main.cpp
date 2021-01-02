@@ -496,46 +496,7 @@ void mapDeduplicateErase(vector<Line> &map) {
  }
 }
 
-void mapInterLock(vector<Line> &map) {
- bool sort = false;
-
- for(int i = 0; i < map.size(); i++) {
-  if(map[i].validation < VALIDATIONFILTERKEEP)
-   continue;
-
-  for(int j = 0; j < map.size(); j++) {
-   if(j == i || map[j].validation < VALIDATIONFILTERKEEP)
-    continue;
-
-   Point intersectPoint;
-   if(!intersectLine(map[i], map[j], intersectPoint))
-    continue;
-
-   if(!map[i].locka && sqDist(map[i].a, intersectPoint) < LARGEDISTTOLERANCE / 2 * LARGEDISTTOLERANCE / 2) {
-    map[i].a = intersectPoint;
-    sort = true;
-    map[i].locka = true;
-   } else if(!map[i].lockb && sqDist(map[i].b, intersectPoint) < LARGEDISTTOLERANCE / 2 * LARGEDISTTOLERANCE / 2) {
-    map[i].b = intersectPoint;
-    sort = true;
-    map[i].lockb = true;
-   }
-
-   if(!map[j].locka && sqDist(map[j].a, intersectPoint) < LARGEDISTTOLERANCE / 2 * LARGEDISTTOLERANCE / 2) {
-    map[j].a = intersectPoint;
-    sort = true;
-    map[j].locka = true;
-   } else if(!map[j].lockb && sqDist(map[j].b, intersectPoint) < LARGEDISTTOLERANCE / 2 * LARGEDISTTOLERANCE / 2) {
-    map[j].b = intersectPoint;
-    sort = true;
-    map[j].lockb = true;
-   }
-
-  }
- }
-
- if(sort)
-  mapSort(map);
+void mapInterLock(vector<Line> &map) { // TODO
 }
 
 bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
@@ -1297,7 +1258,7 @@ int main(int argc, char* argv[]) {
    mapCleaner(polarPoints, map, robotPoint, robotTheta);
    mapDeduplicateAverage(map);
    mapDeduplicateErase(map);
-   //mapInterLock(map);
+   mapInterLock(map);
    mapFiltersDecay(map);
   }
 
