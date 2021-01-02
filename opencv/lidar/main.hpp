@@ -72,8 +72,6 @@ typedef struct Line {
  int validation;
  int shrinka;
  int shrinkb;
- bool locka;
- bool lockb;
 } Line;
 
 int width;
