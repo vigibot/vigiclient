@@ -44,7 +44,7 @@
 #define GOTOPOINTANGLEBRAKE (90.0 * M_PI / 180.0)
 #define GOTOPOINTANGLESTOP 180
 #define KPTHETA 100
-#define KITHETA 200
+#define KITHETA 1000
 #define KDTHETA 100
 
 enum {
