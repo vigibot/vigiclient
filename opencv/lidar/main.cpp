@@ -282,6 +282,18 @@ Point pointDistancePointLine(Point point, Line line) {
  return result;
 }
 
+bool testPointLine(Point point, Line line, int distTolerance, int lengthMargin) {
+ if(sqNorm(pointDistancePointLine(point,line)) < distTolerance * distTolerance) {
+  int refNorm = int(sqrt(sqDist(line)));
+  int distance = ratioPointLine(point, line) * refNorm;
+
+  if(distance > -lengthMargin &&  distance < refNorm + lengthMargin)
+   return true;
+ }
+
+ return false;
+}
+
 bool testLines(Line line1, Line line2, int distTolerance, double angularTolerance, int lengthMargin,
                Point &pointError, double &angularError, int &distError, int &refNorm) {
 
@@ -1134,6 +1146,48 @@ void autopilot(vector<Point> &patrolPoints, int &patrolPoint, Point &robotPoint,
  robotPoint += point;
 }
 
+void mapIntersect(vector<Line> &map) {
+ bool sort = false;
+
+ for(int i = 0; i < map.size(); i++) {
+  if(map[i].validation < VALIDATIONFILTERKEEP)
+   continue;
+
+  for(int j = 0; j < map.size(); j++) {
+   if(i == j || map[j].validation < VALIDATIONFILTERKEEP)
+    continue;
+
+   Point intersectPoint;
+   if(!intersectLine(map[i], map[j], intersectPoint))
+    continue;
+
+   if(testPointLine(map[i].a, map[j], LINESIZEMIN, LINESIZEMIN) &&
+      sqDist(map[i].a, intersectPoint) < LINESIZEMIN * LINESIZEMIN) {
+    map[i].a = intersectPoint;
+    sort = true;
+   }
+
+   if(testPointLine(map[i].b, map[j], LINESIZEMIN, LINESIZEMIN) &&
+      sqDist(map[i].b, intersectPoint) < LINESIZEMIN * LINESIZEMIN) {
+    map[i].b = intersectPoint;
+    sort = true;
+   }
+
+   if(sqDist(map[i]) < LINESIZEMIN * LINESIZEMIN) {
+    map.erase(map.begin() + i);
+    if(j >= i)
+     j--;
+    i--;
+    sort = false;
+   }
+
+  }
+ }
+
+ if(sort)
+  mapSort(map);
+}
+
 int main(int argc, char* argv[]) {
  fprintf(stderr, "Starting\n");
 
@@ -1257,6 +1311,7 @@ int main(int argc, char* argv[]) {
    mapCleaner(polarPoints, map, robotPoint, robotTheta);
    mapDeduplicateAverage(map);
    mapDeduplicateErase(map);
+   mapIntersect(map);
    mapFiltersDecay(map);
   }
 
