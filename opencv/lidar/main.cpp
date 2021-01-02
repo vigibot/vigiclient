@@ -306,26 +306,44 @@ bool testLines(Line line1, Line line2, int distTolerance, double angularToleranc
 }
 
 bool intersect(Line line1, Line line2, Point &intersectPoint) {
- double det = (line1.a.x - line1.b.x) * (line2.a.y - line2.b.y) -
-              (line1.a.y - line1.b.y) * (line2.a.x - line2.b.x);
+ Point2d x = line2.a - line1.a;
+ Point2d d1 = line1.b - line1.a;
+ Point2d d2 = line2.b - line2.a;
 
- if(det == 0)
+ double det = d1.x * d2.y - d1.y * d2.x;
+ if(fabs(det) < INTERSECTDETMIN)
   return false;
 
- double pre = line1.a.x * line1.b.y - line1.a.y * line1.b.x;
- double post = line2.a.x * line2.b.y - line2.a.y * line2.b.x;
- double x = (pre * (line2.a.x - line2.b.x) - (line1.a.x - line1.b.x) * post) / det;
- double y = (pre * (line2.a.y - line2.b.y) - (line1.a.y - line1.b.y) * post) / det;
+ double t1 = (x.x * d2.y - x.y * d2.x) / det;
+ intersectPoint = Point2d(line1.a) + d1 * t1;
 
- if(x < min(line1.a.x, line1.b.x) || x > max(line1.a.x, line1.b.x) ||
-    x < min(line2.a.x, line2.b.x) || x > max(line2.a.x, line2.b.x) ||
-    y < min(line1.a.y, line1.b.y) || y > max(line1.a.y, line1.b.y) ||
-    y < min(line2.a.y, line2.b.y) || y > max(line2.a.y, line2.b.y))
+ Rect rect1 = Rect(line1.a, line1.b);
+ Rect rect2 = Rect(line2.a, line2.b);
+ if(rect1.contains(intersectPoint) &&
+    rect2.contains(intersectPoint))
+  return true;
+
+ return false;
+}
+
+bool intersectLine(Line line1, Line line2, Point &intersectPoint) {
+ Point2d x = line2.a - line1.a;
+ Point2d d1 = line1.b - line1.a;
+ Point2d d2 = line2.b - line2.a;
+
+ double det = d1.x * d2.y - d1.y * d2.x;
+ if(fabs(det) < INTERSECTDETMIN)
   return false;
 
- intersectPoint = Point(x, y);
+ double t1 = (x.x * d2.y - x.y * d2.x) / det;
+ intersectPoint = Point2d(line1.a) + d1 * t1;
 
+ Point averagePoint = line1.a + line1.b + line2.a + line2.b / 4;
+ if(abs(intersectPoint.x - averagePoint.x) <= INTERSECTMAX &&
+    abs(intersectPoint.y - averagePoint.y) <= INTERSECTMAX)
  return true;
+
+ return false;
 }
 
 void mapSort(vector<Line> &map) {
@@ -490,7 +508,7 @@ void mapInterLock(vector<Line> &map) {
     continue;
 
    Point intersectPoint;
-   if(!intersect(map[i], map[j], intersectPoint))
+   if(!intersectLine(map[i], map[j], intersectPoint))
     continue;
 
    if(!map[i].locka && sqDist(map[i].a, intersectPoint) < LARGEDISTTOLERANCE / 2 * LARGEDISTTOLERANCE / 2) {
@@ -728,15 +746,15 @@ void drawMap(Mat &image, vector<Line> &map, Point robotPoint, uint16_t robotThet
   line(image, point1, point2, color, 2, LINE_AA);
 
   if(map[i].locka)
-   circle(image, point1, 3, Scalar::all(0), FILLED, LINE_AA);
+   circle(image, point1, 3, color, FILLED, LINE_AA);
   if(map[i].lockb)
-   circle(image, point2, 3, Scalar::all(0), FILLED, LINE_AA);
+   circle(image, point2, 3, color, FILLED, LINE_AA);
 
   for(int j = i + 1; j < map.size(); j++) {
-   if(map[i].a == map[j].a)
-    circle(image, point1, 3, color, FILLED, LINE_AA);
-   if(map[i].b == map[j].b)
-    circle(image, point2, 3, color, FILLED, LINE_AA);
+   if(map[i].a == map[j].a || map[i].a == map[j].b)
+    circle(image, point1, 3, Scalar::all(255), FILLED, LINE_AA);
+   if(map[i].b == map[j].a || map[i].b == map[j].b)
+    circle(image, point2, 3, Scalar::all(255), FILLED, LINE_AA);
   }
 
  }
