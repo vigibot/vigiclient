@@ -208,6 +208,11 @@ void robotToMap(vector<Line> &linesIn, vector<Line> &linesOut, Point robotPoint,
  }
 }
 
+void robotToMap(vector<Point> &pointsIn, vector<Point> &pointsOut, Point robotPoint, uint16_t robotTheta) {
+ for(int i = 0; i < pointsIn.size(); i++)
+  pointsOut.push_back(robotPoint + rotate(pointsIn[i], robotTheta));
+}
+
 /*void mapToRobot(vector<Line> &linesIn, vector<Line> &linesOut, Point robotPoint, uint16_t robotTheta) {
  for(int i = 0; i < linesIn.size(); i++) {
   linesOut.push_back({rotate(linesIn[i].a - robotPoint, -robotTheta),
@@ -283,11 +288,11 @@ Point pointDistancePointLine(Point point, Line line) {
 }
 
 bool testPointLine(Point point, Line line, int distTolerance, int lengthMargin) {
- if(sqNorm(pointDistancePointLine(point,line)) < distTolerance * distTolerance) {
+ if(sqNorm(pointDistancePointLine(point, line)) < distTolerance * distTolerance) {
   int refNorm = int(sqrt(sqDist(line)));
   int distance = ratioPointLine(point, line) * refNorm;
 
-  if(distance > -lengthMargin &&  distance < refNorm + lengthMargin)
+  if(distance > -lengthMargin && distance < refNorm + lengthMargin)
    return true;
  }
 
@@ -1106,7 +1111,17 @@ bool gotoPoint(vector<Point> &patrolPoints, int &patrolPoint, int8_t &vy, int8_t
  return false;
 }
 
-void autopilot(vector<Point> &patrolPoints, int &patrolPoint, Point &robotPoint, uint16_t &robotTheta) {
+bool obstacle(vector<Point> &mapPoints, vector<Point> &patrolPoints, int &patrolPoint, Point robotPoint, uint16_t robotTheta) {
+ Point currentPoint = patrolPoints[patrolPoint];
+
+ for(int i = 0; i < mapPoints.size(); i++)
+  if(testPointLine(mapPoints[i], {robotPoint, currentPoint}, ROBOTWIDTH, ROBOTWIDTH))
+   return true;
+
+ return false;
+}
+
+void autopilot(vector<Point> &mapPoints, vector<Point> &patrolPoints, int &patrolPoint, Point &robotPoint, uint16_t &robotTheta) {
  static bool enabled = false;
  static int8_t vx = 0;
  static int8_t vy = 0;
@@ -1126,7 +1141,10 @@ void autopilot(vector<Point> &patrolPoints, int &patrolPoint, Point &robotPoint,
   return;
  }
 
- if(gotoPoint(patrolPoints, patrolPoint, vy, vz, robotPoint, robotTheta)) {
+ if(obstacle(mapPoints, patrolPoints, patrolPoint, robotPoint, robotTheta)) {
+  vx = 0;
+  vy = 0;
+ } else if(gotoPoint(patrolPoints, patrolPoint, vy, vz, robotPoint, robotTheta)) {
   patrolPoint++;
   if(patrolPoint >= patrolPoints.size())
    patrolPoint = 0;
@@ -1236,6 +1254,7 @@ int main(int argc, char* argv[]) {
  vector<Line> robotLines;
  vector<Line> mapLines;
  vector<Line> map;
+ vector<Point> mapPoints;
  vector<Point> patrolPoints;
 
  Point robotPoint = Point(0, 0);
@@ -1313,9 +1332,12 @@ int main(int argc, char* argv[]) {
    mapDeduplicateErase(map);
    mapIntersects(map);
    mapFiltersDecay(map);
+
+   mapPoints.clear();
+   robotToMap(robotPoints, mapPoints, robotPoint, robotTheta);
   }
 
-  autopilot(patrolPoints, patrolPoint, robotPoint, robotTheta);
+  autopilot(mapPoints, patrolPoints, patrolPoint, robotPoint, robotTheta);
 
   ui(image, robotPoints, robotLines, map, patrolPoints, patrolPoint,
      robotPoint, oldRobotPoint, robotTheta, oldRobotTheta, time);

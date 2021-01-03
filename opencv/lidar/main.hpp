@@ -49,6 +49,8 @@
 #define KITHETA 1000
 #define KDTHETA 100
 
+#define ROBOTWIDTH 50
+
 enum {
  SELECTNONE,
  SELECTMAP,
