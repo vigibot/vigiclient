@@ -1110,9 +1110,16 @@ bool gotoPoint(Point patrolPoint, Point futurePatrolPoint, int8_t &vy, int8_t &v
 }
 
 bool obstacle(vector<Point> &mapPoints, Point patrolPoint, Point robotPoint, uint16_t robotTheta) {
- for(int i = 0; i < mapPoints.size(); i++)
-  if(testPointLine(mapPoints[i], {robotPoint, patrolPoint}, ROBOTWIDTH, ROBOTWIDTH))
-   return true;
+ for(int i = 0; i < mapPoints.size(); i++) {
+  Line line = {robotPoint, patrolPoint};
+  if(sqNorm(pointDistancePointLine(mapPoints[i], line)) < ROBOTWIDTH * ROBOTWIDTH) {
+   int refNorm = int(sqrt(sqDist(line)));
+   int distance = ratioPointLine(mapPoints[i], line) * refNorm;
+
+   if(distance > 0 && distance < OBSTACLEDETECTIONRANGE)
+    return true;
+  }
+ }
 
  return false;
 }
