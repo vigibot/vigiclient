@@ -465,19 +465,19 @@ void mapDeduplicateAverage(vector<Line> &map) {
    }
 
    Line averageLine = map[i];
-   int nbAverage = 1;
+   int nbAverages = 1;
    for(int j = nbLines - 1; j > 0; j--) {
     if(sqDist(map[i].a, map[j].a) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE &&
        sqDist(map[i].b, map[j].b) < SMALLDISTTOLERANCE * SMALLDISTTOLERANCE) {
      averageLine.a += map[id[j]].a;
      averageLine.b += map[id[j]].b;
      map.erase(map.begin() + id[j]);
-     nbAverage++;
+     nbAverages++;
     }
    }
 
-   averageLine.a /= nbAverage;
-   averageLine.b /= nbAverage;
+   averageLine.a /= nbAverages;
+   averageLine.b /= nbAverages;
    map[i] = averageLine;
    sort = true;
   }
@@ -1060,14 +1060,12 @@ void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &robotPoi
   fprintf(stderr, "Error reading map file\n");
 }
 
-bool gotoPoint(vector<Point> &patrolPoints, int &patrolPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t robotTheta) {
- Point currentPoint = patrolPoints[patrolPoint];
- Point deltaPoint = currentPoint - robotPoint;
+bool gotoPoint(Point patrolPoint, Point futurePatrolPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t robotTheta) {
+ Point deltaPoint = patrolPoint - robotPoint;
  int dist = int(sqrt(sqNorm(deltaPoint)));
  static bool brake = false;
  static int integTheta = 0;
  static int16_t oldDeltaTheta = 0;
- Point nextPoint = patrolPoints[(patrolPoint + 1) % patrolPoints.size()];
 
  if(dist <= GOTOPOINTDISTTOLERANCE) {
   integTheta = 0;
@@ -1093,7 +1091,7 @@ bool gotoPoint(vector<Point> &patrolPoints, int &patrolPoint, int8_t &vy, int8_t
  oldDeltaTheta = deltaTheta;
 
  if(dist > GOTOPOINTDISTTOLERANCE) {
-  if(fabs(diffAngle({robotPoint, currentPoint}, {currentPoint, nextPoint})) > GOTOPOINTANGLEBRAKE)
+  if(fabs(diffAngle({robotPoint, patrolPoint}, {patrolPoint, futurePatrolPoint})) > GOTOPOINTANGLEBRAKE)
    brake = true;
   else
    brake = false;
@@ -1111,11 +1109,9 @@ bool gotoPoint(vector<Point> &patrolPoints, int &patrolPoint, int8_t &vy, int8_t
  return false;
 }
 
-bool obstacle(vector<Point> &mapPoints, vector<Point> &patrolPoints, int &patrolPoint, Point robotPoint, uint16_t robotTheta) {
- Point currentPoint = patrolPoints[patrolPoint];
-
+bool obstacle(vector<Point> &mapPoints, Point patrolPoint, Point robotPoint, uint16_t robotTheta) {
  for(int i = 0; i < mapPoints.size(); i++)
-  if(testPointLine(mapPoints[i], {robotPoint, currentPoint}, ROBOTWIDTH, ROBOTWIDTH))
+  if(testPointLine(mapPoints[i], {robotPoint, patrolPoint}, ROBOTWIDTH, ROBOTWIDTH))
    return true;
 
  return false;
@@ -1123,15 +1119,19 @@ bool obstacle(vector<Point> &mapPoints, vector<Point> &patrolPoints, int &patrol
 
 void autopilot(vector<Point> &mapPoints, vector<Point> &patrolPoints, int &patrolPoint, Point &robotPoint, uint16_t &robotTheta) {
  static bool enabled = false;
+ int size = patrolPoints.size();
+ static int futurePatrolPoint;
+ static int dir = 1;
  static int8_t vx = 0;
  static int8_t vy = 0;
  static int8_t vz = 0;
 
- if(!enabled && patrolPoints.size() >= 2 &&
+ if(!enabled && size >= 2 &&
     sqDist(robotPoint, patrolPoints[0]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
   enabled = true;
   patrolPoint = 1;
- } else if(patrolPoints.size() < 2 || remoteFrame.vz)
+  futurePatrolPoint = 2;
+ } else if(size < 2 || remoteFrame.vz)
   enabled = false;
 
  if(!enabled) {
@@ -1141,13 +1141,25 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &patrolPoints, int &patro
   return;
  }
 
- if(obstacle(mapPoints, patrolPoints, patrolPoint, robotPoint, robotTheta)) {
-  vx = 0;
-  vy = 0;
- } else if(gotoPoint(patrolPoints, patrolPoint, vy, vz, robotPoint, robotTheta)) {
-  patrolPoint++;
-  if(patrolPoint >= patrolPoints.size())
-   patrolPoint = 0;
+ bool ob = obstacle(mapPoints, patrolPoints[patrolPoint], robotPoint, robotTheta);
+ bool go = gotoPoint(patrolPoints[patrolPoint], patrolPoints[futurePatrolPoint], vy, vz, robotPoint, robotTheta);
+
+ if(ob || go) {
+  if(ob)
+   dir = -dir;
+
+  patrolPoint += dir;
+  futurePatrolPoint = patrolPoint + dir;
+
+  if(patrolPoint >= size)
+   patrolPoint -= size;
+  else if(patrolPoint < 0)
+   patrolPoint += size;
+
+  if(futurePatrolPoint >= size)
+   futurePatrolPoint -= size;
+  else if(futurePatrolPoint < 0)
+   futurePatrolPoint += size;
  }
 
  telemetryFrame.vx = vx;
@@ -1332,7 +1344,6 @@ int main(int argc, char* argv[]) {
    mapDeduplicateErase(map);
    mapIntersects(map);
    mapFiltersDecay(map);
-
    mapPoints.clear();
    robotToMap(robotPoints, mapPoints, robotPoint, robotTheta);
   }
