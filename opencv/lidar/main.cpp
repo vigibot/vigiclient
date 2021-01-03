@@ -369,8 +369,8 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
  bool sort = false;
 
  for(int i = 0; i < polarPoints.size(); i++) {
-  Point closerPoint = Point((polarPoints[i].distance / 2) * sin16(polarPoints[i].theta) / ONE16,
-                            (polarPoints[i].distance / 2) * cos16(polarPoints[i].theta) / ONE16);
+  Point closerPoint = Point((polarPoints[i].distance * MAPCLEANERDIST / 100) * sin16(polarPoints[i].theta) / ONE16,
+                            (polarPoints[i].distance * MAPCLEANERDIST / 100) * cos16(polarPoints[i].theta) / ONE16);
 
   closerPoints.push_back(robotPoint + rotate(closerPoint, robotTheta));
  }
@@ -382,8 +382,8 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
   for(int j = 0; j < closerPoints.size(); j++) {
    Line shorterLine = {robotPoint, closerPoints[j]};
 
-   double absAngularError = fabs(diffAngle(shorterLine, map[i]));
-   if(absAngularError < SMALLANGULARTOLERANCE || absAngularError > M_PI - SMALLANGULARTOLERANCE)
+   double angularError = diffAngle(map[i], shorterLine);
+   if(angularError < SMALLANGULARTOLERANCE || angularError > M_PI - SMALLANGULARTOLERANCE)
     continue;
 
    Point intersectPoint;
@@ -444,7 +444,7 @@ void mapDeduplicateAverage(vector<Line> &map) {
    double angularError;
    int distError;
    int refNorm;
-   if(testLines(map[i], map[j], SMALLDISTTOLERANCE, SMALLANGULARTOLERANCE, 0,
+   if(testLines(map[i], map[j], SMALLDISTTOLERANCE, SMALLANGULARTOLERANCE, -SMALLDISTTOLERANCE,
                 pointError, angularError, distError, refNorm))
     id.push_back(j);
   }
@@ -495,7 +495,7 @@ void mapDeduplicateErase(vector<Line> &map) {
    double angularError;
    int distError;
    int refNorm;
-   if(testLines(map[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, 0,
+   if(testLines(map[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, -SMALLDISTTOLERANCE,
                 pointError, angularError, distError, refNorm)) {
     map.erase(map.begin() + j);
     j--;
@@ -520,7 +520,7 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
    int refNorm;
 
    if(map[j].validation >= VALIDATIONFILTERSTART &&
-      testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, 0,
+      testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, -SMALLDISTTOLERANCE,
                 pointError, angularError, distError, refNorm)) {
     pointErrorSum += pointError;
     p++;
@@ -555,7 +555,7 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
    double angularError;
    int distError;
    int refNorm;
-   if(!testLines(mapLines[i], map[j], LARGEDISTTOLERANCE * 2, LARGEANGULARTOLERANCE, 0,
+   if(!testLines(mapLines[i], map[j], LARGEDISTTOLERANCE * 2, LARGEANGULARTOLERANCE, -SMALLDISTTOLERANCE,
       pointError, angularError, distError, refNorm))
     continue;
 
@@ -1146,7 +1146,7 @@ void autopilot(vector<Point> &patrolPoints, int &patrolPoint, Point &robotPoint,
  robotPoint += point;
 }
 
-void mapIntersect(vector<Line> &map) {
+void mapIntersects(vector<Line> &map) {
  bool sort = false;
 
  for(int i = 0; i < map.size(); i++) {
@@ -1311,7 +1311,7 @@ int main(int argc, char* argv[]) {
    mapCleaner(polarPoints, map, robotPoint, robotTheta);
    mapDeduplicateAverage(map);
    mapDeduplicateErase(map);
-   mapIntersect(map);
+   mapIntersects(map);
    mapFiltersDecay(map);
   }
 
