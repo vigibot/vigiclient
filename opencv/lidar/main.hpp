@@ -17,7 +17,7 @@
 #define VYDIV 10
 #define VZMUL 10
 
-#define MAPFILE "/tmp/map.json"
+#define MAPFILE "lidar.json"
 #define MAPDIV 10
 #define MAPDIVMIN 1
 #define MAPDIVMAX 100
