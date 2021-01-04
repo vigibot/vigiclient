@@ -660,11 +660,12 @@ void drawLidarPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) 
   Point point = points[i];
   point.x /= mapDiv;
   point.y /= -mapDiv;
+  point += centerPoint;
 
   if(beams)
-   line(image, centerPoint, centerPoint + point, Scalar::all(i ? 64 : 255), 1, LINE_AA);
+   line(image, centerPoint, point, Scalar::all(i ? 64 : 255), 1, LINE_AA);
   else
-   circle(image, centerPoint + point, i ? 1 : 3, i ? Scalar::all(255) : Scalar(0, 0, 255), FILLED, LINE_AA);
+   image.at<Vec3b>(point.y, point.x) = Vec3b(255, 255, 255);
  }
 }
 
@@ -682,7 +683,7 @@ void drawLidarLines(Mat &image, vector<Line> &robotLines, int mapDiv) {
   point1 += centerPoint;
   point2 += centerPoint;
 
-  line(image, point1, point2, Scalar::all(255), 2, LINE_AA);
+  line(image, point1, point2, Scalar::all(255), 1, LINE_AA);
  }
 }
 
