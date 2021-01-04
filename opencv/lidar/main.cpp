@@ -810,7 +810,8 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, int mapDiv) {
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
                     vector<Line> &map, vector<Point> &patrolPoints, int patrolPoint,
                     Point &robotPoint, Point &oldRobotPoint,
-                    uint16_t &robotTheta, uint16_t &oldRobotTheta, int time) {
+                    uint16_t &robotTheta, uint16_t &oldRobotTheta,
+                    int &select, int &mapDiv, int time) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -823,8 +824,6 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  static int buttonOkCount = 0;
  static int buttonCancelCount = 0;
  static bool tune = false;
- static int select = SELECTMAP;
- static int mapDiv = MAPDIV;
 
  if(buttonOk) {
   buttonOkCount++;
@@ -1002,7 +1001,7 @@ void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t robotTheta, uint16
  oldRobotPoint = robotPoint;
 }*/
 
-void writeMapFile(vector<Line> &map, vector<Point> patrolPoints, Point robotPoint, uint16_t robotTheta) {
+void writeMapFile(vector<Line> &map, vector<Point> patrolPoints, Point robotPoint, uint16_t robotTheta, int select, int mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::WRITE);
 
  if(fs.isOpened()) {
@@ -1025,12 +1024,15 @@ void writeMapFile(vector<Line> &map, vector<Point> patrolPoints, Point robotPoin
   fs << "robotPoint" << robotPoint;
   fs << "robotTheta" << robotTheta;
 
+  fs << "select" << select;
+  fs << "mapDiv" << mapDiv;
+
   fs.release();
  } else
   fprintf(stderr, "Error writing map file\n");
 }
 
-void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &robotPoint, uint16_t &robotTheta) {
+void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &robotPoint, uint16_t &robotTheta, int &select, int &mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::READ);
 
  if(fs.isOpened()) {
@@ -1054,6 +1056,9 @@ void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &robotPoi
 
   fs["robotPoint"] >> robotPoint;
   fs["robotTheta"] >> robotTheta;
+
+  fs["select"] >> select;
+  fs["mapDiv"] >> mapDiv;
 
   fs.release();
  } else
@@ -1278,8 +1283,10 @@ int main(int argc, char* argv[]) {
 
  Point robotPoint = Point(0, 0);
  uint16_t robotTheta = 0;
+ int select = SELECTMAPPOINTS;
+ int mapDiv = MAPDIV;
  fprintf(stderr, "Reading map file\n");
- readMapFile(map, patrolPoints, robotPoint, robotTheta);
+ readMapFile(map, patrolPoints, robotPoint, robotTheta, select, mapDiv);
  Point oldRobotPoint = robotPoint;
  uint16_t oldRobotTheta = robotTheta;
  robotThetaCorrector = robotTheta;
@@ -1358,7 +1365,8 @@ int main(int argc, char* argv[]) {
   autopilot(mapPoints, patrolPoints, patrolPoint, robotPoint, robotTheta);
 
   ui(image, robotPoints, robotLines, map, patrolPoints, patrolPoint,
-     robotPoint, oldRobotPoint, robotTheta, oldRobotTheta, time);
+     robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
+     select, mapDiv, time);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
@@ -1390,7 +1398,7 @@ int main(int argc, char* argv[]) {
  stopLidar(ld);
 
  fprintf(stderr, "Writing map file\n");
- writeMapFile(map, patrolPoints, robotPoint, robotTheta);
+ writeMapFile(map, patrolPoints, robotPoint, robotTheta, select, mapDiv);
 
  fprintf(stderr, "Stopping\n");
  return 0;
