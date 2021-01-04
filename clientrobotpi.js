@@ -290,9 +290,6 @@ function sleep() {
  sigterm("DiffAudio", USER.CMDDIFFAUDIO[0], function() {
  });
 
- exec("v4l2-ctl", SYS.V4L2 + " -c video_bitrate=" + confVideo.BITRATE, function() {
- });
-
  currentServer = "";
  up = false;
 }
