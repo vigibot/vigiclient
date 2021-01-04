@@ -687,7 +687,7 @@ void drawLidarLines(Mat &image, vector<Line> &robotLines, int mapDiv) {
  }
 }
 
-void drawMap(Mat &image, vector<Line> &map, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+void drawMap(Mat &image, vector<Line> &map, bool light, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  const Point centerPoint = Point(width / 2, height / 2);
 
  for(int i = 0; i < map.size(); i++) {
@@ -701,17 +701,22 @@ void drawMap(Mat &image, vector<Line> &map, Point robotPoint, uint16_t robotThet
   point1 += centerPoint;
   point2 += centerPoint;
 
-  Scalar color;
-  if(map[i].validation < VALIDATIONFILTERKEEP)
-   color = Scalar::all(mapInteger(map[i].validation, VALIDATIONFILTERKILL, VALIDATIONFILTERKEEP, 0, 255));
-  else {
-   Point diff = map[i].b - map[i].a;
-   double angleDeg = atan2(diff.y, diff.x) * 180.0 / M_PI;
-   uchar hue = uchar(angleDeg / 2.0 + 90.0) % 180;
-   color = hueToBgr[hue];
+  if(light) {
+   if(map[i].validation >= VALIDATIONFILTERKEEP)
+    line(image, point1, point2, Scalar::all(128), 1, LINE_AA);
+  } else {
+   Scalar color;
+   if(map[i].validation < VALIDATIONFILTERKEEP)
+    color = Scalar::all(mapInteger(map[i].validation, VALIDATIONFILTERKILL, VALIDATIONFILTERKEEP, 0, 255));
+   else {
+    Point diff = map[i].b - map[i].a;
+    double angleDeg = atan2(diff.y, diff.x) * 180.0 / M_PI;
+    uchar hue = uchar(angleDeg / 2.0 + 90.0) % 180;
+    color = hueToBgr[hue];
+   }
+   line(image, point1, point2, color, 2, LINE_AA);
   }
 
-  line(image, point1, point2, color, 2, LINE_AA);
  }
 }
 
@@ -889,7 +894,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    mapDiv--;
  } else {
   if(!buttonMore && oldButtonMore) {
-   if(select < SELECTPOINTSBEAMS)
+   if(select < SELECTDEBUGLIDAR)
     select++;
    else
     select = SELECTNONE;
@@ -897,7 +902,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    if(select > SELECTNONE)
     select--;
    else
-    select = SELECTPOINTSBEAMS;
+    select = SELECTDEBUGLIDAR;
   }
  }
 
@@ -912,55 +917,59 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    drawPatrolPoints(image, patrolPoints, patrolPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    if(tune)
-    sprintf(text, "%d mm per pixel", mapDiv);
+    sprintf(text, "%03d mm per pixel", mapDiv);
    else
     sprintf(text, "");
    break;
 
-  case SELECTMAP:
-   drawMap(image, map, robotPoint, robotTheta, mapDiv);
-   //drawIntersects(image, map, robotPoint, robotTheta, mapDiv);
-   drawHist(image, robotPoint, robotTheta, mapDiv);
-   drawPatrolPoints(image, patrolPoints, patrolPoint, robotPoint, robotTheta, mapDiv);
-   drawRobot(image, robotIcon, 1, mapDiv);
-   if(tune)
-    sprintf(text, "%d mm per pixel", mapDiv);
-   else
-    sprintf(text, "X %04d Y %04d Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
-   break;
-
-  case SELECTMAPPOINTS:
+  case SELECTLIGHT:
    drawLidarPoints(image, robotPoints, false, mapDiv);
-   drawLidarLines(image, robotLines, mapDiv);
-   drawMap(image, map, robotPoint, robotTheta, mapDiv);
+   drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotTheta, mapDiv);
    drawPatrolPoints(image, patrolPoints, patrolPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    if(tune)
-    sprintf(text, "%d mm per pixel", mapDiv);
+    sprintf(text, "%03d mm per pixel", mapDiv);
+   else
+    sprintf(text, "");
+   break;
+
+  case SELECTFULL:
+   drawLidarPoints(image, robotPoints, false, mapDiv);
+   drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
+   drawHist(image, robotPoint, robotTheta, mapDiv);
+   drawPatrolPoints(image, patrolPoints, patrolPoint, robotPoint, robotTheta, mapDiv);
+   drawRobot(image, robotIcon, 1, mapDiv);
+   if(tune)
+    sprintf(text, "%03d mm per pixel", mapDiv);
    else
     sprintf(text, "X %04d Y %04d Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
    break;
 
-  case SELECTMAPPOINTSBEAMS:
+  case SELECTDEBUGMAP:
    drawLidarPoints(image, robotPoints, true, mapDiv);
    drawLidarLines(image, robotLines, mapDiv);
-   drawMap(image, map, robotPoint, robotTheta, mapDiv);
+   drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, FILLED, mapDiv);
    if(tune)
-    sprintf(text, "%d mm per pixel", mapDiv);
-   else
-    sprintf(text, "%d points %d lines %d map lines %d ms", robotPoints.size(), robotLines.size(), map.size(), time);
+    sprintf(text, "%03d mm per pixel", mapDiv);
+   else {
+    int n = 0;
+    for(int i = 0; i < map.size(); i++)
+     if(map[i].validation < VALIDATIONFILTERKEEP)
+      n++;
+    sprintf(text, "%02d lidar lines %02d validation lines %03d map lines %02d ms", robotLines.size(), n, map.size() - n, time);
+   }
    break;
 
-  case SELECTPOINTSBEAMS:
+  case SELECTDEBUGLIDAR:
    drawLidarPoints(image, robotPoints, true, mapDiv);
    drawLidarLines(image, robotLines, mapDiv);
    drawRobot(image, robotIcon, FILLED, mapDiv);
    if(tune)
-    sprintf(text, "%d mm per pixel", mapDiv);
+    sprintf(text, "%03d mm per pixel", mapDiv);
    else
-    sprintf(text, "%d points %d lines %d map lines %d ms", robotPoints.size(), robotLines.size(), map.size(), time);
+    sprintf(text, "%03d lidar points %02d lidar lines %02d ms", robotPoints.size(), robotLines.size(), time);
    break;
  }
 
@@ -1284,7 +1293,7 @@ int main(int argc, char* argv[]) {
 
  Point robotPoint = Point(0, 0);
  uint16_t robotTheta = 0;
- int select = SELECTMAPPOINTS;
+ int select = SELECTLIGHT;
  int mapDiv = MAPDIV;
  fprintf(stderr, "Reading map file\n");
  readMapFile(map, patrolPoints, robotPoint, robotTheta, select, mapDiv);
