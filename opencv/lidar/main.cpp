@@ -817,7 +817,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
                     vector<Line> &map, vector<Point> &patrolPoints, int patrolPoint,
                     Point &robotPoint, Point &oldRobotPoint,
                     uint16_t &robotTheta, uint16_t &oldRobotTheta,
-                    int &select, int &mapDiv, int time) {
+                    int &select, int &mapDiv, int time, bool &patrolEnabled) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -835,6 +835,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  if(buttonOk) {
   buttonOkCount++;
   if(buttonOkCount == BUTTONSLONGPRESS) {
+
+   patrolEnabled = !patrolEnabled;
 
   }
  } else if(buttonCancel) {
@@ -1143,8 +1145,8 @@ bool obstacle(vector<Point> &mapPoints, Point patrolPoint, Point robotPoint, uin
  return false;
 }
 
-void autopilot(vector<Point> &mapPoints, vector<Point> &patrolPoints, int &patrolPoint, Point &robotPoint, uint16_t &robotTheta) {
- static bool enabled = false;
+void autopilot(vector<Point> &mapPoints, vector<Point> &patrolPoints, int &patrolPoint, Point &robotPoint, uint16_t &robotTheta, bool &patrolEnabled) {
+ static bool oldPatrolEnabled = false;
  int size = patrolPoints.size();
  static int futurePatrolPoint;
  static int dir = 1;
@@ -1152,15 +1154,23 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &patrolPoints, int &patro
  static int8_t vy = 0;
  static int8_t vz = 0;
 
- if(!enabled && size >= 2 &&
-    sqDist(robotPoint, patrolPoints[0]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
-  enabled = true;
-  patrolPoint = 1;
-  futurePatrolPoint = 2;
- } else if(size < 2 || remoteFrame.vz)
-  enabled = false;
+ if(patrolEnabled && !oldPatrolEnabled && size >= 2) {
+  int min = INT_MAX;
+  int nearest;
+  for(int i = 0; i < patrolPoints.size(); i++) {
+   int dist = sqDist(robotPoint, patrolPoints[i]);
+   if(dist < min) {
+    min = dist;
+    nearest = i;
+   }
+  }
+  patrolPoint = nearest;
+  futurePatrolPoint = (nearest + 1) % size;
+ } else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz || size < 2)
+  patrolEnabled = false;
+ oldPatrolEnabled = patrolEnabled;
 
- if(!enabled) {
+ if(!patrolEnabled) {
   telemetryFrame.vx = remoteFrame.vx;
   telemetryFrame.vy = remoteFrame.vy;
   telemetryFrame.vz = remoteFrame.vz;
@@ -1305,6 +1315,7 @@ int main(int argc, char* argv[]) {
  uint16_t oldRobotTheta = robotTheta;
  robotThetaCorrector = robotTheta;
  int patrolPoint = 0;
+ bool patrolEnabled = false;
 
  bgrInit();
 
@@ -1376,11 +1387,11 @@ int main(int argc, char* argv[]) {
    robotToMap(robotPoints, mapPoints, robotPoint, robotTheta);
   }
 
-  autopilot(mapPoints, patrolPoints, patrolPoint, robotPoint, robotTheta);
+  autopilot(mapPoints, patrolPoints, patrolPoint, robotPoint, robotTheta, patrolEnabled);
 
   ui(image, robotPoints, robotLines, map, patrolPoints, patrolPoint,
      robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
-     select, mapDiv, time);
+     select, mapDiv, time, patrolEnabled);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
