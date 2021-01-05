@@ -1081,10 +1081,9 @@ void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &robotPoi
   fprintf(stderr, "Error reading map file\n");
 }
 
-bool gotoPoint(Point patrolPoint, Point futurePatrolPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t robotTheta) {
+bool gotoPoint(Point patrolPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t robotTheta) {
  Point deltaPoint = patrolPoint - robotPoint;
  int dist = int(sqrt(sqNorm(deltaPoint)));
- static bool brake = false;
  static int integTheta = 0;
  static int16_t oldDeltaTheta = 0;
 
@@ -1111,18 +1110,7 @@ bool gotoPoint(Point patrolPoint, Point futurePatrolPoint, int8_t &vy, int8_t &v
  int16_t derivTheta = deltaTheta - oldDeltaTheta;
  oldDeltaTheta = deltaTheta;
 
- if(dist > GOTOPOINTDISTTOLERANCE) {
-  if(fabs(diffAngle({robotPoint, patrolPoint}, {patrolPoint, futurePatrolPoint})) > GOTOPOINTANGLEBRAKE)
-   brake = true;
-  else
-   brake = false;
- }
-
- int8_t velocity = constrain(GOTOPOINTVELOCITY - abs(deltaTheta) * GOTOPOINTVELOCITY * 180 / PI16 / GOTOPOINTANGLESTOP, 0, GOTOPOINTVELOCITY);
- if(brake)
-  vy = constrain(dist * velocity / GOTOPOINTBRAKEDIST, 0, velocity);
- else
-  vy = GOTOPOINTVELOCITY;
+ vy = constrain(GOTOPOINTVELOCITY - abs(deltaTheta) * GOTOPOINTVELOCITY * 180 / PI16 / GOTOPOINTANGLESTOP, 0, GOTOPOINTVELOCITY);
  if(reverseGear)
   vy = -vy;
  vz = constrain(deltaTheta / KPTHETA + integTheta / KITHETA + derivTheta / KDTHETA, -GOTOPOINTVELOCITYTHETA, GOTOPOINTVELOCITYTHETA);
@@ -1148,7 +1136,6 @@ bool obstacle(vector<Point> &mapPoints, Point patrolPoint, Point robotPoint, uin
 void autopilot(vector<Point> &mapPoints, vector<Point> &patrolPoints, int &patrolPoint, Point &robotPoint, uint16_t &robotTheta, bool &patrolEnabled) {
  static bool oldPatrolEnabled = false;
  int size = patrolPoints.size();
- static int futurePatrolPoint;
  static int dir = 1;
  static int8_t vx = 0;
  static int8_t vy = 0;
@@ -1165,7 +1152,6 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &patrolPoints, int &patro
    }
   }
   patrolPoint = nearest;
-  futurePatrolPoint = (nearest + 1) % size;
   dir = 1;
  } else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz || size < 2)
   patrolEnabled = false;
@@ -1179,24 +1165,18 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &patrolPoints, int &patro
  }
 
  bool ob = obstacle(mapPoints, patrolPoints[patrolPoint], robotPoint, robotTheta);
- bool go = gotoPoint(patrolPoints[patrolPoint], patrolPoints[futurePatrolPoint], vy, vz, robotPoint, robotTheta);
+ bool go = gotoPoint(patrolPoints[patrolPoint], vy, vz, robotPoint, robotTheta);
 
  if(ob || go) {
   if(ob)
    dir = -dir;
 
   patrolPoint += dir;
-  futurePatrolPoint = patrolPoint + dir;
 
   if(patrolPoint >= size)
    patrolPoint -= size;
   else if(patrolPoint < 0)
    patrolPoint += size;
-
-  if(futurePatrolPoint >= size)
-   futurePatrolPoint -= size;
-  else if(futurePatrolPoint < 0)
-   futurePatrolPoint += size;
  }
 
  telemetryFrame.vx = vx;
