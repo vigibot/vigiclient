@@ -2,6 +2,8 @@
 #define HEIGHT 480
 #define FPS 30
 
+#define BUTTONSLONGPRESS 15
+
 #define IMU
 #define DIRZ -1.0
 #define IMUSLERPPOWER 0.01

@@ -827,18 +827,19 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  static bool oldButtonMore = false;
  static bool oldButtonOk = false;
  static bool oldButtonCancel = false;
+ static int buttonLessCount = 0;
+ static int buttonMoreCount = 0;
  static int buttonOkCount = 0;
  static int buttonCancelCount = 0;
- static bool tune = false;
 
  if(buttonOk) {
   buttonOkCount++;
-  if(buttonOkCount == 15)
-   tune = !tune;
+  if(buttonOkCount == BUTTONSLONGPRESS) {
 
+  }
  } else if(buttonCancel) {
   buttonCancelCount++;
-  if(buttonCancelCount == 15) {
+  if(buttonCancelCount == BUTTONSLONGPRESS) {
 
    map.clear();
    if(patrolPoints.empty()) {
@@ -853,8 +854,24 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    }
 
   }
+ } else if(buttonMore) {
+  buttonMoreCount++;
+  if(buttonMoreCount >= BUTTONSLONGPRESS) {
+
+   if(buttonMoreCount % 2 && mapDiv > MAPDIVMIN)
+    mapDiv--;
+
+  }
+ } else if(buttonLess) {
+  buttonLessCount++;
+  if(buttonLessCount >= BUTTONSLONGPRESS) {
+
+   if(buttonLessCount % 2 && mapDiv < MAPDIVMAX)
+    mapDiv++;
+
+  }
  } else if(!buttonOk && oldButtonOk) {
-  if(buttonOkCount < 15) {
+  if(buttonOkCount < BUTTONSLONGPRESS) {
 
    bool found = false;
    for(int i = 0; i < patrolPoints.size(); i++) {
@@ -870,7 +887,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
   }
   buttonOkCount = 0;
  } else if(!buttonCancel && oldButtonCancel) {
-  if(buttonCancelCount < 15 && !patrolPoints.empty()) {
+  if(buttonCancelCount < BUTTONSLONGPRESS) {
 
    bool found = false;
    for(int i = 0; i < patrolPoints.size(); i++) {
@@ -880,30 +897,31 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
      break;
     }
    }
-   if(!found)
+   if(!found && !patrolPoints.empty())
     patrolPoints.pop_back();
 
   }
   buttonCancelCount = 0;
- }
+ } else if(!buttonMore && oldButtonMore) {
+  if(buttonMoreCount < BUTTONSLONGPRESS) {
 
- if(tune) {
-  if(buttonLess && mapDiv < MAPDIVMAX)
-   mapDiv++;
-  else if(buttonMore && mapDiv > MAPDIVMIN)
-   mapDiv--;
- } else {
-  if(!buttonMore && oldButtonMore) {
    if(select < SELECTDEBUGLIDAR)
     select++;
    else
     select = SELECTNONE;
-  } else if(!buttonLess && oldButtonLess) {
+
+  }
+  buttonMoreCount = 0;
+ } else if(!buttonLess && oldButtonLess) {
+  if(buttonLessCount < BUTTONSLONGPRESS) {
+
    if(select > SELECTNONE)
     select--;
    else
     select = SELECTDEBUGLIDAR;
+
   }
+  buttonLessCount = 0;
  }
 
  oldButtonLess = buttonLess;
@@ -916,10 +934,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
   case SELECTNONE:
    drawPatrolPoints(image, patrolPoints, patrolPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
-   if(tune)
-    sprintf(text, "%03d mm per pixel", mapDiv);
-   else
-    sprintf(text, "");
+   sprintf(text, "");
    break;
 
   case SELECTLIGHT:
@@ -928,10 +943,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    drawHist(image, robotPoint, robotTheta, mapDiv);
    drawPatrolPoints(image, patrolPoints, patrolPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
-   if(tune)
-    sprintf(text, "%03d mm per pixel", mapDiv);
-   else
-    sprintf(text, "");
+   sprintf(text, "");
    break;
 
   case SELECTFULL:
@@ -940,10 +952,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    drawHist(image, robotPoint, robotTheta, mapDiv);
    drawPatrolPoints(image, patrolPoints, patrolPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
-   if(tune)
-    sprintf(text, "%03d mm per pixel", mapDiv);
-   else
-    sprintf(text, "X %04d Y %04d Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
+   sprintf(text, "X %04d Y %04d Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
    break;
 
   case SELECTDEBUGMAP:
@@ -951,14 +960,12 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    drawLidarLines(image, robotLines, mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, FILLED, mapDiv);
-   if(tune)
-    sprintf(text, "%03d mm per pixel", mapDiv);
-   else {
+   {
     int n = 0;
     for(int i = 0; i < map.size(); i++)
      if(map[i].validation < VALIDATIONFILTERKEEP)
       n++;
-    sprintf(text, "%02d lidar lines %02d validation lines %03d map lines %02d ms", robotLines.size(), n, map.size() - n, time);
+    sprintf(text, "%02d lidar lines %02d validation lines %03d map lines %03d mm per pixel %02d ms", robotLines.size(), n, map.size() - n, mapDiv, time);
    }
    break;
 
@@ -966,10 +973,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    drawLidarPoints(image, robotPoints, true, mapDiv);
    drawLidarLines(image, robotLines, mapDiv);
    drawRobot(image, robotIcon, FILLED, mapDiv);
-   if(tune)
-    sprintf(text, "%03d mm per pixel", mapDiv);
-   else
-    sprintf(text, "%03d lidar points %02d lidar lines %02d ms", robotPoints.size(), robotLines.size(), time);
+   sprintf(text, "%03d lidar points %02d lidar lines %03d mm per pixel %02d ms", robotPoints.size(), robotLines.size(), mapDiv, time);
    break;
  }
 
