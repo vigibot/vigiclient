@@ -1166,6 +1166,7 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &patrolPoints, int &patro
   }
   patrolPoint = nearest;
   futurePatrolPoint = (nearest + 1) % size;
+  dir = 1;
  } else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz || size < 2)
   patrolEnabled = false;
  oldPatrolEnabled = patrolEnabled;
