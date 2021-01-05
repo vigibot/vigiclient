@@ -388,7 +388,7 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
    Line shorterLine = {robotPoint, closerPoints[j]};
 
    double angularError = diffAngle(map[i], shorterLine);
-   if(angularError < SMALLANGULARTOLERANCE || angularError > M_PI - SMALLANGULARTOLERANCE)
+   if(angularError < MAPCLEANERANGULARTOLERANCE || angularError > M_PI - MAPCLEANERANGULARTOLERANCE)
     continue;
 
    Point intersectPoint;
