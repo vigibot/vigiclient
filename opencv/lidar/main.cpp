@@ -817,7 +817,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
                     vector<Line> &map, vector<Point> &waypoints, int waypoint,
                     Point &robotPoint, Point &oldRobotPoint,
                     uint16_t &robotTheta, uint16_t &oldRobotTheta,
-                    int &select, int &mapDiv, int time, bool &patrolEnabled) {
+                    bool &mappingEnabled, int &select, int &mapDiv, bool &waypointsEnabled, int time) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -836,23 +836,28 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
   buttonOkCount++;
   if(buttonOkCount == BUTTONSLONGPRESS) {
 
-   patrolEnabled = !patrolEnabled;
+   if(select <= SELECTFULL)
+    waypointsEnabled = !waypointsEnabled;
+   else if(select == SELECTDEBUGMAP)
+    mappingEnabled = !mappingEnabled;
 
   }
  } else if(buttonCancel) {
   buttonCancelCount++;
   if(buttonCancelCount == BUTTONSLONGPRESS) {
 
-   map.clear();
-   if(waypoints.empty()) {
-    robotPoint = Point(0, 0);
-    oldRobotPoint = Point(0, 0);
-    robotTheta = 0;
-    oldRobotTheta = 0;
+   if(select <= SELECTDEBUGMAP) {
+    map.clear();
+    if(waypoints.empty()) {
+     robotPoint = Point(0, 0);
+     oldRobotPoint = Point(0, 0);
+     robotTheta = 0;
+     oldRobotTheta = 0;
 #ifdef IMU
-    imu->resetFusion();
-    robotThetaCorrector = 0;
+     imu->resetFusion();
+     robotThetaCorrector = 0;
 #endif
+    }
    }
 
   }
@@ -875,32 +880,36 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  } else if(!buttonOk && oldButtonOk) {
   if(buttonOkCount < BUTTONSLONGPRESS) {
 
-   bool found = false;
-   for(int i = 0; i < waypoints.size(); i++) {
-    if(sqDist(robotPoint, waypoints[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
-     waypoints[i] = robotPoint;
-     found = true;
-     break;
+   if(select <= SELECTFULL) {
+    bool found = false;
+    for(int i = 0; i < waypoints.size(); i++) {
+     if(sqDist(robotPoint, waypoints[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
+      waypoints[i] = robotPoint;
+      found = true;
+      break;
+     }
     }
+    if(!found)
+     waypoints.push_back(robotPoint);
    }
-   if(!found)
-    waypoints.push_back(robotPoint);
 
   }
   buttonOkCount = 0;
  } else if(!buttonCancel && oldButtonCancel) {
   if(buttonCancelCount < BUTTONSLONGPRESS) {
 
-   bool found = false;
-   for(int i = 0; i < waypoints.size(); i++) {
-    if(sqDist(robotPoint, waypoints[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
-     waypoints.erase(waypoints.begin() + i);
-     found = true;
-     break;
+   if(select <= SELECTFULL) {
+    bool found = false;
+    for(int i = 0; i < waypoints.size(); i++) {
+     if(sqDist(robotPoint, waypoints[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
+      waypoints.erase(waypoints.begin() + i);
+      found = true;
+      break;
+     }
     }
+    if(!found && !waypoints.empty())
+     waypoints.pop_back();
    }
-   if(!found && !waypoints.empty())
-    waypoints.pop_back();
 
   }
   buttonCancelCount = 0;
@@ -971,7 +980,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
     for(int i = 0; i < map.size(); i++)
      if(map[i].validation < VALIDATIONFILTERKEEP)
       n++;
-    sprintf(text, "Lines %02d | Pending %02d | Map %03d | Scale %03d mm | Time %02d ms", robotLines.size(), n, map.size() - n, mapDiv, time);
+    sprintf(text, "Pending %02d | Lines %03d | Mapping %d | Scale %03d mm | Time %02d ms", n, map.size() - n, mappingEnabled, mapDiv, time);
    }
    break;
 
@@ -1021,7 +1030,7 @@ void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t robotTheta, uint16
  oldRobotPoint = robotPoint;
 }*/
 
-void writeMapFile(vector<Line> &map, vector<Point> waypoints, Point robotPoint, uint16_t robotTheta, int select, int mapDiv) {
+void writeMapFile(vector<Line> &map, vector<Point> waypoints, Point robotPoint, uint16_t robotTheta, bool mappingEnabled, int select, int mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::WRITE);
 
  if(fs.isOpened()) {
@@ -1044,6 +1053,7 @@ void writeMapFile(vector<Line> &map, vector<Point> waypoints, Point robotPoint, 
   fs << "robotPoint" << robotPoint;
   fs << "robotTheta" << robotTheta;
 
+  fs << "mappingEnabled" << mappingEnabled;
   fs << "select" << select;
   fs << "mapDiv" << mapDiv;
 
@@ -1052,7 +1062,7 @@ void writeMapFile(vector<Line> &map, vector<Point> waypoints, Point robotPoint, 
   fprintf(stderr, "Error writing map file\n");
 }
 
-void readMapFile(vector<Line> &map, vector<Point> &waypoints, Point &robotPoint, uint16_t &robotTheta, int &select, int &mapDiv) {
+void readMapFile(vector<Line> &map, vector<Point> &waypoints, Point &robotPoint, uint16_t &robotTheta, bool &mappingEnabled, int &select, int &mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::READ);
 
  if(fs.isOpened()) {
@@ -1077,6 +1087,7 @@ void readMapFile(vector<Line> &map, vector<Point> &waypoints, Point &robotPoint,
   fs["robotPoint"] >> robotPoint;
   fs["robotTheta"] >> robotTheta;
 
+  fs["mappingEnabled"] >> mappingEnabled;
   fs["select"] >> select;
   fs["mapDiv"] >> mapDiv;
 
@@ -1137,15 +1148,15 @@ bool obstacle(vector<Point> &mapPoints, Point targetPoint, Point robotPoint, uin
  return false;
 }
 
-void autopilot(vector<Point> &mapPoints, vector<Point> &waypoints, int &waypoint, Point &robotPoint, uint16_t &robotTheta, bool &patrolEnabled) {
- static bool oldPatrolEnabled = false;
+void autopilot(vector<Point> &mapPoints, vector<Point> &waypoints, int &waypoint, Point &robotPoint, uint16_t &robotTheta, bool &waypointsEnabled) {
+ static bool oldWaypointsEnabled = false;
  int size = waypoints.size();
  static int dir = 1;
  static int8_t vx = 0;
  static int8_t vy = 0;
  static int8_t vz = 0;
 
- if(patrolEnabled && !oldPatrolEnabled && size >= 2) {
+ if(waypointsEnabled && !oldWaypointsEnabled && size >= 2) {
   int min = INT_MAX;
   for(int i = 0; i < waypoints.size(); i++) {
    int dist = sqDist(robotPoint, waypoints[i]);
@@ -1156,10 +1167,10 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &waypoints, int &waypoint
   }
   dir = 1;
  } else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz || size < 2)
-  patrolEnabled = false;
- oldPatrolEnabled = patrolEnabled;
+  waypointsEnabled = false;
+ oldWaypointsEnabled = waypointsEnabled;
 
- if(!patrolEnabled) {
+ if(!waypointsEnabled) {
   telemetryFrame.vx = remoteFrame.vx;
   telemetryFrame.vy = remoteFrame.vy;
   telemetryFrame.vz = remoteFrame.vz;
@@ -1290,15 +1301,16 @@ int main(int argc, char* argv[]) {
 
  Point robotPoint = Point(0, 0);
  uint16_t robotTheta = 0;
+ bool mappingEnabled = true;
  int select = SELECTLIGHT;
  int mapDiv = MAPDIV;
  fprintf(stderr, "Reading map file\n");
- readMapFile(map, waypoints, robotPoint, robotTheta, select, mapDiv);
+ readMapFile(map, waypoints, robotPoint, robotTheta, mappingEnabled, select, mapDiv);
  Point oldRobotPoint = robotPoint;
  uint16_t oldRobotTheta = robotTheta;
  robotThetaCorrector = robotTheta;
  int waypoint = 0;
- bool patrolEnabled = false;
+ bool waypointsEnabled = false;
 
  bgrInit();
 
@@ -1360,21 +1372,25 @@ int main(int argc, char* argv[]) {
    fitLines(robotRawLines, robotLines);
 
    localization(robotLines, mapLines, map, robotPoint, robotTheta);
-   mapping(mapLines, map);
-   mapCleaner(polarPoints, map, robotPoint, robotTheta);
-   mapDeduplicateAverage(map);
-   mapDeduplicateErase(map);
-   mapIntersects(map);
-   mapFiltersDecay(map);
+
+   if(mappingEnabled) {
+    mapping(mapLines, map);
+    mapCleaner(polarPoints, map, robotPoint, robotTheta);
+    mapDeduplicateAverage(map);
+    mapDeduplicateErase(map);
+    mapIntersects(map);
+    mapFiltersDecay(map);
+   }
+
    mapPoints.clear();
    robotToMap(robotPoints, mapPoints, robotPoint, robotTheta);
   }
 
-  autopilot(mapPoints, waypoints, waypoint, robotPoint, robotTheta, patrolEnabled);
+  autopilot(mapPoints, waypoints, waypoint, robotPoint, robotTheta, waypointsEnabled);
 
   ui(image, robotPoints, robotLines, map, waypoints, waypoint,
      robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
-     select, mapDiv, time, patrolEnabled);
+     mappingEnabled, select, mapDiv, waypointsEnabled, time);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
@@ -1406,7 +1422,7 @@ int main(int argc, char* argv[]) {
  stopLidar(ld);
 
  fprintf(stderr, "Writing map file\n");
- writeMapFile(map, waypoints, robotPoint, robotTheta, select, mapDiv);
+ writeMapFile(map, waypoints, robotPoint, robotTheta, mappingEnabled, select, mapDiv);
 
  fprintf(stderr, "Stopping\n");
  return 0;
