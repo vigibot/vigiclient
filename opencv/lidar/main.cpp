@@ -838,8 +838,15 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
 
    if(select <= SELECTFULL)
     waypointsEnabled = !waypointsEnabled;
-   else if(select == SELECTDEBUGMAP)
+   else if(select == SELECTDEBUGMAP) {
     mappingEnabled = !mappingEnabled;
+    for(int i = 0; i < map.size(); i++) {
+     if(map[i].validation < VALIDATIONFILTERKEEP) {
+      map.erase(map.begin() + i);
+      i--;
+     }
+    }
+   }
 
   }
  } else if(buttonCancel) {
@@ -980,7 +987,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
     for(int i = 0; i < map.size(); i++)
      if(map[i].validation < VALIDATIONFILTERKEEP)
       n++;
-    sprintf(text, "Pending %02d | Lines %03d | Mapping %d | Scale %03d mm | Time %02d ms", n, map.size() - n, mappingEnabled, mapDiv, time);
+    sprintf(text, "Mapping %d | Pending %02d | Lines %03d | Scale %03d mm | Time %02d ms", mappingEnabled, n, map.size() - n, mapDiv, time);
    }
    break;
 
