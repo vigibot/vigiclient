@@ -771,11 +771,11 @@ void drawHist(Mat &image, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  }
 }
 
-void drawPatrolPoints(Mat &image, vector<Point> &patrolPoints, int patrolPoint, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+void drawWaypoints(Mat &image, vector<Point> &waypoints, int waypoint, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  const Point centerPoint = Point(width / 2, height / 2);
 
- for(int i = 0; i < patrolPoints.size(); i++) {
-  Point point = rotate(patrolPoints[i] - robotPoint, -robotTheta);
+ for(int i = 0; i < waypoints.size(); i++) {
+  Point point = rotate(waypoints[i] - robotPoint, -robotTheta);
   point.x /= mapDiv;
   point.y /= -mapDiv;
   point += centerPoint;
@@ -790,7 +790,7 @@ void drawPatrolPoints(Mat &image, vector<Point> &patrolPoints, int patrolPoint, 
   putText(image, text, textPoint, FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
   putText(image, text, textPoint + Point(1, 1), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
 
-  if(i == patrolPoint) {
+  if(i == waypoint) {
    circle(image, point, textSize.width / 2 + 3, Scalar::all(0), 1, LINE_AA);
    circle(image, point + Point(1, 1), textSize.width / 2 + 3, Scalar::all(255), 1, LINE_AA);
   }
@@ -814,7 +814,7 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, int mapDiv) {
 }
 
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
-                    vector<Line> &map, vector<Point> &patrolPoints, int patrolPoint,
+                    vector<Line> &map, vector<Point> &waypoints, int waypoint,
                     Point &robotPoint, Point &oldRobotPoint,
                     uint16_t &robotTheta, uint16_t &oldRobotTheta,
                     int &select, int &mapDiv, int time, bool &patrolEnabled) {
@@ -844,7 +844,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
   if(buttonCancelCount == BUTTONSLONGPRESS) {
 
    map.clear();
-   if(patrolPoints.empty()) {
+   if(waypoints.empty()) {
     robotPoint = Point(0, 0);
     oldRobotPoint = Point(0, 0);
     robotTheta = 0;
@@ -876,15 +876,15 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
   if(buttonOkCount < BUTTONSLONGPRESS) {
 
    bool found = false;
-   for(int i = 0; i < patrolPoints.size(); i++) {
-    if(sqDist(robotPoint, patrolPoints[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
-     patrolPoints[i] = robotPoint;
+   for(int i = 0; i < waypoints.size(); i++) {
+    if(sqDist(robotPoint, waypoints[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
+     waypoints[i] = robotPoint;
      found = true;
      break;
     }
    }
    if(!found)
-    patrolPoints.push_back(robotPoint);
+    waypoints.push_back(robotPoint);
 
   }
   buttonOkCount = 0;
@@ -892,15 +892,15 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
   if(buttonCancelCount < BUTTONSLONGPRESS) {
 
    bool found = false;
-   for(int i = 0; i < patrolPoints.size(); i++) {
-    if(sqDist(robotPoint, patrolPoints[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
-     patrolPoints.erase(patrolPoints.begin() + i);
+   for(int i = 0; i < waypoints.size(); i++) {
+    if(sqDist(robotPoint, waypoints[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
+     waypoints.erase(waypoints.begin() + i);
      found = true;
      break;
     }
    }
-   if(!found && !patrolPoints.empty())
-    patrolPoints.pop_back();
+   if(!found && !waypoints.empty())
+    waypoints.pop_back();
 
   }
   buttonCancelCount = 0;
@@ -934,7 +934,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  char text[80];
  switch(select) {
   case SELECTNONE:
-   drawPatrolPoints(image, patrolPoints, patrolPoint, robotPoint, robotTheta, mapDiv);
+   drawWaypoints(image, waypoints, waypoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    sprintf(text, "");
    break;
@@ -943,7 +943,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    drawLidarPoints(image, robotPoints, false, mapDiv);
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotTheta, mapDiv);
-   drawPatrolPoints(image, patrolPoints, patrolPoint, robotPoint, robotTheta, mapDiv);
+   drawWaypoints(image, waypoints, waypoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    sprintf(text, "");
    break;
@@ -952,10 +952,10 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    drawLidarPoints(image, robotPoints, false, mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotTheta, mapDiv);
-   drawPatrolPoints(image, patrolPoints, patrolPoint, robotPoint, robotTheta, mapDiv);
+   drawWaypoints(image, waypoints, waypoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
-   sprintf(text, "Waypoints %02d/%02d | X %04d/%04d | Y %04d/%04d | Theta %03d", patrolPoint, patrolPoints.size(),
-           robotPoint.x, patrolPoints[patrolPoint].x, robotPoint.y, patrolPoints[patrolPoint].y, robotTheta * 180 / PI16);
+   sprintf(text, "Waypoints %02d/%02d | X %04d/%04d | Y %04d/%04d | Theta %03d", waypoint, waypoints.size(),
+           robotPoint.x, waypoints[waypoint].x, robotPoint.y, waypoints[waypoint].y, robotTheta * 180 / PI16);
    break;
 
   case SELECTDEBUGMAP:
@@ -1018,7 +1018,7 @@ void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t robotTheta, uint16
  oldRobotPoint = robotPoint;
 }*/
 
-void writeMapFile(vector<Line> &map, vector<Point> patrolPoints, Point robotPoint, uint16_t robotTheta, int select, int mapDiv) {
+void writeMapFile(vector<Line> &map, vector<Point> waypoints, Point robotPoint, uint16_t robotTheta, int select, int mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::WRITE);
 
  if(fs.isOpened()) {
@@ -1033,9 +1033,9 @@ void writeMapFile(vector<Line> &map, vector<Point> patrolPoints, Point robotPoin
   }
   fs << "]";
 
-  fs << "patrolPoints" << "[";
-  for(int i = 0; i < patrolPoints.size(); i++)
-   fs << patrolPoints[i];
+  fs << "waypoints" << "[";
+  for(int i = 0; i < waypoints.size(); i++)
+   fs << waypoints[i];
   fs << "]";
 
   fs << "robotPoint" << robotPoint;
@@ -1049,7 +1049,7 @@ void writeMapFile(vector<Line> &map, vector<Point> patrolPoints, Point robotPoin
   fprintf(stderr, "Error writing map file\n");
 }
 
-void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &robotPoint, uint16_t &robotTheta, int &select, int &mapDiv) {
+void readMapFile(vector<Line> &map, vector<Point> &waypoints, Point &robotPoint, uint16_t &robotTheta, int &select, int &mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::READ);
 
  if(fs.isOpened()) {
@@ -1063,12 +1063,12 @@ void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &robotPoi
    map.push_back({a, b, Point(0, 0), Point(0, 0), 0, VALIDATIONFILTERKEEP, SHRINKFILTER, SHRINKFILTER});
   }
 
-  FileNode fn2 = fs["patrolPoints"];
+  FileNode fn2 = fs["waypoints"];
   for(FileNodeIterator it = fn2.begin(); it != fn2.end(); it++) {
    FileNode item = *it;
    Point point;
    item >> point;
-   patrolPoints.push_back(point);
+   waypoints.push_back(point);
   }
 
   fs["robotPoint"] >> robotPoint;
@@ -1082,8 +1082,8 @@ void readMapFile(vector<Line> &map, vector<Point> &patrolPoints, Point &robotPoi
   fprintf(stderr, "Error reading map file\n");
 }
 
-bool gotoPoint(Point patrolPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t robotTheta) {
- Point deltaPoint = patrolPoint - robotPoint;
+bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t robotTheta) {
+ Point deltaPoint = targetPoint - robotPoint;
  int dist = int(sqrt(sqNorm(deltaPoint)));
  static int integTheta = 0;
  static int16_t oldDeltaTheta = 0;
@@ -1119,9 +1119,9 @@ bool gotoPoint(Point patrolPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
  return false;
 }
 
-bool obstacle(vector<Point> &mapPoints, Point patrolPoint, Point robotPoint, uint16_t robotTheta) {
+bool obstacle(vector<Point> &mapPoints, Point targetPoint, Point robotPoint, uint16_t robotTheta) {
  for(int i = 0; i < mapPoints.size(); i++) {
-  Line line = {robotPoint, patrolPoint};
+  Line line = {robotPoint, targetPoint};
   if(sqNorm(pointDistancePointLine(mapPoints[i], line)) < ROBOTWIDTH * ROBOTWIDTH) {
    int refNorm = int(sqrt(sqDist(line)));
    int distance = ratioPointLine(mapPoints[i], line) * refNorm;
@@ -1134,9 +1134,9 @@ bool obstacle(vector<Point> &mapPoints, Point patrolPoint, Point robotPoint, uin
  return false;
 }
 
-void autopilot(vector<Point> &mapPoints, vector<Point> &patrolPoints, int &patrolPoint, Point &robotPoint, uint16_t &robotTheta, bool &patrolEnabled) {
+void autopilot(vector<Point> &mapPoints, vector<Point> &waypoints, int &waypoint, Point &robotPoint, uint16_t &robotTheta, bool &patrolEnabled) {
  static bool oldPatrolEnabled = false;
- int size = patrolPoints.size();
+ int size = waypoints.size();
  static int dir = 1;
  static int8_t vx = 0;
  static int8_t vy = 0;
@@ -1144,15 +1144,13 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &patrolPoints, int &patro
 
  if(patrolEnabled && !oldPatrolEnabled && size >= 2) {
   int min = INT_MAX;
-  int nearest;
-  for(int i = 0; i < patrolPoints.size(); i++) {
-   int dist = sqDist(robotPoint, patrolPoints[i]);
+  for(int i = 0; i < waypoints.size(); i++) {
+   int dist = sqDist(robotPoint, waypoints[i]);
    if(dist < min) {
     min = dist;
-    nearest = i;
+    waypoint = i;
    }
   }
-  patrolPoint = nearest;
   dir = 1;
  } else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz || size < 2)
   patrolEnabled = false;
@@ -1165,19 +1163,19 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &patrolPoints, int &patro
   return;
  }
 
- bool ob = obstacle(mapPoints, patrolPoints[patrolPoint], robotPoint, robotTheta);
- bool go = gotoPoint(patrolPoints[patrolPoint], vy, vz, robotPoint, robotTheta);
+ bool ob = obstacle(mapPoints, waypoints[waypoint], robotPoint, robotTheta);
+ bool go = gotoPoint(waypoints[waypoint], vy, vz, robotPoint, robotTheta);
 
  if(ob || go) {
   if(ob)
    dir = -dir;
 
-  patrolPoint += dir;
+  waypoint += dir;
 
-  if(patrolPoint >= size)
-   patrolPoint -= size;
-  else if(patrolPoint < 0)
-   patrolPoint += size;
+  if(waypoint >= size)
+   waypoint -= size;
+  else if(waypoint < 0)
+   waypoint += size;
  }
 
  telemetryFrame.vx = vx;
@@ -1285,18 +1283,18 @@ int main(int argc, char* argv[]) {
  vector<Line> mapLines;
  vector<Line> map;
  vector<Point> mapPoints;
- vector<Point> patrolPoints;
+ vector<Point> waypoints;
 
  Point robotPoint = Point(0, 0);
  uint16_t robotTheta = 0;
  int select = SELECTLIGHT;
  int mapDiv = MAPDIV;
  fprintf(stderr, "Reading map file\n");
- readMapFile(map, patrolPoints, robotPoint, robotTheta, select, mapDiv);
+ readMapFile(map, waypoints, robotPoint, robotTheta, select, mapDiv);
  Point oldRobotPoint = robotPoint;
  uint16_t oldRobotTheta = robotTheta;
  robotThetaCorrector = robotTheta;
- int patrolPoint = 0;
+ int waypoint = 0;
  bool patrolEnabled = false;
 
  bgrInit();
@@ -1369,9 +1367,9 @@ int main(int argc, char* argv[]) {
    robotToMap(robotPoints, mapPoints, robotPoint, robotTheta);
   }
 
-  autopilot(mapPoints, patrolPoints, patrolPoint, robotPoint, robotTheta, patrolEnabled);
+  autopilot(mapPoints, waypoints, waypoint, robotPoint, robotTheta, patrolEnabled);
 
-  ui(image, robotPoints, robotLines, map, patrolPoints, patrolPoint,
+  ui(image, robotPoints, robotLines, map, waypoints, waypoint,
      robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
      select, mapDiv, time, patrolEnabled);
 
@@ -1405,7 +1403,7 @@ int main(int argc, char* argv[]) {
  stopLidar(ld);
 
  fprintf(stderr, "Writing map file\n");
- writeMapFile(map, patrolPoints, robotPoint, robotTheta, select, mapDiv);
+ writeMapFile(map, waypoints, robotPoint, robotTheta, select, mapDiv);
 
  fprintf(stderr, "Stopping\n");
  return 0;
