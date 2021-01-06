@@ -954,8 +954,11 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    drawHist(image, robotPoint, robotTheta, mapDiv);
    drawWaypoints(image, waypoints, waypoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
-   sprintf(text, "Waypoints %02d/%02d | X %04d/%04d | Y %04d/%04d | Theta %03d", waypoint, waypoints.size(),
-           robotPoint.x, waypoints[waypoint].x, robotPoint.y, waypoints[waypoint].y, robotTheta * 180 / PI16);
+   if(waypoints.empty())
+    sprintf(text, "X %04d | Y %04d | Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
+   else
+    sprintf(text, "Waypoints %02d/%02d | X %04d/%04d | Y %04d/%04d | Theta %03d", waypoint, waypoints.size(),
+            robotPoint.x, waypoints[waypoint].x, robotPoint.y, waypoints[waypoint].y, robotTheta * 180 / PI16);
    break;
 
   case SELECTDEBUGMAP:
