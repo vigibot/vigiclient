@@ -817,7 +817,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
                     vector<Line> &map, vector<Point> &waypoints, int waypoint,
                     Point &robotPoint, Point &oldRobotPoint,
                     uint16_t &robotTheta, uint16_t &oldRobotTheta,
-                    bool &mappingEnabled, int &select, int &mapDiv, bool &waypointsEnabled, int time) {
+                    bool &mappingEnabled, bool &waypointsEnabled,
+                    int &select, int &mapDiv, int time) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -1037,7 +1038,8 @@ void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t robotTheta, uint16
  oldRobotPoint = robotPoint;
 }*/
 
-void writeMapFile(vector<Line> &map, vector<Point> waypoints, Point robotPoint, uint16_t robotTheta, bool mappingEnabled, int select, int mapDiv) {
+void writeMapFile(vector<Line> &map, vector<Point> waypoints, Point robotPoint, uint16_t robotTheta,
+                  bool mappingEnabled, bool waypointsEnabled, int select, int mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::WRITE);
 
  if(fs.isOpened()) {
@@ -1061,6 +1063,7 @@ void writeMapFile(vector<Line> &map, vector<Point> waypoints, Point robotPoint, 
   fs << "robotTheta" << robotTheta;
 
   fs << "mappingEnabled" << mappingEnabled;
+  fs << "waypointsEnabled" << waypointsEnabled;
   fs << "select" << select;
   fs << "mapDiv" << mapDiv;
 
@@ -1069,7 +1072,8 @@ void writeMapFile(vector<Line> &map, vector<Point> waypoints, Point robotPoint, 
   fprintf(stderr, "Error writing map file\n");
 }
 
-void readMapFile(vector<Line> &map, vector<Point> &waypoints, Point &robotPoint, uint16_t &robotTheta, bool &mappingEnabled, int &select, int &mapDiv) {
+void readMapFile(vector<Line> &map, vector<Point> &waypoints, Point &robotPoint, uint16_t &robotTheta,
+                 bool &mappingEnabled, bool &waypointsEnabled, int &select, int &mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::READ);
 
  if(fs.isOpened()) {
@@ -1095,6 +1099,7 @@ void readMapFile(vector<Line> &map, vector<Point> &waypoints, Point &robotPoint,
   fs["robotTheta"] >> robotTheta;
 
   fs["mappingEnabled"] >> mappingEnabled;
+  fs["waypointsEnabled"] >> waypointsEnabled;
   fs["select"] >> select;
   fs["mapDiv"] >> mapDiv;
 
@@ -1309,15 +1314,15 @@ int main(int argc, char* argv[]) {
  Point robotPoint = Point(0, 0);
  uint16_t robotTheta = 0;
  bool mappingEnabled = true;
+ bool waypointsEnabled = false;
  int select = SELECTLIGHT;
  int mapDiv = MAPDIV;
  fprintf(stderr, "Reading map file\n");
- readMapFile(map, waypoints, robotPoint, robotTheta, mappingEnabled, select, mapDiv);
+ readMapFile(map, waypoints, robotPoint, robotTheta, mappingEnabled, waypointsEnabled, select, mapDiv);
  Point oldRobotPoint = robotPoint;
  uint16_t oldRobotTheta = robotTheta;
  robotThetaCorrector = robotTheta;
  int waypoint = 0;
- bool waypointsEnabled = false;
 
  bgrInit();
 
@@ -1397,7 +1402,7 @@ int main(int argc, char* argv[]) {
 
   ui(image, robotPoints, robotLines, map, waypoints, waypoint,
      robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
-     mappingEnabled, select, mapDiv, waypointsEnabled, time);
+     mappingEnabled, waypointsEnabled, select, mapDiv, time);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
@@ -1429,7 +1434,7 @@ int main(int argc, char* argv[]) {
  stopLidar(ld);
 
  fprintf(stderr, "Writing map file\n");
- writeMapFile(map, waypoints, robotPoint, robotTheta, mappingEnabled, select, mapDiv);
+ writeMapFile(map, waypoints, robotPoint, robotTheta, mappingEnabled, waypointsEnabled, select, mapDiv);
 
  fprintf(stderr, "Stopping\n");
  return 0;
