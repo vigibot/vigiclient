@@ -954,7 +954,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    drawHist(image, robotPoint, robotTheta, mapDiv);
    drawPatrolPoints(image, patrolPoints, patrolPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
-   sprintf(text, "X %04d Y %04d Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
+   sprintf(text, "Waypoints %02d/%02d | X %04d/%04d | Y %04d/%04d | Theta %03d", patrolPoint, patrolPoints.size(),
+           robotPoint.x, patrolPoints[patrolPoint].x, robotPoint.y, patrolPoints[patrolPoint].y, robotTheta * 180 / PI16);
    break;
 
   case SELECTDEBUGMAP:
@@ -967,7 +968,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
     for(int i = 0; i < map.size(); i++)
      if(map[i].validation < VALIDATIONFILTERKEEP)
       n++;
-    sprintf(text, "%02d lidar lines %02d validation lines %03d map lines %03d mm per pixel %02d ms", robotLines.size(), n, map.size() - n, mapDiv, time);
+    sprintf(text, "Lines %02d | Pending %02d | Map %03d | Scale %03d mm | Time %02d ms", robotLines.size(), n, map.size() - n, mapDiv, time);
    }
    break;
 
@@ -975,7 +976,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
    drawLidarPoints(image, robotPoints, true, mapDiv);
    drawLidarLines(image, robotLines, mapDiv);
    drawRobot(image, robotIcon, FILLED, mapDiv);
-   sprintf(text, "%03d lidar points %02d lidar lines %03d mm per pixel %02d ms", robotPoints.size(), robotLines.size(), mapDiv, time);
+   sprintf(text, "Points %03d | Lines %02d | Scale %03d mm | Time %02d ms", robotPoints.size(), robotLines.size(), mapDiv, time);
    break;
  }
 
