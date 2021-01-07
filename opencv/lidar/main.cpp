@@ -952,6 +952,10 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines,
  char text[80];
  switch(select) {
   case SELECTNONE:
+   sprintf(text, "");
+   break;
+
+  case SELECTWAYPOINTS:
    drawWaypoints(image, waypoints, waypoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    sprintf(text, "");
