@@ -1150,14 +1150,14 @@ bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
  return false;
 }
 
-bool obstacle(vector<Point> &mapPoints, Point targetPoint, Point robotPoint, uint16_t robotTheta) {
+bool obstacle(vector<Point> &mapPoints, Point robotPoint, Point targetPoint, int obstacleDetectionRange) {
  for(int i = 0; i < mapPoints.size(); i++) {
   Line line = {robotPoint, targetPoint};
   if(sqNorm(pointDistancePointLine(mapPoints[i], line)) < ROBOTWIDTH * ROBOTWIDTH) {
    int refNorm = int(sqrt(sqDist(line)));
    int distance = ratioPointLine(mapPoints[i], line) * refNorm;
 
-   if(distance > 0 && distance < OBSTACLEDETECTIONRANGE)
+   if(distance > 0 && distance < obstacleDetectionRange)
     return true;
   }
  }
@@ -1194,7 +1194,7 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &waypoints, int &waypoint
   return;
  }
 
- bool ob = obstacle(mapPoints, waypoints[waypoint], robotPoint, robotTheta);
+ bool ob = obstacle(mapPoints, robotPoint, waypoints[waypoint], OBSTACLEDETECTIONRANGE);
  bool go = gotoPoint(waypoints[waypoint], vy, vz, robotPoint, robotTheta);
 
  if(ob || go) {
