@@ -664,8 +664,9 @@ void drawLidarPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) 
 
   if(beams)
    line(image, centerPoint, point, Scalar::all(64), 1, LINE_AA);
-  else
-   image.at<Vec3b>(constrain(point.y, 0, height - 1), constrain(point.x, 0, width - 1)) = Vec3b(255, 255, 255);
+  else if(point.x >= 0 && point.x < width &&
+          point.y >= 0 && point.y < height)
+   image.at<Vec3b>(point.y, point.x) = Vec3b(255, 255, 255);
  }
 }
 
