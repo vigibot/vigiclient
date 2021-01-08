@@ -334,10 +334,10 @@ bool intersect(Line line1, Line line2, Point &intersectPoint) {
  double t1 = (x.x * d2.y - x.y * d2.x) / det;
  intersectPoint = Point2d(line1.a) + d1 * t1;
 
- Rect rect1 = Rect(line1.a, line1.b);
- Rect rect2 = Rect(line2.a, line2.b);
- if(rect1.contains(intersectPoint) &&
-    rect2.contains(intersectPoint))
+ if(intersectPoint.x >= min(line1.a.x, line1.b.x) && intersectPoint.x <= max(line1.a.x, line1.b.x) &&
+    intersectPoint.x >= min(line2.a.x, line2.b.x) && intersectPoint.x <= max(line2.a.x, line2.b.x) &&
+    intersectPoint.y >= min(line1.a.y, line1.b.y) && intersectPoint.y <= max(line1.a.y, line1.b.y) &&
+    intersectPoint.y >= min(line2.a.y, line2.b.y) && intersectPoint.y <= max(line2.a.y, line2.b.y))
   return true;
 
  return false;
@@ -355,7 +355,7 @@ bool intersectLine(Line line1, Line line2, Point &intersectPoint) {
  double t1 = (x.x * d2.y - x.y * d2.x) / det;
  intersectPoint = Point2d(line1.a) + d1 * t1;
 
- Point averagePoint = line1.a + line1.b + line2.a + line2.b / 4;
+ Point averagePoint = (line1.a + line1.b + line2.a + line2.b) / 4;
  if(abs(intersectPoint.x - averagePoint.x) <= INTERSECTMAX &&
     abs(intersectPoint.y - averagePoint.y) <= INTERSECTMAX)
   return true;
@@ -374,8 +374,8 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
  bool sort = false;
 
  for(int i = 0; i < polarPoints.size(); i++) {
-  Point closerPoint = Point((polarPoints[i].distance * MAPCLEANERDIST / 100) * sin16(polarPoints[i].theta) / ONE16,
-                            (polarPoints[i].distance * MAPCLEANERDIST / 100) * cos16(polarPoints[i].theta) / ONE16);
+  Point closerPoint = Point((polarPoints[i].distance * MAPCLEANERDISTPERCENT / 100) * sin16(polarPoints[i].theta) / ONE16,
+                            (polarPoints[i].distance * MAPCLEANERDISTPERCENT / 100) * cos16(polarPoints[i].theta) / ONE16);
 
   closerPoints.push_back(robotPoint + rotate(closerPoint, robotTheta));
  }
