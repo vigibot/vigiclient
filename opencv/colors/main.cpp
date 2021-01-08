@@ -344,10 +344,10 @@ bool ui(Mat &image, uchar &threshold) {
   selectedColor = select - SELECTCONFFIRSTCOLOR;
   if(buttonOk) {
    buttonOkCount++;
-   if(buttonOkCount == 15)
+   if(buttonOkCount == BUTTONSLONGPRESS)
     blacks[selectedColor] = !blacks[selectedColor];
   } else if(!buttonOk && oldButtonOk) {
-   if(buttonOkCount < 15)
+   if(buttonOkCount < BUTTONSLONGPRESS)
     tune = !tune;
    buttonOkCount = 0;
   }

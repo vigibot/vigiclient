@@ -2,6 +2,8 @@
 #define HEIGHT 480
 #define FPS 30
 
+#define BUTTONSLONGPRESS 15
+
 #define BINNING 2
 #define NBCOLORS 7
 #define THRESHOLD 60
