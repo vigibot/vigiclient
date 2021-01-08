@@ -798,12 +798,12 @@ void drawNodes(Mat &image, vector<Point> &nodes, int node, Point robotPoint, uin
  }
 }
 
-void drawLinks(Mat &image, vector<Line> &links, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+void drawLinks(Mat &image, vector<Point> &nodes, vector<Link> &links, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  const Point centerPoint = Point(width / 2, height / 2);
 
  for(int i = 0; i < links.size(); i++) {
-  Point point1 = rotate(links[i].a - robotPoint, -robotTheta);
-  Point point2 = rotate(links[i].b - robotPoint, -robotTheta);
+  Point point1 = rotate(nodes[links[i].a] - robotPoint, -robotTheta);
+  Point point2 = rotate(nodes[links[i].b] - robotPoint, -robotTheta);
 
   point1.x /= mapDiv;
   point2.x /= mapDiv;
@@ -847,26 +847,37 @@ bool obstacle(vector<Point> &mapPoints, Point robotPoint, Point targetPoint, int
  return false;
 }
 
-void delLinks(vector<Line> &links, Point point) {
+void delNode(vector<Point> &nodes, vector<Link> &links, int nodeIndex) {
+ nodes.erase(nodes.begin() + nodeIndex);
  for(int i = 0; i < links.size(); i++) {
-  if(point == links[i].a ||
-     point == links[i].b) {
+  if(nodeIndex == links[i].a ||
+     nodeIndex == links[i].b) {
    links.erase(links.begin() + i);
    i--;
+  } else {
+   if(nodeIndex < links[i].a)
+    links[i].a--;
+   if(nodeIndex < links[i].b)
+    links[i].b--;
   }
  }
 }
 
-void addLinks(vector<Point> &mapPoints, vector<Point> &nodes, vector<Line> &links, Point point) {
+void addNode(vector<Point> &mapPoints, vector<Point> &nodes, vector<Link> &links, Point node) {
  for(int i = 0; i < nodes.size(); i++) {
-  if(sqDist(point, nodes[i]) <= LINKSIZEMAX * LINKSIZEMAX &&
-     !obstacle(mapPoints, point, nodes[i], LINKSIZEMAX))
-   links.push_back({point, nodes[i]});
+  if(sqDist(node, nodes[i]) <= LINKSIZEMAX * LINKSIZEMAX &&
+     !obstacle(mapPoints, node, nodes[i], LINKSIZEMAX)) {
+   Link link;
+   link.a = nodes.size();
+   link.b = i;
+   links.push_back(link);
+  }
  }
+ nodes.push_back(node);
 }
 
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector<Line> &map,
-                    vector<Point> &mapPoints, vector<Point> &nodes, int node, vector<Line> &links,
+                    vector<Point> &mapPoints, vector<Point> &nodes, int node, vector<Link> &links,
                     Point &robotPoint, Point &oldRobotPoint,
                     uint16_t &robotTheta, uint16_t &oldRobotTheta,
                     bool &mappingEnabled, bool &running,
@@ -944,17 +955,14 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector
     bool found = false;
     for(int i = 0; i < nodes.size(); i++) {
      if(sqDist(robotPoint, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
-      delLinks(links, nodes[i]);
-      addLinks(mapPoints, nodes, links, robotPoint);
-      nodes[i] = robotPoint;
+      delNode(nodes, links, i);
+      addNode(mapPoints, nodes, links, robotPoint);
       found = true;
       break;
      }
     }
-    if(!found) {
-     addLinks(mapPoints, nodes, links, robotPoint);
-     nodes.push_back(robotPoint);
-    }
+    if(!found)
+     addNode(mapPoints, nodes, links, robotPoint);
    }
 
   }
@@ -966,16 +974,13 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector
     bool found = false;
     for(int i = 0; i < nodes.size(); i++) {
      if(sqDist(robotPoint, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
-      delLinks(links, nodes[i]);
-      nodes.erase(nodes.begin() + i);
+      delNode(nodes, links, i);
       found = true;
       break;
      }
     }
-    if(!found && !nodes.empty()) {
-     delLinks(links, nodes[nodes.size() - 1]);
-     nodes.pop_back();
-    }
+    if(!found && !nodes.empty())
+     delNode(nodes, links, nodes.size() - 1);
    }
 
   }
@@ -1022,7 +1027,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector
   case SELECTLIGHT:
    drawLidarPoints(image, robotPoints, false, mapDiv);
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
-   drawLinks(image, links, robotPoint, robotTheta, mapDiv);
+   drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
    drawNodes(image, nodes, node, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    sprintf(text, "");
@@ -1032,7 +1037,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector
    drawLidarPoints(image, robotPoints, false, mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotTheta, mapDiv);
-   drawLinks(image, links, robotPoint, robotTheta, mapDiv);
+   drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
    drawNodes(image, nodes, node, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    if(nodes.empty())
@@ -1103,7 +1108,7 @@ void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t robotTheta, uint16
  oldRobotPoint = robotPoint;
 }*/
 
-void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<Line> &links, Point robotPoint,
+void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<Link> &links, Point robotPoint,
                   uint16_t robotTheta, bool mappingEnabled, int select, int mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::WRITE);
 
@@ -1145,7 +1150,7 @@ void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<Line> &links, 
   fprintf(stderr, "Error writing map file\n");
 }
 
-void readMapFile(vector<Line> &map, vector<Point> &nodes, vector<Line> &links, Point &robotPoint,
+void readMapFile(vector<Line> &map, vector<Point> &nodes, vector<Link> &links, Point &robotPoint,
                  uint16_t &robotTheta, bool &mappingEnabled, int &select, int &mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::READ);
 
@@ -1171,11 +1176,10 @@ void readMapFile(vector<Line> &map, vector<Point> &nodes, vector<Line> &links, P
   FileNode fn3 = fs["links"];
   for(FileNodeIterator it = fn3.begin(); it != fn3.end(); it++) {
    FileNode item = *it;
-   Point a;
-   Point b;
-   item["a"] >> a;
-   item["b"] >> b;
-   links.push_back({a, b});
+   Link link;
+   item["a"] >> link.a;
+   item["b"] >> link.b;
+   links.push_back(link);
   }
 
   fs["robotPoint"] >> robotPoint;
@@ -1377,7 +1381,7 @@ int main(int argc, char* argv[]) {
  vector<Line> map;
  vector<Point> mapPoints;
  vector<Point> nodes;
- vector<Line> links;
+ vector<Link> links;
 
  Point robotPoint = Point(0, 0);
  uint16_t robotTheta = 0;

@@ -84,6 +84,11 @@ typedef struct Line {
  int shrinkb;
 } Line;
 
+typedef struct Link {
+ int a;
+ int b;
+} Link;
+
 int width;
 int height;
 int fps;
