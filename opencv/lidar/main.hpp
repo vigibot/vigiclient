@@ -71,6 +71,8 @@ const std::vector<cv::Point> robotIcon = {
  cv::Point{-30, 40}
 };
 
+const char *OFFON[] = {"off", "on"};
+
 typedef struct Line {
  cv::Point a;
  cv::Point b;

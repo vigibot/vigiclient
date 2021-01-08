@@ -1052,7 +1052,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector
     for(int i = 0; i < map.size(); i++)
      if(map[i].validation < VALIDATIONFILTERKEEP)
       n++;
-    sprintf(text, "Mapping %d | Pending %02d | Lines %03d | Scale %03d mm | Time %02d ms", mappingEnabled, n, map.size() - n, mapDiv, time);
+    sprintf(text, "Pending %02d | Lines %03d | Scale %03d mm | Time %02d ms | Mapping %s", n, map.size() - n, mapDiv, time, OFFON[mappingEnabled]);
    }
    break;
 
