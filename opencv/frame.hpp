@@ -1,7 +1,7 @@
 #include <stdint.h>
 
-#define DEVROBOT "/dev/pts/1"
-#define DEVDEBIT 115200
+#define SERIALPORT "/dev/pts/1"
+#define SERIALRATE 115200
 #define REMOTEFRAMESIZE 17
 #define TELEMETRYFRAMESIZE 25
 #define HEADERSIZE 4

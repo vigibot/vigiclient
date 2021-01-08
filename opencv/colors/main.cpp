@@ -455,7 +455,7 @@ int main(int argc, char* argv[]) {
   sscanf(argv[3], "%d", &fps);
  }
 
- int fd = serialOpen(DEVROBOT, DEVDEBIT);
+ int fd = serialOpen(SERIALPORT, SERIALRATE);
  if(fd == -1) {
   fprintf(stderr, "Error opening serial port\n");
   return 1;
