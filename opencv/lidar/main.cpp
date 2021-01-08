@@ -869,7 +869,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector
                     vector<Point> &mapPoints, vector<Point> &nodes, int node, vector<Line> &links,
                     Point &robotPoint, Point &oldRobotPoint,
                     uint16_t &robotTheta, uint16_t &oldRobotTheta,
-                    bool &mappingEnabled, bool &nodesEnabled,
+                    bool &mappingEnabled, bool &running,
                     int &select, int &mapDiv, int time) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
@@ -890,7 +890,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector
   if(buttonOkCount == BUTTONSLONGPRESS) {
 
    if(select <= SELECTFULL)
-    nodesEnabled = !nodesEnabled;
+    running = !running;
    else if(select == SELECTDEBUGMAP) {
     mappingEnabled = !mappingEnabled;
     for(int i = 0; i < map.size(); i++) {
@@ -1046,6 +1046,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector
    drawLidarPoints(image, robotPoints, true, mapDiv);
    drawLidarLines(image, robotLines, mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
+   //drawIntersects(image, map, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, FILLED, mapDiv);
    {
     int n = 0;
@@ -1103,7 +1104,7 @@ void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t robotTheta, uint16
 }*/
 
 void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<Line> &links, Point robotPoint,
-                  uint16_t robotTheta, bool mappingEnabled, bool nodesEnabled, int select, int mapDiv) {
+                  uint16_t robotTheta, bool mappingEnabled, int select, int mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::WRITE);
 
  if(fs.isOpened()) {
@@ -1136,7 +1137,6 @@ void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<Line> &links, 
   fs << "robotTheta" << robotTheta;
 
   fs << "mappingEnabled" << mappingEnabled;
-  fs << "nodesEnabled" << nodesEnabled;
   fs << "select" << select;
   fs << "mapDiv" << mapDiv;
 
@@ -1146,7 +1146,7 @@ void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<Line> &links, 
 }
 
 void readMapFile(vector<Line> &map, vector<Point> &nodes, vector<Line> &links, Point &robotPoint,
-                 uint16_t &robotTheta, bool &mappingEnabled, bool &nodesEnabled, int &select, int &mapDiv) {
+                 uint16_t &robotTheta, bool &mappingEnabled, int &select, int &mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::READ);
 
  if(fs.isOpened()) {
@@ -1182,7 +1182,6 @@ void readMapFile(vector<Line> &map, vector<Point> &nodes, vector<Line> &links, P
   fs["robotTheta"] >> robotTheta;
 
   fs["mappingEnabled"] >> mappingEnabled;
-  fs["nodesEnabled"] >> nodesEnabled;
   fs["select"] >> select;
   fs["mapDiv"] >> mapDiv;
 
@@ -1228,15 +1227,15 @@ bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
  return false;
 }
 
-void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, int &node, Point &robotPoint, uint16_t &robotTheta, bool &nodesEnabled) {
- static bool oldNodesEnabled = false;
+void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, int &node, Point &robotPoint, uint16_t &robotTheta, bool &running) {
+ static bool oldRunning = false;
  int size = nodes.size();
  static int dir = 1;
  static int8_t vx = 0;
  static int8_t vy = 0;
  static int8_t vz = 0;
 
- if(nodesEnabled && !oldNodesEnabled && size >= 2) {
+ if(running && !oldRunning && size >= 2) {
   int min = INT_MAX;
   for(int i = 0; i < nodes.size(); i++) {
    int dist = sqDist(robotPoint, nodes[i]);
@@ -1247,10 +1246,10 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, int &node, Point 
   }
   dir = 1;
  } else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz || size < 2)
-  nodesEnabled = false;
- oldNodesEnabled = nodesEnabled;
+  running = false;
+ oldRunning = running;
 
- if(!nodesEnabled) {
+ if(!running) {
   telemetryFrame.vx = remoteFrame.vx;
   telemetryFrame.vy = remoteFrame.vy;
   telemetryFrame.vz = remoteFrame.vz;
@@ -1383,11 +1382,11 @@ int main(int argc, char* argv[]) {
  Point robotPoint = Point(0, 0);
  uint16_t robotTheta = 0;
  bool mappingEnabled = true;
- bool nodesEnabled = false;
+ bool running = false;
  int select = SELECTLIGHT;
  int mapDiv = MAPDIV;
  fprintf(stderr, "Reading map file\n");
- readMapFile(map, nodes, links, robotPoint, robotTheta, mappingEnabled, nodesEnabled, select, mapDiv);
+ readMapFile(map, nodes, links, robotPoint, robotTheta, mappingEnabled, select, mapDiv);
  Point oldRobotPoint = robotPoint;
  uint16_t oldRobotTheta = robotTheta;
  robotThetaCorrector = robotTheta;
@@ -1467,12 +1466,12 @@ int main(int argc, char* argv[]) {
    robotToMap(robotPoints, mapPoints, robotPoint, robotTheta);
   }
 
-  autopilot(mapPoints, nodes, node, robotPoint, robotTheta, nodesEnabled);
+  autopilot(mapPoints, nodes, node, robotPoint, robotTheta, running);
 
   ui(image, robotPoints, robotLines, map,
      mapPoints, nodes, node, links,
      robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
-     mappingEnabled, nodesEnabled, select, mapDiv, time);
+     mappingEnabled, running, select, mapDiv, time);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
@@ -1504,7 +1503,7 @@ int main(int argc, char* argv[]) {
  stopLidar(ld);
 
  fprintf(stderr, "Writing map file\n");
- writeMapFile(map, nodes, links, robotPoint, robotTheta, mappingEnabled, nodesEnabled, select, mapDiv);
+ writeMapFile(map, nodes, links, robotPoint, robotTheta, mappingEnabled, select, mapDiv);
 
  fprintf(stderr, "Stopping\n");
  return 0;
