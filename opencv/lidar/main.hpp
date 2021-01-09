@@ -46,8 +46,8 @@
 #define GOTOPOINTVELOCITY 96
 #define GOTOPOINTVELOCITYTHETA 127
 #define GOTOPOINTANGLESTOP 90
-#define KPTHETA 100
-#define KITHETA 1000
+#define KPTHETA 200
+#define KITHETA 2000
 #define KDTHETA 100
 
 #define ROBOTWIDTH 50
@@ -83,11 +83,6 @@ typedef struct Line {
  int shrinka;
  int shrinkb;
 } Line;
-
-typedef struct Link {
- int a;
- int b;
-} Link;
 
 int width;
 int height;
