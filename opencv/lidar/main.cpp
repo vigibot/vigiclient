@@ -1027,7 +1027,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector
   case SELECTLIGHT:
    drawLidarPoints(image, robotPoints, false, mapDiv);
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
-   drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
+   drawHist(image, robotPoint, robotTheta, mapDiv);
+   //drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
    drawNodes(image, nodes, node, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    sprintf(text, "");
@@ -1037,7 +1038,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector
    drawLidarPoints(image, robotPoints, false, mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotTheta, mapDiv);
-   drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
+   //drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
    drawNodes(image, nodes, node, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    if(nodes.empty())
