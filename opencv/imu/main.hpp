@@ -21,6 +21,12 @@
 #define DIAM2 10
 #define COEF2 4.0
 
+enum {
+ STATUSWAITING,
+ STATUSSUCCESS,
+ STATUSERROR
+};
+
 int width;
 int height;
 int fps;
@@ -31,3 +37,4 @@ RemoteFrame remoteFrame;
 TelemetryFrame telemetryFrame;
 
 RTIMU_DATA imuData;
+volatile int imuThreadStatus = STATUSWAITING;

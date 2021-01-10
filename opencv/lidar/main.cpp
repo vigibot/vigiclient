@@ -21,7 +21,7 @@ void signal_callback_handler(int signum) {
 }
 
 void imuThread() {
- fprintf(stderr, "Starting IMU thread\n");
+ fprintf(stderr, "IMU thread starting\n");
 
  int oldStdout = dup(fileno(stdout));
  dup2(fileno(stderr), fileno(stdout));
@@ -29,7 +29,8 @@ void imuThread() {
  RTIMUSettings *settings = new RTIMUSettings("RTIMULib");
  imu = RTIMU::createIMU(settings);
  if(imu == NULL || imu->IMUType() == RTIMU_TYPE_NULL) {
-  fprintf(stderr, "No IMU found\n");
+  fprintf(stderr, "IMU thread initialization error\n");
+  imuThreadStatus = STATUSERROR;
   return;
  }
 
@@ -40,6 +41,8 @@ void imuThread() {
  imu->setCompassEnable(false);
 
  dup2(oldStdout, fileno(stdout));
+ fprintf(stderr, "IMU thread initialization success\n");
+ imuThreadStatus = STATUSSUCCESS;
 
  while(run) {
   usleep(imu->IMUGetPollInterval() * 1000);
@@ -47,7 +50,7 @@ void imuThread() {
    imuData = imu->getIMUData();
  }
 
- fprintf(stderr, "Stopping IMU thread\n");
+ fprintf(stderr, "IMU thread stopping\n");
 }
 
 int sqNorm(Point point) {
@@ -1359,6 +1362,11 @@ int main(int argc, char* argv[]) {
 
 #ifdef IMU
  thread imuThr(imuThread);
+ while(imuThreadStatus == STATUSWAITING);
+ if(imuThreadStatus == STATUSERROR) {
+  fprintf(stderr, "No IMU found\n");
+  return 1;
+ }
 #endif
 
  fprintf(stderr, "Starting lidar\n");

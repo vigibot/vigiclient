@@ -55,6 +55,12 @@
 #define LINKSIZEMAX 1000
 
 enum {
+ STATUSWAITING,
+ STATUSSUCCESS,
+ STATUSERROR
+};
+
+enum {
  SELECTNONE,
  SELECTNODES,
  SELECTLIGHT,
@@ -95,6 +101,7 @@ TelemetryFrame telemetryFrame;
 
 RTIMU_DATA imuData;
 RTIMU *imu;
+volatile int imuThreadStatus = STATUSWAITING;
 uint16_t robotThetaCorrector = 0;
 
 cv::Scalar hueToBgr[180];
