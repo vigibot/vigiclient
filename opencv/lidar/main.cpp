@@ -1129,10 +1129,10 @@ void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>>
 
   fs << "links" << "[";
   for(int i = 0; i < links.size(); i++) {
-   fs << "{";
-   fs << "a" << links[i][0];
-   fs << "b" << links[i][1];
-   fs << "}";
+   fs << "[";
+   fs << links[i][0];
+   fs << links[i][1];
+   fs << "]";
   }
   fs << "]";
 
@@ -1176,8 +1176,8 @@ void readMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>> 
    FileNode item = *it;
    int a;
    int b;
-   item["a"] >> a;
-   item["b"] >> b;
+   item[0] >> a;
+   item[1] >> b;
    links.push_back({a, b});
   }
 
