@@ -262,9 +262,7 @@ double lineAngle(Line line) {
  return atan2(diff.y, diff.x);
 }
 
-double diffAngle(Line line1, Line line2) {
- double angle1 = lineAngle(line1);
- double angle2 = lineAngle(line2);
+double diffAngle(double angle1, double angle2) {
  double result = angle2 - angle1;
 
  if(result > M_PI)
@@ -273,6 +271,13 @@ double diffAngle(Line line1, Line line2) {
   result += 2.0 * M_PI;
 
  return result;
+}
+
+double diffAngle(Line line1, Line line2) {
+ double angle1 = lineAngle(line1);
+ double angle2 = lineAngle(line2);
+
+ return diffAngle(angle1, angle2);
 }
 
 Point pointDistancePointLine(Point point, Line line) {
@@ -530,12 +535,13 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
    if(map[j].validation >= VALIDATIONFILTERSTART &&
       testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, -SMALLDISTTOLERANCE,
                 pointError, angularError, distError, refNorm)) {
-    pointErrorSum += pointError * refNorm;
-    pointErrorWeightSum += refNorm;
+    int weight = refNorm * refNorm;
+    pointErrorSum += pointError * weight;
+    pointErrorWeightSum += weight;
 
     if(map[j].validation >= VALIDATIONFILTERKEEP) {
-     angularErrorSum += angularError * refNorm;
-     angularErrorWeightSum += refNorm;
+     angularErrorSum += angularError * weight;
+     angularErrorWeightSum += weight;
     }
    }
 
@@ -638,12 +644,16 @@ void splitAxes(vector<Line> &robotLines, vector<Line> *robotLinesAxes) {
  robotLinesAxes[0].push_back(robotLines[0]);
 
  for(int i = 1; i < robotLines.size(); i++) {
-  double absAngularDiff = fabs(diffAngle(robotLines[0], robotLines[i]));
+  double angle1 = diffAngle(robotLines[0], robotLines[i]);
 
-  if(absAngularDiff > M_PI / 4.0 && absAngularDiff < M_PI - M_PI / 4.0)
-   robotLinesAxes[1].push_back(robotLines[i]);
-  else
-   robotLinesAxes[0].push_back(robotLines[i]);
+  for(int j = 0; j < AXES; j++) {
+   double angle2 = abs(diffAngle(angle1, j * M_PI / AXES));
+
+   if(angle2 <= M_PI / AXES / 2 || angle2 > M_PI - M_PI / AXES / 2) {
+    robotLinesAxes[j].push_back(robotLines[i]);
+    break;
+   }
+  }
  }
 }
 
@@ -658,12 +668,12 @@ void localization(vector<Line> *robotLinesAxes, vector<Line> &map, Point &robotP
    Point pointError;
    double angularError;
    if(computeErrors(mapLines, map, pointError, angularError)) {
-    robotPoint -= pointError / (i + 1);
+    robotPoint -= pointError / AXES / (i + 1);
 
 #ifdef IMU
-    robotThetaCorrector += int(angularError * double(PI16) / M_PI) / IMUTHETACORRECTORDIV;
+    robotThetaCorrector += int(angularError * double(PI16) / M_PI) / AXES / IMUTHETACORRECTORDIV;
 #else
-    robotTheta += int(angularError * double(PI16) / M_PI) / (i + 1);
+    robotTheta += int(angularError * double(PI16) / M_PI) / AXES / (i + 1);
 #endif
 
    }
@@ -703,7 +713,23 @@ void drawLidarLines(Mat &image, vector<Line> *robotLinesAxes, int mapDiv) {
    point1 += centerPoint;
    point2 += centerPoint;
 
-   line(image, point1, point2, i ? Scalar(255, 255, 128) : Scalar(128, 255, 255), 1, LINE_AA);
+   Scalar color;
+   switch(i) {
+    case 0:
+     color = Scalar::all(255);
+     break;
+    case 1:
+     color = Scalar(128, 128, 255);
+     break;
+    case 2:
+     color = Scalar(128, 255, 128);
+     break;
+    case 3:
+     color = Scalar(255, 128, 128);
+     break;
+   }
+
+   line(image, point1, point2, color, 1, LINE_AA);
   }
  }
 }
