@@ -535,13 +535,12 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
    if(map[j].validation >= VALIDATIONFILTERSTART &&
       testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, -SMALLDISTTOLERANCE,
                 pointError, angularError, distError, refNorm)) {
-    int weight = refNorm * refNorm;
-    pointErrorSum += pointError * weight;
-    pointErrorWeightSum += weight;
+    pointErrorSum += pointError * refNorm;
+    pointErrorWeightSum += refNorm;
 
     if(map[j].validation >= VALIDATIONFILTERKEEP) {
-     angularErrorSum += angularError * weight;
-     angularErrorWeightSum += weight;
+     angularErrorSum += angularError * refNorm;
+     angularErrorWeightSum += refNorm;
     }
    }
 
