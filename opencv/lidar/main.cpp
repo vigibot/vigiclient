@@ -366,7 +366,7 @@ bool intersectLine(Line line1, Line line2, Point &intersectPoint) {
  return false;
 }
 
-void mapSort(vector<Line> &map) {
+void sortLines(vector<Line> &map) {
  sort(map.begin(), map.end(), [](const Line &a, const Line &b) {
   return sqDist(a) > sqDist(b);
  });
@@ -431,7 +431,7 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
  }
 
  if(sort)
-  mapSort(map);
+  sortLines(map);
 }
 
 void mapDeduplicateAverage(vector<Line> &map) {
@@ -487,7 +487,7 @@ void mapDeduplicateAverage(vector<Line> &map) {
  }
 
  if(sort)
-  mapSort(map);
+  sortLines(map);
 }
 
 void mapDeduplicateErase(vector<Line> &map) {
@@ -515,12 +515,25 @@ void mapDeduplicateErase(vector<Line> &map) {
 bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
                    Point &pointErrorOut, double &angularErrorOut) {
 
+ if(mapLines.empty())
+  return false;
+
  Point pointErrorSum = Point(0, 0);
  double angularErrorSum = 0.0;
  int p = 0;
  int a = 0;
 
- for(int i = 0; i < mapLines.size(); i++) {
+ vector<Line> bestsMapLines;
+ bestsMapLines.push_back(mapLines[0]);
+ for(int i = 1; i < mapLines.size(); i++) {
+  double angularError = diffAngle(mapLines[0], map[i]);
+  if(angularError > ANGULARDIFFERENCE) {
+   bestsMapLines.push_back(mapLines[i]);
+   break;
+  }
+ }
+
+ for(int i = 0; i < bestsMapLines.size(); i++) {
   for(int j = 0; j < map.size(); j++) {
    Point pointError;
    double angularError;
@@ -528,7 +541,7 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
    int refNorm;
 
    if(map[j].validation >= VALIDATIONFILTERSTART &&
-      testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, -SMALLDISTTOLERANCE,
+      testLines(bestsMapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, -SMALLDISTTOLERANCE,
                 pointError, angularError, distError, refNorm)) {
     pointErrorSum += pointError;
     p++;
@@ -606,7 +619,7 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
  }
 
  if(sort)
-  mapSort(map);
+  sortLines(map);
 }
 
 void mapFiltersDecay(vector<Line> &map) {
@@ -1330,7 +1343,7 @@ void mapIntersects(vector<Line> &map) {
  }
 
  if(sort)
-  mapSort(map);
+  sortLines(map);
 }
 
 int main(int argc, char* argv[]) {
@@ -1461,6 +1474,7 @@ int main(int argc, char* argv[]) {
 
    robotLines.clear();
    fitLines(robotRawLines, robotLines);
+   sortLines(robotLines);
 
    localization(robotLines, mapLines, map, robotPoint, robotTheta);
 
