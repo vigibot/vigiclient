@@ -645,7 +645,7 @@ void localization(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line>
  for(int i = 1; i < robotLines.size(); i++) {
   double absAngularDiff = fabs(diffAngle(robotLines[0], robotLines[i]));
 
-  if(absAngularDiff > ANGULARDIFFERENCE && absAngularDiff < M_PI - ANGULARDIFFERENCE) {
+  if(absAngularDiff > LARGEANGULARTOLERANCE && absAngularDiff < M_PI - LARGEANGULARTOLERANCE) {
    filteredRobotLines.push_back(robotLines[i]);
    break;
   }
