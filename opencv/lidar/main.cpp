@@ -515,25 +515,12 @@ void mapDeduplicateErase(vector<Line> &map) {
 bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
                    Point &pointErrorOut, double &angularErrorOut) {
 
- if(mapLines.empty())
-  return false;
-
  Point pointErrorSum = Point(0, 0);
  double angularErrorSum = 0.0;
  int p = 0;
  int a = 0;
 
- vector<Line> bestsMapLines;
- bestsMapLines.push_back(mapLines[0]);
- for(int i = 1; i < mapLines.size(); i++) {
-  double angularError = diffAngle(mapLines[0], map[i]);
-  if(angularError > ANGULARDIFFERENCE) {
-   bestsMapLines.push_back(mapLines[i]);
-   break;
-  }
- }
-
- for(int i = 0; i < bestsMapLines.size(); i++) {
+ for(int i = 0; i < mapLines.size(); i++) {
   for(int j = 0; j < map.size(); j++) {
    Point pointError;
    double angularError;
@@ -541,7 +528,7 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
    int refNorm;
 
    if(map[j].validation >= VALIDATIONFILTERSTART &&
-      testLines(bestsMapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, -SMALLDISTTOLERANCE,
+      testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, -SMALLDISTTOLERANCE,
                 pointError, angularError, distError, refNorm)) {
     pointErrorSum += pointError;
     p++;
@@ -649,13 +636,27 @@ void mapFiltersDecay(vector<Line> &map) {
 void localization(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line> &map,
                   Point &robotPoint, uint16_t &robotTheta) {
 
- Point pointError = Point(0, 0);
- double angularError = 0.0;
+ if(robotLines.empty())
+  return;
+
+ vector<Line> filteredRobotLines;
+ filteredRobotLines.push_back(robotLines[0]);
+
+ for(int i = 1; i < robotLines.size(); i++) {
+  double absAngularDiff = fabs(diffAngle(robotLines[0], map[i]));
+
+  if(absAngularDiff > ANGULARDIFFERENCE && absAngularDiff < M_PI - ANGULARDIFFERENCE) {
+   filteredRobotLines.push_back(robotLines[i]);
+   break;
+  }
+ }
 
  for(int i = 0; i < NBITERATIONS; i++) {
   mapLines.clear();
-  robotToMap(robotLines, mapLines, robotPoint, robotTheta);
+  robotToMap(filteredRobotLines, mapLines, robotPoint, robotTheta);
 
+  Point pointError = Point(0, 0);
+  double angularError = 0.0;
   if(computeErrors(mapLines, map, pointError, angularError)) {
    robotPoint -= pointError / (i + 1);
 
@@ -667,6 +668,9 @@ void localization(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line>
 
   }
  }
+
+ mapLines.clear();
+ robotToMap(robotLines, mapLines, robotPoint, robotTheta);
 }
 
 void drawLidarPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) {
