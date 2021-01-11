@@ -634,28 +634,26 @@ void mapFiltersDecay(vector<Line> &map) {
  n++;
 }
 
-void localization(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line> &map,
-                  Point &robotPoint, uint16_t &robotTheta) {
-
- if(robotLines.empty())
-  return;
-
- vector<Line> axes[2];
- axes[0].push_back(robotLines[0]);
+void splitAxes(vector<Line> &robotLines, vector<Line> *robotLinesAxes) {
+ robotLinesAxes[0].push_back(robotLines[0]);
 
  for(int i = 1; i < robotLines.size(); i++) {
   double absAngularDiff = fabs(diffAngle(robotLines[0], robotLines[i]));
 
   if(absAngularDiff > M_PI / 4.0 && absAngularDiff < M_PI - M_PI / 4.0)
-   axes[1].push_back(robotLines[i]);
+   robotLinesAxes[1].push_back(robotLines[i]);
   else
-   axes[0].push_back(robotLines[i]);
+   robotLinesAxes[0].push_back(robotLines[i]);
  }
+}
+
+void localization(vector<Line> *robotLinesAxes, vector<Line> &map, Point &robotPoint, uint16_t &robotTheta) {
+ vector<Line> mapLines;
 
  for(int i = 0; i < NBITERATIONS; i++) {
-  for(int j = 0; j < 2; j++) {
+  for(int j = 0; j < AXES; j++) {
    mapLines.clear();
-   robotToMap(axes[j], mapLines, robotPoint, robotTheta);
+   robotToMap(robotLinesAxes[j], mapLines, robotPoint, robotTheta);
 
    Point pointError;
    double angularError;
@@ -671,9 +669,6 @@ void localization(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line>
    }
   }
  }
-
- mapLines.clear();
- robotToMap(robotLines, mapLines, robotPoint, robotTheta);
 }
 
 void drawLidarPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) {
@@ -693,21 +688,23 @@ void drawLidarPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) 
  }
 }
 
-void drawLidarLines(Mat &image, vector<Line> &robotLines, int mapDiv) {
+void drawLidarLines(Mat &image, vector<Line> *robotLinesAxes, int mapDiv) {
  const Point centerPoint = Point(width / 2, height / 2);
 
- for(int i = 0; i < robotLines.size(); i++) {
-  Point point1 = robotLines[i].a;
-  Point point2 = robotLines[i].b;
+ for(int i = 0; i < AXES; i++) {
+  for(int j = 0; j < robotLinesAxes[i].size(); j++) {
+   Point point1 = robotLinesAxes[i][j].a;
+   Point point2 = robotLinesAxes[i][j].b;
 
-  point1.x /= mapDiv;
-  point2.x /= mapDiv;
-  point1.y /= -mapDiv;
-  point2.y /= -mapDiv;
-  point1 += centerPoint;
-  point2 += centerPoint;
+   point1.x /= mapDiv;
+   point2.x /= mapDiv;
+   point1.y /= -mapDiv;
+   point2.y /= -mapDiv;
+   point1 += centerPoint;
+   point2 += centerPoint;
 
-  line(image, point1, point2, Scalar::all(255), 1, LINE_AA);
+   line(image, point1, point2, i ? Scalar(255, 255, 128) : Scalar(128, 255, 255), 1, LINE_AA);
+  }
  }
 }
 
@@ -896,12 +893,10 @@ void addNode(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2
  nodes.push_back(node);
 }
 
-void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector<Line> &map,
+void ui(Mat &image, vector<Point> &robotPoints, vector<Line> *robotLinesAxes, vector<Line> &map,
                     vector<Point> &mapPoints, vector<Point> &nodes, int node, vector<array<int, 2>> &links,
-                    Point &robotPoint, Point &oldRobotPoint,
-                    uint16_t &robotTheta, uint16_t &oldRobotTheta,
-                    bool &mappingEnabled, bool &running,
-                    int &select, int &mapDiv, int time) {
+                    Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
+                    bool &mappingEnabled, bool &running, int &select, int &mapDiv, int time) {
 
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -1070,7 +1065,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector
 
   case SELECTDEBUGMAP:
    drawLidarPoints(image, robotPoints, true, mapDiv);
-   drawLidarLines(image, robotLines, mapDiv);
+   drawLidarLines(image, robotLinesAxes, mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
    //drawIntersects(image, map, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, FILLED, mapDiv);
@@ -1085,9 +1080,10 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> &robotLines, vector
 
   case SELECTDEBUGLIDAR:
    drawLidarPoints(image, robotPoints, true, mapDiv);
-   drawLidarLines(image, robotLines, mapDiv);
+   drawLidarLines(image, robotLinesAxes, mapDiv);
    drawRobot(image, robotIcon, FILLED, mapDiv);
-   sprintf(text, "Points %03d | Lines %02d | Scale %03d mm | Time %02d ms", robotPoints.size(), robotLines.size(), mapDiv, time);
+   sprintf(text, "Points %03d | Lines %02d/%02d | Scale %03d mm | Time %02d ms",
+           robotPoints.size(), robotLinesAxes[0].size(), robotLinesAxes[1].size(), mapDiv, time);
    break;
  }
 
@@ -1404,6 +1400,7 @@ int main(int argc, char* argv[]) {
  vector<Point> robotPoints;
  vector<vector<Point>> robotRawLines;
  vector<Line> robotLines;
+ vector<Line> robotLinesAxes[AXES];
  vector<Line> mapLines;
  vector<Line> map;
  vector<Point> mapPoints;
@@ -1481,26 +1478,35 @@ int main(int argc, char* argv[]) {
 
    robotLines.clear();
    fitLines(robotRawLines, robotLines);
-   sortLines(robotLines);
 
-   localization(robotLines, mapLines, map, robotPoint, robotTheta);
+   if(!robotLines.empty()) {
+    sortLines(robotLines);
 
-   if(mappingEnabled) {
-    mapping(mapLines, map);
-    mapCleaner(polarPoints, map, robotPoint, robotTheta);
-    mapDeduplicateAverage(map);
-    mapDeduplicateErase(map);
-    mapIntersects(map);
-    mapFiltersDecay(map);
+    for(int i = 0; i < AXES; i++)
+     robotLinesAxes[i].clear();
+    splitAxes(robotLines, robotLinesAxes);
+    localization(robotLinesAxes, map, robotPoint, robotTheta);
+
+    mapLines.clear();
+    robotToMap(robotLines, mapLines, robotPoint, robotTheta);
+
+    if(mappingEnabled) {
+     mapping(mapLines, map);
+     mapCleaner(polarPoints, map, robotPoint, robotTheta);
+     mapDeduplicateAverage(map);
+     mapDeduplicateErase(map);
+     mapIntersects(map);
+     mapFiltersDecay(map);
+    }
+
+    mapPoints.clear();
+    robotToMap(robotPoints, mapPoints, robotPoint, robotTheta);
    }
-
-   mapPoints.clear();
-   robotToMap(robotPoints, mapPoints, robotPoint, robotTheta);
   }
 
   autopilot(mapPoints, nodes, node, robotPoint, robotTheta, running);
 
-  ui(image, robotPoints, robotLines, map,
+  ui(image, robotPoints, robotLinesAxes, map,
      mapPoints, nodes, node, links,
      robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
      mappingEnabled, running, select, mapDiv, time);
