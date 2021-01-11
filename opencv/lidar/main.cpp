@@ -516,9 +516,9 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
                    Point &pointErrorOut, double &angularErrorOut) {
 
  Point pointErrorSum = Point(0, 0);
+ int pointErrorWeightSum = 0;
  double angularErrorSum = 0.0;
- int p = 0;
- int a = 0;
+ int angularErrorWeightSum = 0;
 
  for(int i = 0; i < mapLines.size(); i++) {
   for(int j = 0; j < map.size(); j++) {
@@ -530,21 +530,22 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
    if(map[j].validation >= VALIDATIONFILTERSTART &&
       testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, -SMALLDISTTOLERANCE,
                 pointError, angularError, distError, refNorm)) {
-    pointErrorSum += pointError;
-    p++;
+    pointErrorSum += pointError * refNorm;
+    pointErrorWeightSum += refNorm;
+
     if(map[j].validation >= VALIDATIONFILTERKEEP) {
-     angularErrorSum += angularError;
-     a++;
+     angularErrorSum += angularError * refNorm;
+     angularErrorWeightSum += refNorm;
     }
    }
 
   }
  }
 
- if(p) {
-  pointErrorOut = pointErrorSum / p;
-  if(a)
-   angularErrorOut = angularErrorSum / a;
+ if(pointErrorWeightSum) {
+  pointErrorOut = pointErrorSum / pointErrorWeightSum;
+  if(angularErrorWeightSum)
+   angularErrorOut = angularErrorSum / angularErrorWeightSum;
 
   return true;
  } else
@@ -639,33 +640,35 @@ void localization(vector<Line> &robotLines, vector<Line> &mapLines, vector<Line>
  if(robotLines.empty())
   return;
 
- vector<Line> filteredRobotLines;
- filteredRobotLines.push_back(robotLines[0]);
+ vector<Line> axes[2];
+ axes[0].push_back(robotLines[0]);
 
  for(int i = 1; i < robotLines.size(); i++) {
   double absAngularDiff = fabs(diffAngle(robotLines[0], robotLines[i]));
 
-  if(absAngularDiff > LARGEANGULARTOLERANCE && absAngularDiff < M_PI - LARGEANGULARTOLERANCE) {
-   filteredRobotLines.push_back(robotLines[i]);
-   break;
-  }
+  if(absAngularDiff > M_PI / 4.0 && absAngularDiff < M_PI - M_PI / 4.0)
+   axes[1].push_back(robotLines[i]);
+  else
+   axes[0].push_back(robotLines[i]);
  }
 
  for(int i = 0; i < NBITERATIONS; i++) {
-  mapLines.clear();
-  robotToMap(filteredRobotLines, mapLines, robotPoint, robotTheta);
+  for(int j = 0; j < 2; j++) {
+   mapLines.clear();
+   robotToMap(axes[j], mapLines, robotPoint, robotTheta);
 
-  Point pointError = Point(0, 0);
-  double angularError = 0.0;
-  if(computeErrors(mapLines, map, pointError, angularError)) {
-   robotPoint -= pointError / (i + 1);
+   Point pointError;
+   double angularError;
+   if(computeErrors(mapLines, map, pointError, angularError)) {
+    robotPoint -= pointError / (i + 1);
 
 #ifdef IMU
-   robotThetaCorrector += int(angularError * double(PI16) / M_PI) / IMUTHETACORRECTORDIV;
+    robotThetaCorrector += int(angularError * double(PI16) / M_PI) / IMUTHETACORRECTORDIV;
 #else
-   robotTheta += int(angularError * double(PI16) / M_PI) / (i + 1);
+    robotTheta += int(angularError * double(PI16) / M_PI) / (i + 1);
 #endif
 
+   }
   }
  }
 
