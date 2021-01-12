@@ -639,7 +639,7 @@ void mapFiltersDecay(vector<Line> &map) {
  n++;
 }
 
-void splitAxes(vector<Line> &robotLines, vector<Line> *robotLinesAxes) {
+void splitAxes(vector<Line> &robotLines, vector<Line> robotLinesAxes[]) {
  robotLinesAxes[0].push_back(robotLines[0]);
 
  for(int i = 1; i < robotLines.size(); i++) {
@@ -656,7 +656,7 @@ void splitAxes(vector<Line> &robotLines, vector<Line> *robotLinesAxes) {
  }
 }
 
-void localization(vector<Line> *robotLinesAxes, vector<Line> &map, Point &robotPoint, uint16_t &robotTheta) {
+void localization(vector<Line> robotLinesAxes[], vector<Line> &map, Point &robotPoint, uint16_t &robotTheta) {
  vector<Line> mapLines;
 
  for(int i = 0; i < NBITERATIONS; i++) {
@@ -697,7 +697,7 @@ void drawLidarPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) 
  }
 }
 
-void drawLidarLines(Mat &image, vector<Line> *robotLinesAxes, int mapDiv) {
+void drawLidarLines(Mat &image, vector<Line> robotLinesAxes[], int mapDiv) {
  const Point centerPoint = Point(width / 2, height / 2);
 
  for(int i = 0; i < AXES; i++) {
@@ -918,7 +918,7 @@ void addNode(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2
  nodes.push_back(node);
 }
 
-void ui(Mat &image, vector<Point> &robotPoints, vector<Line> *robotLinesAxes, vector<Line> &map,
+void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], vector<Line> &map,
                     vector<Point> &mapPoints, vector<Point> &nodes, int node, vector<array<int, 2>> &links,
                     Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
                     bool &mappingEnabled, bool &running, int &select, int &mapDiv, int time) {
