@@ -764,7 +764,7 @@ void drawIntersects(Mat &image, vector<Line> &map, Point robotPoint, uint16_t ro
 
    Point point = rescaleTranslate(rotate(intersectPoint - robotPoint, -robotTheta), mapDiv);
 
-   circle(image, point, 3, Scalar::all(255), FILLED, LINE_AA);
+   circle(image, point, 2, Scalar::all(255), FILLED, LINE_AA);
   }
  }
 }
@@ -792,6 +792,17 @@ void drawHist(Mat &image, Point robotPoint, uint16_t robotTheta, int mapDiv) {
 }
 
 void drawNodes(Mat &image, vector<Point> &nodes, int node, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+ for(int i = 0; i < nodes.size(); i++) {
+  Point point = rescaleTranslate(rotate(nodes[i] - robotPoint, -robotTheta), mapDiv);
+
+  if(i == node)
+   circle(image, point, 2, Scalar(0, 255, 255), FILLED, LINE_AA);
+  else
+   circle(image, point, 2, Scalar(255, 0, 255), FILLED, LINE_AA);
+ }
+}
+
+void drawNumbers(Mat &image, vector<Point> &nodes, int node, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  for(int i = 0; i < nodes.size(); i++) {
   Point point = rescaleTranslate(rotate(nodes[i] - robotPoint, -robotTheta), mapDiv);
 
