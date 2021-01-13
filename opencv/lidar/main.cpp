@@ -829,12 +829,17 @@ void drawPath(Mat &image, vector<Point> &nodes, vector<int> &paths, int start, i
   n = paths[n];
 
   Point point = rescaleTranslate(rotate(nodes[n] - robotPoint, -robotTheta), mapDiv);
+
   line(image, oldPoint, point, Scalar(0, 255, 0), 2, LINE_AA);
   oldPoint = point;
  }
 
  Point point = rescaleTranslate(rotate(nodes[start] - robotPoint, -robotTheta), mapDiv);
- line(image, oldPoint, point, Scalar(0, 255, 0), 2, LINE_AA);
+
+ if(n != end) {
+  line(image, oldPoint, point, Scalar(0, 255, 0), 2, LINE_AA);
+ } else
+  line(image, oldPoint, point, Scalar(0, 0, 255), 2, LINE_AA);
 }
 
 void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, int mapDiv) {
