@@ -795,10 +795,13 @@ void drawNodes(Mat &image, vector<Point> &nodes, int node, Point robotPoint, uin
  for(int i = 0; i < nodes.size(); i++) {
   Point point = rescaleTranslate(rotate(nodes[i] - robotPoint, -robotTheta), mapDiv);
 
-  if(i == node)
-   circle(image, point, 2, Scalar(0, 255, 255), FILLED, LINE_AA);
-  else
-   circle(image, point, 2, Scalar(255, 0, 255), FILLED, LINE_AA);
+  if(i == node) {
+   circle(image, point, 4, Scalar::all(0), 1, LINE_AA);
+   circle(image, point + Point(1, 1), 4, Scalar::all(255), 1, LINE_AA);
+  }
+
+  circle(image, point, 1, Scalar::all(0), FILLED, LINE_AA);
+  circle(image, point + Point(1, 1), 1, Scalar::all(255), FILLED, LINE_AA);
  }
 }
 
@@ -1111,6 +1114,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawHist(image, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty())
     drawPath(image, nodes, paths, 0, nodes.size() - 1, robotPoint, robotTheta, mapDiv);
+   drawNodes(image, nodes, node, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    sprintf(text, "");
    break;
@@ -1122,7 +1126,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    //drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty())
     drawPath(image, nodes, paths, 0, nodes.size() - 1, robotPoint, robotTheta, mapDiv);
-   drawNodes(image, nodes, node, robotPoint, robotTheta, mapDiv);
+   drawNumbers(image, nodes, node, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    if(nodes.empty())
     sprintf(text, "X %04d | Y %04d | Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
