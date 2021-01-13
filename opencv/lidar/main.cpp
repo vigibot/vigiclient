@@ -680,17 +680,18 @@ void localization(vector<Line> robotLinesAxes[], vector<Line> &map, Point &robot
  }
 }
 
-void drawLidarPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) {
- const Point centerPoint = Point(width / 2, height / 2);
+Point rescaleTranslate(Point point, int mapDiv) {
+ point.x /= mapDiv;
+ point.y /= -mapDiv;
+ return Point(width / 2, height / 2) + point;
+}
 
+void drawLidarPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) {
  for(int i = 0; i < points.size(); i++) {
-  Point point = points[i];
-  point.x /= mapDiv;
-  point.y /= -mapDiv;
-  point += centerPoint;
+  Point point = rescaleTranslate(points[i], mapDiv);
 
   if(beams)
-   line(image, centerPoint, point, Scalar::all(64), 1, LINE_AA);
+   line(image, Point(width / 2, height / 2), point, Scalar::all(64), 1, LINE_AA);
   else if(point.x >= 0 && point.x < width &&
           point.y >= 0 && point.y < height)
    image.at<Vec3b>(point.y, point.x) = Vec3b(255, 255, 255);
@@ -698,19 +699,10 @@ void drawLidarPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) 
 }
 
 void drawLidarLines(Mat &image, vector<Line> robotLinesAxes[], int mapDiv) {
- const Point centerPoint = Point(width / 2, height / 2);
-
  for(int i = 0; i < AXES; i++) {
   for(int j = 0; j < robotLinesAxes[i].size(); j++) {
-   Point point1 = robotLinesAxes[i][j].a;
-   Point point2 = robotLinesAxes[i][j].b;
-
-   point1.x /= mapDiv;
-   point2.x /= mapDiv;
-   point1.y /= -mapDiv;
-   point2.y /= -mapDiv;
-   point1 += centerPoint;
-   point2 += centerPoint;
+   Point point1 = rescaleTranslate(robotLinesAxes[i][j].a, mapDiv);
+   Point point2 = rescaleTranslate(robotLinesAxes[i][j].b, mapDiv);
 
    Scalar color;
    switch(i) {
@@ -734,18 +726,9 @@ void drawLidarLines(Mat &image, vector<Line> robotLinesAxes[], int mapDiv) {
 }
 
 void drawMap(Mat &image, vector<Line> &map, bool light, Point robotPoint, uint16_t robotTheta, int mapDiv) {
- const Point centerPoint = Point(width / 2, height / 2);
-
  for(int i = 0; i < map.size(); i++) {
-  Point point1 = rotate(map[i].a - robotPoint, -robotTheta);
-  Point point2 = rotate(map[i].b - robotPoint, -robotTheta);
-
-  point1.x /= mapDiv;
-  point2.x /= mapDiv;
-  point1.y /= -mapDiv;
-  point2.y /= -mapDiv;
-  point1 += centerPoint;
-  point2 += centerPoint;
+  Point point1 = rescaleTranslate(rotate(map[i].a - robotPoint, -robotTheta), mapDiv);
+  Point point2 = rescaleTranslate(rotate(map[i].b - robotPoint, -robotTheta), mapDiv);
 
   if(light) {
    if(map[i].validation >= VALIDATIONFILTERKEEP)
@@ -767,8 +750,6 @@ void drawMap(Mat &image, vector<Line> &map, bool light, Point robotPoint, uint16
 }
 
 void drawIntersects(Mat &image, vector<Line> &map, Point robotPoint, uint16_t robotTheta, int mapDiv) {
- const Point centerPoint = Point(width / 2, height / 2);
-
  for(int i = 0; i < map.size(); i++) {
   if(map[i].validation < VALIDATIONFILTERKEEP)
    continue;
@@ -781,10 +762,7 @@ void drawIntersects(Mat &image, vector<Line> &map, Point robotPoint, uint16_t ro
    if(!intersectLine(map[i], map[j], intersectPoint))
     continue;
 
-   Point point = rotate(intersectPoint - robotPoint, -robotTheta);
-   point.x /= mapDiv;
-   point.y /= -mapDiv;
-   point += centerPoint;
+   Point point = rescaleTranslate(rotate(intersectPoint - robotPoint, -robotTheta), mapDiv);
 
    circle(image, point, 3, Scalar::all(255), FILLED, LINE_AA);
   }
@@ -794,7 +772,6 @@ void drawIntersects(Mat &image, vector<Line> &map, Point robotPoint, uint16_t ro
 void drawHist(Mat &image, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  static Point hist[HIST] = {Point(0, 0)};
  static int n = 0;
- const Point centerPoint = Point(width / 2, height / 2);
  static Point oldPoint = Point(0, 0);
 
  hist[n++] = robotPoint;
@@ -802,10 +779,7 @@ void drawHist(Mat &image, Point robotPoint, uint16_t robotTheta, int mapDiv) {
   n = 0;
 
  for(int i = 0; i < HIST; i++) {
-  Point point = rotate(hist[(i + n) % HIST] - robotPoint, -robotTheta);
-  point.x /= mapDiv;
-  point.y /= -mapDiv;
-  point += centerPoint;
+  Point point = rescaleTranslate(rotate(hist[(i + n) % HIST] - robotPoint, -robotTheta), mapDiv);
 
   if(i != 0) {
    int sqDistTolerancePixels = LARGEDISTTOLERANCE / mapDiv;
@@ -818,13 +792,8 @@ void drawHist(Mat &image, Point robotPoint, uint16_t robotTheta, int mapDiv) {
 }
 
 void drawNodes(Mat &image, vector<Point> &nodes, int node, Point robotPoint, uint16_t robotTheta, int mapDiv) {
- const Point centerPoint = Point(width / 2, height / 2);
-
  for(int i = 0; i < nodes.size(); i++) {
-  Point point = rotate(nodes[i] - robotPoint, -robotTheta);
-  point.x /= mapDiv;
-  point.y /= -mapDiv;
-  point += centerPoint;
+  Point point = rescaleTranslate(rotate(nodes[i] - robotPoint, -robotTheta), mapDiv);
 
   char text[8];
   sprintf(text, "%d", i);
@@ -844,32 +813,34 @@ void drawNodes(Mat &image, vector<Point> &nodes, int node, Point robotPoint, uin
 }
 
 void drawLinks(Mat &image, vector<Point> &nodes, vector<array<int, 2>> &links, Point robotPoint, uint16_t robotTheta, int mapDiv) {
- const Point centerPoint = Point(width / 2, height / 2);
-
  for(int i = 0; i < links.size(); i++) {
-  Point point1 = rotate(nodes[links[i][0]] - robotPoint, -robotTheta);
-  Point point2 = rotate(nodes[links[i][1]] - robotPoint, -robotTheta);
-
-  point1.x /= mapDiv;
-  point2.x /= mapDiv;
-  point1.y /= -mapDiv;
-  point2.y /= -mapDiv;
-  point1 += centerPoint;
-  point2 += centerPoint;
+  Point point1 = rescaleTranslate(rotate(nodes[links[i][0]] - robotPoint, -robotTheta), mapDiv);
+  Point point2 = rescaleTranslate(rotate(nodes[links[i][1]] - robotPoint, -robotTheta), mapDiv);
 
   line(image, point1, point2, Scalar::all(128), 1, LINE_AA);
  }
 }
 
-void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, int mapDiv) {
- const Point centerPoint = Point(width / 2, height / 2);
+void drawPath(Mat &image, vector<Point> &nodes, vector<int> &paths, int start, int end, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+ int n = end;
+ Point oldPoint = rescaleTranslate(rotate(nodes[n] - robotPoint, -robotTheta), mapDiv);
 
+ while(paths[n] != -1) {
+  n = paths[n];
+
+  Point point = rescaleTranslate(rotate(nodes[n] - robotPoint, -robotTheta), mapDiv);
+  line(image, oldPoint, point, Scalar(0, 255, 0), 2, LINE_AA);
+  oldPoint = point;
+ }
+
+ Point point = rescaleTranslate(rotate(nodes[start] - robotPoint, -robotTheta), mapDiv);
+ line(image, oldPoint, point, Scalar(0, 255, 0), 2, LINE_AA);
+}
+
+void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, int mapDiv) {
  vector<Point> polygon;
  for(int i = 0; i < robotIcon.size(); i++) {
-  Point point = robotIcon[i];
-  point.x /= mapDiv;
-  point.y /= -mapDiv;
-  point += centerPoint;
+  Point point = rescaleTranslate(robotIcon[i], mapDiv);
   polygon.push_back(point);
  }
 
@@ -892,6 +863,53 @@ bool obstacle(vector<Point> &mapPoints, Point robotPoint, Point targetPoint, int
  return false;
 }
 
+void dijkstra(list<pair<int, int>> adjacent[], int nbNodes, int start, vector<int> &pathsOut) {
+ priority_queue<Pair, vector<Pair>, greater<Pair>> pq;
+ vector<int> dists(nbNodes, INT_MAX);
+ vector<bool> flags(nbNodes, false);
+ vector<int> paths(nbNodes, -1);
+
+ pq.push(make_pair(0, start));
+ dists[start] = 0;
+
+ while(!pq.empty()) {
+  int a = pq.top().second;
+  pq.pop();
+  flags[a] = true;
+
+  list<pair<int, int>>::iterator i;
+  for(i = adjacent[a].begin(); i != adjacent[a].end(); ++i) {
+   int b = (*i).first;
+   int weight = (*i).second;
+
+   if(flags[b] == false && dists[b] > dists[a] + weight) {
+    dists[b] = dists[a] + weight;
+    paths[b] = a;
+    pq.push(make_pair(dists[b], b));
+   }
+  }
+ }
+
+ pathsOut = paths;
+}
+
+void addLink(list<pair<int, int>> adjacent[], int a, int b, int weight) {
+ adjacent[a].push_back(make_pair(b, weight));
+ adjacent[b].push_back(make_pair(a, weight));
+}
+
+void computePaths(vector<Point> &nodes, vector<array<int, 2>> &links, int start, vector<int> &paths) {
+ list<pair<int, int>> *adjacent;
+ adjacent = new list<Pair>[nodes.size()];
+
+ for(int i = 0; i < links.size(); i++) {
+  int dist = int(sqrt(sqDist(nodes[links[i][0]], nodes[links[i][1]])));
+  addLink(adjacent, links[i][0], links[i][1], dist);
+ }
+
+ dijkstra(adjacent, nodes.size(), start, paths);
+}
+
 void delNode(vector<Point> &nodes, vector<array<int, 2>> &links, int nodeIndex) {
  nodes.erase(nodes.begin() + nodeIndex);
  for(int i = 0; i < links.size(); i++) {
@@ -911,15 +929,14 @@ void delNode(vector<Point> &nodes, vector<array<int, 2>> &links, int nodeIndex) 
 void addNode(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, Point node) {
  for(int i = 0; i < nodes.size(); i++) {
   if(sqDist(node, nodes[i]) <= LINKSIZEMAX * LINKSIZEMAX &&
-     !obstacle(mapPoints, node, nodes[i], LINKSIZEMAX)) {
+     !obstacle(mapPoints, node, nodes[i], LINKSIZEMAX))
    links.push_back({int(nodes.size()), i});
-  }
  }
  nodes.push_back(node);
 }
 
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], vector<Line> &map,
-                    vector<Point> &mapPoints, vector<Point> &nodes, int node, vector<array<int, 2>> &links,
+                    vector<Point> &mapPoints, vector<Point> &nodes, int node, vector<array<int, 2>> &links, vector<int> &paths,
                     Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
                     bool &mappingEnabled, bool &running, int &select, int &mapDiv, int time) {
 
@@ -997,12 +1014,15 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
      if(sqDist(robotPoint, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
       delNode(nodes, links, i);
       addNode(mapPoints, nodes, links, robotPoint);
+      computePaths(nodes, links, 0, paths);
       found = true;
       break;
      }
     }
-    if(!found)
+    if(!found) {
      addNode(mapPoints, nodes, links, robotPoint);
+     computePaths(nodes, links, 0, paths);
+    }
    }
 
   }
@@ -1015,12 +1035,17 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     for(int i = 0; i < nodes.size(); i++) {
      if(sqDist(robotPoint, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
       delNode(nodes, links, i);
+      if(!nodes.empty())
+       computePaths(nodes, links, 0, paths);
       found = true;
       break;
      }
     }
-    if(!found && !nodes.empty())
+    if(!found && !nodes.empty()) {
      delNode(nodes, links, nodes.size() - 1);
+     if(!nodes.empty())
+      computePaths(nodes, links, 0, paths);
+    }
    }
 
   }
@@ -1069,6 +1094,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotTheta, mapDiv);
    //drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
+   if(!nodes.empty())
+    drawPath(image, nodes, paths, 0, nodes.size() - 1, robotPoint, robotTheta, mapDiv);
    drawNodes(image, nodes, node, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    sprintf(text, "");
@@ -1079,6 +1106,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotTheta, mapDiv);
    //drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
+   if(!nodes.empty())
+    drawPath(image, nodes, paths, 0, nodes.size() - 1, robotPoint, robotTheta, mapDiv);
    drawNodes(image, nodes, node, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    if(nodes.empty())
@@ -1431,6 +1460,7 @@ int main(int argc, char* argv[]) {
  vector<Point> mapPoints;
  vector<Point> nodes;
  vector<array<int, 2>> links;
+ vector<int> paths;
 
  Point robotPoint = Point(0, 0);
  uint16_t robotTheta = 0;
@@ -1440,6 +1470,8 @@ int main(int argc, char* argv[]) {
  int mapDiv = MAPDIV;
  fprintf(stderr, "Reading map file\n");
  readMapFile(map, nodes, links, robotPoint, robotTheta, mappingEnabled, select, mapDiv);
+ if(!nodes.empty())
+  computePaths(nodes, links, 0, paths);
  Point oldRobotPoint = robotPoint;
  uint16_t oldRobotTheta = robotTheta;
  robotThetaCorrector = robotTheta;
@@ -1532,7 +1564,7 @@ int main(int argc, char* argv[]) {
   autopilot(mapPoints, nodes, node, robotPoint, robotTheta, running);
 
   ui(image, robotPoints, robotLinesAxes, map,
-     mapPoints, nodes, node, links,
+     mapPoints, nodes, node, links, paths,
      robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
      mappingEnabled, running, select, mapDiv, time);
 

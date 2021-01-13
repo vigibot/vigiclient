@@ -53,7 +53,7 @@
 
 #define ROBOTWIDTH 50
 #define OBSTACLEDETECTIONRANGE 300
-#define LINKSIZEMAX 1000
+#define LINKSIZEMAX 500
 
 enum {
  STATUSWAITING,
@@ -90,6 +90,8 @@ typedef struct Line {
  int shrinka;
  int shrinkb;
 } Line;
+
+typedef std::pair<int, int> Pair;
 
 int width;
 int height;
