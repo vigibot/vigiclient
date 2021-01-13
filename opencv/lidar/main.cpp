@@ -843,17 +843,13 @@ void drawPath(Mat &image, vector<Point> &nodes, vector<int> &paths, int start, i
   n = paths[n];
 
   Point point = rescaleTranslate(rotate(nodes[n] - robotPoint, -robotTheta), mapDiv);
-
-  line(image, oldPoint, point, Scalar(0, 255, 0), 2, LINE_AA);
+  line(image, oldPoint, point, Scalar::all(128), 1, LINE_AA);
   oldPoint = point;
  }
 
  Point point = rescaleTranslate(rotate(nodes[start] - robotPoint, -robotTheta), mapDiv);
-
- if(n != end) {
-  line(image, oldPoint, point, Scalar(0, 255, 0), 2, LINE_AA);
- } else
-  line(image, oldPoint, point, Scalar(0, 0, 255), 2, LINE_AA);
+ if(n != end)
+  line(image, oldPoint, point, Scalar::all(128), 1, LINE_AA);
 }
 
 void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, int mapDiv) {
@@ -1117,7 +1113,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   case SELECTLIGHT:
    drawLidarPoints(image, robotPoints, false, mapDiv);
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
-   drawHist(image, robotPoint, robotTheta, mapDiv);
+   //drawHist(image, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty()) {
 
     int distMin = sqDist(robotPoint, nodes[0]);
@@ -1152,7 +1148,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   case SELECTFULL:
    drawLidarPoints(image, robotPoints, false, mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
-   drawHist(image, robotPoint, robotTheta, mapDiv);
+   //drawHist(image, robotPoint, robotTheta, mapDiv);
    //drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty()) {
 
@@ -1171,6 +1167,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     for(int i = 0; i < nodes.size(); i++)
      drawPath(image, nodes, paths, start, i, robotPoint, robotTheta, mapDiv);
    }
+   drawNodes(image, nodes, node, robotPoint, robotTheta, mapDiv);
    //drawNumbers(image, nodes, node, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    if(nodes.empty())
