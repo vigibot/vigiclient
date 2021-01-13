@@ -972,7 +972,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  Point gotoPoint = Point(remoteFrame.xy[GOTOTOOL][0], remoteFrame.xy[GOTOTOOL][1]);
  gotoPoint.x = (gotoPoint.x * width * mapDiv) / 65535;
  gotoPoint.y = (gotoPoint.y * height * mapDiv) / 65535;
- gotoPoint = rotate(gotoPoint + robotPoint, robotTheta);
+ gotoPoint = rotate(gotoPoint, robotTheta) + robotPoint;
 
  if(buttonOk) {
   buttonOkCount++;
