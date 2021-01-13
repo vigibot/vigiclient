@@ -1088,8 +1088,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    sprintf(text, "");
    break;
 
-  case SELECTNODES:
-   drawNodes(image, nodes, node, robotPoint, robotTheta, mapDiv);
+  case SELECTHIST:
+   drawHist(image, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    sprintf(text, "");
    break;
@@ -1098,7 +1098,6 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawLidarPoints(image, robotPoints, false, mapDiv);
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotTheta, mapDiv);
-   //drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty())
     drawPath(image, nodes, paths, 0, nodes.size() - 1, robotPoint, robotTheta, mapDiv);
    drawNodes(image, nodes, node, robotPoint, robotTheta, mapDiv);
