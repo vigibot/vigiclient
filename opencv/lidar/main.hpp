@@ -2,6 +2,7 @@
 #define HEIGHT 480
 #define FPS 30
 
+#define GOTOTOOL 0
 #define BUTTONSLONGPRESS 15
 
 #define IMU
