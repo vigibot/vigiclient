@@ -970,6 +970,11 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
                     Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
                     bool &mappingEnabled, bool &running, int &select, int &mapDiv, int time) {
 
+ static Point oldRemoteFramePoint = Point(0, 0);
+ static int closestGoto;
+ int closestRobot;
+ static int oldClosestGoto = 0;
+ static int oldClosestRobot = 0;
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
  bool buttonOk = remoteFrame.switchs & 0b10000000;
@@ -982,18 +987,37 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  static int buttonMoreCount = 0;
  static int buttonOkCount = 0;
  static int buttonCancelCount = 0;
- static int oldStart = 0;
 
- Point gotoPoint = Point(remoteFrame.xy[GOTOTOOL][0], remoteFrame.xy[GOTOTOOL][1]);
- gotoPoint.x = (gotoPoint.x * width * mapDiv) / 65535;
- gotoPoint.y = (gotoPoint.y * height * mapDiv) / 65535;
- gotoPoint = rotate(gotoPoint, robotTheta) + robotPoint;
 
- start = closestPoint(nodes, robotPoint);
- end = closestPoint(nodes, gotoPoint);
- if(!nodes.empty())
-  if(start != oldStart)
-   computePaths(nodes, links, start, paths);
+ if(!nodes.empty()) {
+  Point remoteFramePoint = Point(remoteFrame.xy[GOTOTOOL][0], remoteFrame.xy[GOTOTOOL][1]);
+  if(remoteFramePoint != oldRemoteFramePoint) {
+   oldRemoteFramePoint = remoteFramePoint;
+
+   Point gotoPoint;
+   gotoPoint.x = (remoteFramePoint.x * width * mapDiv) / 65535;
+   gotoPoint.y = (remoteFramePoint.y * height * mapDiv) / 65535;
+   gotoPoint = rotate(gotoPoint, robotTheta) + robotPoint;
+
+   closestGoto = closestPoint(nodes, gotoPoint);
+  }
+
+  closestRobot = closestPoint(nodes, robotPoint);
+
+  if(closestGoto != oldClosestGoto) {
+   computePaths(nodes, links, closestRobot, paths);
+   start = closestRobot;
+   end = closestGoto;
+   oldClosestGoto = closestGoto;
+  }
+
+  if(closestRobot != oldClosestRobot) {
+   computePaths(nodes, links, closestGoto, paths);
+   start = closestGoto;
+   end = closestRobot;
+   oldClosestRobot = closestRobot;
+  }
+ }
 
  if(buttonOk) {
   buttonOkCount++;
@@ -1346,16 +1370,16 @@ bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
  return false;
 }
 
-void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, int start, int end, Point &robotPoint, uint16_t &robotTheta, bool &running) {
+void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &paths, int start, int end, Point &robotPoint, uint16_t &robotTheta, bool &running) { // TODO
  static bool oldRunning = false;
  static int node = 0;
  static int8_t vx = 0;
  static int8_t vy = 0;
  static int8_t vz = 0;
 
- if(running && !oldRunning)
-  node = start;
- else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
+ if(running && !oldRunning && !nodes.empty()) {
+
+ } else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
   running = false;
  oldRunning = running;
 
@@ -1584,7 +1608,7 @@ int main(int argc, char* argv[]) {
    }
   }
 
-  autopilot(mapPoints, nodes, start, end, robotPoint, robotTheta, running);
+  autopilot(mapPoints, nodes, paths, start, end, robotPoint, robotTheta, running);
 
   ui(image, robotPoints, robotLinesAxes, map,
      mapPoints, nodes, links, paths, start, end,
