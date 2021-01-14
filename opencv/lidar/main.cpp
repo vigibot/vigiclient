@@ -1109,6 +1109,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
      if(!nodes.empty())
       computePaths(nodes, links, 0, paths);
     }
+    if(targetNode >= nodes.size())
+     targetNode--;
    }
 
   }
