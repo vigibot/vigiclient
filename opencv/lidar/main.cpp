@@ -839,17 +839,14 @@ void drawPath(Mat &image, vector<Point> &nodes, vector<int> &paths, int start, i
  int n = end;
  Point oldPoint = rescaleTranslate(rotate(nodes[n] - robotPoint, -robotTheta), mapDiv);
 
- while(paths[n] != -1) {
-  n = paths[n];
-
+ while(n != -1) {
   Point point = rescaleTranslate(rotate(nodes[n] - robotPoint, -robotTheta), mapDiv);
+
   line(image, oldPoint, point, Scalar::all(128), 1, LINE_AA);
   oldPoint = point;
- }
 
- Point point = rescaleTranslate(rotate(nodes[start] - robotPoint, -robotTheta), mapDiv);
- if(n != end)
-  line(image, oldPoint, point, Scalar::all(128), 1, LINE_AA);
+  n = paths[n];
+ }
 }
 
 void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, int mapDiv) {
@@ -1011,7 +1008,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    oldTargetNode = targetNode;
   }
 
-  if(closestRobot != oldClosestRobot) {
+  if(closestRobot != oldClosestRobot && !running) {
    start = targetNode;
    end = closestRobot;
    computePaths(nodes, links, start, paths);
@@ -1370,6 +1367,18 @@ bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
  return false;
 }
 
+int nextNode(vector<int> &paths, int currentNode, int targetNode) {
+ int n = targetNode;
+
+ while(n != -1) {
+  if(paths[n] == currentNode)
+   return n;
+  n = paths[n];
+ }
+
+ return -1;
+}
+
 void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &paths, int targetNode, Point &robotPoint, uint16_t &robotTheta, bool &running) { // TODO
  static bool oldRunning = false;
  static int currentNode = 0;
@@ -1377,13 +1386,10 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &path
  static int8_t vy = 0;
  static int8_t vz = 0;
 
- if(running && !oldRunning && !nodes.empty()) {
+ if(running && !oldRunning && !nodes.empty())
+  currentNode = closestPoint(nodes, robotPoint);
 
-
-  currentNode = targetNode;
-
-
- } else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
+ else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
   running = false;
  oldRunning = running;
 
@@ -1395,11 +1401,9 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &path
  }
 
  if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
-
-
-  running = false;
-
-
+  currentNode = nextNode(paths, currentNode, targetNode);
+  if(currentNode == -1)
+   running = false;
  }
 
  telemetryFrame.vx = vx;
