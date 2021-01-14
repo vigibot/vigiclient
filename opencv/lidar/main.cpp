@@ -950,8 +950,23 @@ void addNode(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2
  nodes.push_back(node);
 }
 
+int closestPoint(vector<Point> &points, Point point) {
+ int distMin = sqDist(point, points[0]);
+ int closest = 0;
+
+ for(int i = 1; i < points.size(); i++) {
+  int dist = sqDist(point, points[i]);
+  if(dist < distMin) {
+   distMin = dist;
+   closest = i;
+  }
+ }
+
+ return closest;
+}
+
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], vector<Line> &map,
-                    vector<Point> &mapPoints, vector<Point> &nodes, int node, vector<array<int, 2>> &links, vector<int> &paths,
+                    vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, int &start, int &end,
                     Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
                     bool &mappingEnabled, bool &running, int &select, int &mapDiv, int time) {
 
@@ -973,6 +988,12 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  gotoPoint.x = (gotoPoint.x * width * mapDiv) / 65535;
  gotoPoint.y = (gotoPoint.y * height * mapDiv) / 65535;
  gotoPoint = rotate(gotoPoint, robotTheta) + robotPoint;
+
+ start = closestPoint(nodes, robotPoint);
+ end = closestPoint(nodes, gotoPoint);
+ if(!nodes.empty())
+  if(start != oldStart)
+   computePaths(nodes, links, start, paths);
 
  if(buttonOk) {
   buttonOkCount++;
@@ -1114,33 +1135,9 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawLidarPoints(image, robotPoints, false, mapDiv);
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
    //drawHist(image, robotPoint, robotTheta, mapDiv);
-   if(!nodes.empty()) {
-
-    int distMin = sqDist(robotPoint, nodes[0]);
-    int start = 0;
-    for(int i = 1; i < nodes.size(); i++) {
-     int dist = sqDist(robotPoint, nodes[i]);
-     if(dist < distMin) {
-      distMin = dist;
-      start = i;
-     }
-    }
-    if(start != oldStart)
-     computePaths(nodes, links, start, paths);
-
-    distMin = sqDist(gotoPoint, nodes[0]);
-    int end = 0;
-    for(int i = 1; i < nodes.size(); i++) {
-     int dist = sqDist(gotoPoint, nodes[i]);
-     if(dist < distMin) {
-      distMin = dist;
-      end = i;
-     }
-    }
-
+   if(!nodes.empty())
     drawPath(image, nodes, paths, start, end, robotPoint, robotTheta, mapDiv);
-   }
-   drawNodes(image, nodes, node, robotPoint, robotTheta, mapDiv);
+   drawNodes(image, nodes, end, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    sprintf(text, "");
    break;
@@ -1150,31 +1147,17 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
    //drawHist(image, robotPoint, robotTheta, mapDiv);
    //drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
-   if(!nodes.empty()) {
-
-    int distMin = sqDist(robotPoint, nodes[0]);
-    int start = 0;
-    for(int i = 1; i < nodes.size(); i++) {
-     int dist = sqDist(robotPoint, nodes[i]);
-     if(dist < distMin) {
-      distMin = dist;
-      start = i;
-     }
-    }
-    if(start != oldStart)
-     computePaths(nodes, links, start, paths);
-
+   if(!nodes.empty())
     for(int i = 0; i < nodes.size(); i++)
      drawPath(image, nodes, paths, start, i, robotPoint, robotTheta, mapDiv);
-   }
-   drawNodes(image, nodes, node, robotPoint, robotTheta, mapDiv);
-   //drawNumbers(image, nodes, node, robotPoint, robotTheta, mapDiv);
+   drawNodes(image, nodes, end, robotPoint, robotTheta, mapDiv);
+   //drawNumbers(image, nodes, end, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    if(nodes.empty())
     sprintf(text, "X %04d | Y %04d | Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
    else
-    sprintf(text, "Nodes %02d/%02d | Links %03d | X %04d/%04d | Y %04d/%04d | Theta %03d", node, nodes.size(),
-            links.size(), robotPoint.x, nodes[node].x, robotPoint.y, nodes[node].y, robotTheta * 180 / PI16);
+    sprintf(text, "Nodes %02d/%02d | Links %03d | X %04d/%04d | Y %04d/%04d | Theta %03d", end, nodes.size(),
+            links.size(), robotPoint.x, nodes[end].x, robotPoint.y, nodes[end].y, robotTheta * 180 / PI16);
    break;
 
   case SELECTDEBUGMAP:
@@ -1221,7 +1204,7 @@ void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t robotTheta, uint16
  for(int i = 0; i < size; i++)
   polarPoints[i].theta += (size - i) * deltaTheta / size;
 
- while(polarPoints[0].theta - polarPoints[polarPoints.size() - 1].theta > PI16 && polarPoints.size() > 1)
+ while(polarPoints[0].theta - polarPoints[size - 1].theta > PI16 && size > 1)
   polarPoints.erase(polarPoints.begin());
 
  oldRobotTheta = robotTheta;
@@ -1363,25 +1346,16 @@ bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
  return false;
 }
 
-void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, int &node, Point &robotPoint, uint16_t &robotTheta, bool &running) {
+void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, int start, int end, Point &robotPoint, uint16_t &robotTheta, bool &running) {
  static bool oldRunning = false;
- int size = nodes.size();
- static int dir = 1;
+ static int node = 0;
  static int8_t vx = 0;
  static int8_t vy = 0;
  static int8_t vz = 0;
 
- if(running && !oldRunning && size >= 2) {
-  int min = sqDist(robotPoint, nodes[0]);
-  for(int i = 1; i < nodes.size(); i++) {
-   int dist = sqDist(robotPoint, nodes[i]);
-   if(dist < min) {
-    min = dist;
-    node = i;
-   }
-  }
-  dir = 1;
- } else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz || size < 2)
+ if(running && !oldRunning)
+  node = start;
+ else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
   running = false;
  oldRunning = running;
 
@@ -1392,20 +1366,8 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, int &node, Point 
   return;
  }
 
- bool ob = obstacle(mapPoints, robotPoint, nodes[node], OBSTACLEDETECTIONRANGE);
- bool go = gotoPoint(nodes[node], vy, vz, robotPoint, robotTheta);
-
- if(ob || go) {
-  if(ob)
-   dir = -dir;
-
-  node += dir;
-
-  if(node >= size)
-   node -= size;
-  else if(node < 0)
-   node += size;
- }
+ if(gotoPoint(nodes[node], vy, vz, robotPoint, robotTheta))
+  running = false;
 
  telemetryFrame.vx = vx;
  telemetryFrame.vy = vy;
@@ -1525,6 +1487,8 @@ int main(int argc, char* argv[]) {
  Point robotPoint = Point(0, 0);
  uint16_t robotTheta = 0;
  bool mappingEnabled = true;
+ int start = 0;
+ int end = 0;
  bool running = false;
  int select = SELECTLIGHT;
  int mapDiv = MAPDIV;
@@ -1535,7 +1499,6 @@ int main(int argc, char* argv[]) {
  Point oldRobotPoint = robotPoint;
  uint16_t oldRobotTheta = robotTheta;
  robotThetaCorrector = robotTheta;
- int node = 0;
 
  bgrInit();
 
@@ -1621,10 +1584,10 @@ int main(int argc, char* argv[]) {
    }
   }
 
-  autopilot(mapPoints, nodes, node, robotPoint, robotTheta, running);
+  autopilot(mapPoints, nodes, start, end, robotPoint, robotTheta, running);
 
   ui(image, robotPoints, robotLinesAxes, map,
-     mapPoints, nodes, node, links, paths,
+     mapPoints, nodes, links, paths, start, end,
      robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
      mappingEnabled, running, select, mapDiv, time);
 
