@@ -791,11 +791,11 @@ void drawHist(Mat &image, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  }
 }
 
-void drawNodes(Mat &image, vector<Point> &nodes, int node, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+void drawNodes(Mat &image, vector<Point> &nodes, int targetNode, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  for(int i = 0; i < nodes.size(); i++) {
   Point point = rescaleTranslate(rotate(nodes[i] - robotPoint, -robotTheta), mapDiv);
 
-  if(i == node) {
+  if(i == targetNode) {
    circle(image, point, 4, Scalar::all(0), 1, LINE_AA);
    circle(image, point + Point(1, 1), 4, Scalar::all(255), 1, LINE_AA);
   }
@@ -805,7 +805,7 @@ void drawNodes(Mat &image, vector<Point> &nodes, int node, Point robotPoint, uin
  }
 }
 
-void drawNumbers(Mat &image, vector<Point> &nodes, int node, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+void drawNumbers(Mat &image, vector<Point> &nodes, int targetNode, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  for(int i = 0; i < nodes.size(); i++) {
   Point point = rescaleTranslate(rotate(nodes[i] - robotPoint, -robotTheta), mapDiv);
 
@@ -819,7 +819,7 @@ void drawNumbers(Mat &image, vector<Point> &nodes, int node, Point robotPoint, u
   putText(image, text, textPoint, FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
   putText(image, text, textPoint + Point(1, 1), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
 
-  if(i == node) {
+  if(i == targetNode) {
    circle(image, point, textSize.width / 2 + 3, Scalar::all(0), 1, LINE_AA);
    circle(image, point + Point(1, 1), textSize.width / 2 + 3, Scalar::all(255), 1, LINE_AA);
   }
@@ -966,15 +966,16 @@ int closestPoint(vector<Point> &points, Point point) {
 }
 
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], vector<Line> &map,
-                    vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, int &start, int &end,
+                    vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, int &targetNode,
                     Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
                     bool &mappingEnabled, bool &running, int &select, int &mapDiv, int time) {
 
  static Point oldRemoteFramePoint = Point(0, 0);
- static int closestGoto;
  int closestRobot;
- static int oldClosestGoto = 0;
+ static int oldTargetNode = 0;
  static int oldClosestRobot = 0;
+ static int start = 0;
+ static int end = 0;
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
  bool buttonOk = remoteFrame.switchs & 0b10000000;
@@ -988,33 +989,32 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  static int buttonOkCount = 0;
  static int buttonCancelCount = 0;
 
-
  if(!nodes.empty()) {
   Point remoteFramePoint = Point(remoteFrame.xy[GOTOTOOL][0], remoteFrame.xy[GOTOTOOL][1]);
   if(remoteFramePoint != oldRemoteFramePoint) {
    oldRemoteFramePoint = remoteFramePoint;
 
-   Point gotoPoint;
-   gotoPoint.x = (remoteFramePoint.x * width * mapDiv) / 65535;
-   gotoPoint.y = (remoteFramePoint.y * height * mapDiv) / 65535;
-   gotoPoint = rotate(gotoPoint, robotTheta) + robotPoint;
+   Point targetPoint;
+   targetPoint.x = (remoteFramePoint.x * width * mapDiv) / 65535;
+   targetPoint.y = (remoteFramePoint.y * height * mapDiv) / 65535;
+   targetPoint = rotate(targetPoint, robotTheta) + robotPoint;
 
-   closestGoto = closestPoint(nodes, gotoPoint);
+   targetNode = closestPoint(nodes, targetPoint);
   }
 
   closestRobot = closestPoint(nodes, robotPoint);
 
-  if(closestGoto != oldClosestGoto) {
-   computePaths(nodes, links, closestRobot, paths);
+  if(targetNode != oldTargetNode) {
    start = closestRobot;
-   end = closestGoto;
-   oldClosestGoto = closestGoto;
+   end = targetNode;
+   computePaths(nodes, links, start, paths);
+   oldTargetNode = targetNode;
   }
 
   if(closestRobot != oldClosestRobot) {
-   computePaths(nodes, links, closestGoto, paths);
-   start = closestGoto;
+   start = targetNode;
    end = closestRobot;
+   computePaths(nodes, links, start, paths);
    oldClosestRobot = closestRobot;
   }
  }
@@ -1161,7 +1161,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    //drawHist(image, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty())
     drawPath(image, nodes, paths, start, end, robotPoint, robotTheta, mapDiv);
-   drawNodes(image, nodes, end, robotPoint, robotTheta, mapDiv);
+   drawNodes(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    sprintf(text, "");
    break;
@@ -1174,8 +1174,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    if(!nodes.empty())
     for(int i = 0; i < nodes.size(); i++)
      drawPath(image, nodes, paths, start, i, robotPoint, robotTheta, mapDiv);
-   drawNodes(image, nodes, end, robotPoint, robotTheta, mapDiv);
-   //drawNumbers(image, nodes, end, robotPoint, robotTheta, mapDiv);
+   drawNodes(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
+   //drawNumbers(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    if(nodes.empty())
     sprintf(text, "X %04d | Y %04d | Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
@@ -1370,14 +1370,18 @@ bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
  return false;
 }
 
-void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &paths, int start, int end, Point &robotPoint, uint16_t &robotTheta, bool &running) { // TODO
+void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &paths, int targetNode, Point &robotPoint, uint16_t &robotTheta, bool &running) { // TODO
  static bool oldRunning = false;
- static int node = 0;
+ static int currentNode = 0;
  static int8_t vx = 0;
  static int8_t vy = 0;
  static int8_t vz = 0;
 
  if(running && !oldRunning && !nodes.empty()) {
+
+
+  currentNode = targetNode;
+
 
  } else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
   running = false;
@@ -1390,8 +1394,13 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &path
   return;
  }
 
- if(gotoPoint(nodes[node], vy, vz, robotPoint, robotTheta))
+ if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
+
+
   running = false;
+
+
+ }
 
  telemetryFrame.vx = vx;
  telemetryFrame.vy = vy;
@@ -1511,15 +1520,12 @@ int main(int argc, char* argv[]) {
  Point robotPoint = Point(0, 0);
  uint16_t robotTheta = 0;
  bool mappingEnabled = true;
- int start = 0;
- int end = 0;
+ int targetNode = 0;
  bool running = false;
  int select = SELECTLIGHT;
  int mapDiv = MAPDIV;
  fprintf(stderr, "Reading map file\n");
  readMapFile(map, nodes, links, robotPoint, robotTheta, mappingEnabled, select, mapDiv);
- if(!nodes.empty())
-  computePaths(nodes, links, 0, paths);
  Point oldRobotPoint = robotPoint;
  uint16_t oldRobotTheta = robotTheta;
  robotThetaCorrector = robotTheta;
@@ -1608,10 +1614,10 @@ int main(int argc, char* argv[]) {
    }
   }
 
-  autopilot(mapPoints, nodes, paths, start, end, robotPoint, robotTheta, running);
+  autopilot(mapPoints, nodes, paths, targetNode, robotPoint, robotTheta, running);
 
   ui(image, robotPoints, robotLinesAxes, map,
-     mapPoints, nodes, links, paths, start, end,
+     mapPoints, nodes, links, paths, targetNode,
      robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
      mappingEnabled, running, select, mapDiv, time);
 
