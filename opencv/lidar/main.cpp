@@ -686,9 +686,9 @@ Point rescaleTranslate(Point point, int mapDiv) {
  return Point(width / 2, height / 2) + point;
 }
 
-void drawLidarPoints(Mat &image, vector<Point> &points, bool beams, int mapDiv) {
+void drawLidarPoints(Mat &image, vector<Point> &points, bool beams, Point offset, int mapDiv) {
  for(int i = 0; i < points.size(); i++) {
-  Point point = rescaleTranslate(points[i], mapDiv);
+  Point point = rescaleTranslate(points[i] - offset, mapDiv);
 
   if(beams)
    line(image, Point(width / 2, height / 2), point, Scalar::all(64), 1, LINE_AA);
@@ -849,10 +849,11 @@ void drawPath(Mat &image, vector<Point> &nodes, vector<int> &paths, int end, Poi
  }
 }
 
-void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, int mapDiv) {
+void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  vector<Point> polygon;
+
  for(int i = 0; i < robotIcon.size(); i++) {
-  Point point = rescaleTranslate(robotIcon[i], mapDiv);
+  Point point = rescaleTranslate(robotPoint + rotate(robotIcon[i], robotTheta), mapDiv);
   polygon.push_back(point);
  }
 
@@ -986,15 +987,48 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  static int buttonOkCount = 0;
  static int buttonCancelCount = 0;
 
+ int xmin = INT_MAX;
+ int xmax = INT_MIN;
+ int ymin = INT_MAX;
+ int ymax = INT_MIN;
+ for(int i = 0; i < map.size(); i++) {
+  if(map[i].validation < VALIDATIONFILTERKEEP)
+   continue;
+  if(xmin > map[i].a.x)
+   xmin = map[i].a.x;
+  if(xmin > map[i].b.x)
+   xmin = map[i].b.x;
+  if(xmax < map[i].a.x)
+   xmax = map[i].a.x;
+  if(xmax < map[i].b.x)
+   xmax = map[i].b.x;
+  if(ymin > map[i].a.y)
+   ymin = map[i].a.y;
+  if(ymin > map[i].b.y)
+   ymin = map[i].b.y;
+  if(ymax < map[i].a.y)
+   ymax = map[i].a.y;
+  if(ymax < map[i].b.y)
+   ymax = map[i].b.y;
+ }
+ Point offsetPoint = Point(xmax + xmin, ymax + ymin) / 2;
+ int mapDivFixed = max((xmax - xmin) / width, (ymax - ymin) / height);
+
  if(!nodes.empty()) {
   Point remoteFramePoint = Point(remoteFrame.xy[GOTOTOOL][0], remoteFrame.xy[GOTOTOOL][1]);
   if(remoteFramePoint != oldRemoteFramePoint) {
    oldRemoteFramePoint = remoteFramePoint;
 
    Point targetPoint;
-   targetPoint.x = (remoteFramePoint.x * width * mapDiv) / 65535;
-   targetPoint.y = (remoteFramePoint.y * height * mapDiv) / 65535;
-   targetPoint = rotate(targetPoint, robotTheta) + robotPoint;
+   if(select == SELECTFIXED) {
+    targetPoint.x = (remoteFramePoint.x * width * mapDivFixed) / 65535;
+    targetPoint.y = (remoteFramePoint.y * height * mapDivFixed) / 65535;
+    targetPoint += offsetPoint;
+   } else {
+    targetPoint.x = (remoteFramePoint.x * width * mapDiv) / 65535;
+    targetPoint.y = (remoteFramePoint.y * height * mapDiv) / 65535;
+    targetPoint = rotate(targetPoint, robotTheta) + robotPoint;
+   }
 
    targetNode = closestPoint(nodes, targetPoint);
   }
@@ -1148,25 +1182,28 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    sprintf(text, "");
    break;
 
-  case SELECTHIST:
-   drawHist(image, robotPoint, robotTheta, mapDiv);
-   drawRobot(image, robotIcon, 1, mapDiv);
+  case SELECTFIXED:
+   drawLidarPoints(image, mapPoints, false, offsetPoint, mapDivFixed);
+   drawMap(image, map, true, offsetPoint, 0, mapDivFixed);
+   if(!nodes.empty())
+    drawPath(image, nodes, paths, end, offsetPoint, 0, mapDivFixed);
+   drawNodes(image, nodes, targetNode, offsetPoint, 0, mapDivFixed);
+   drawRobot(image, robotIcon, 1, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    sprintf(text, "");
    break;
 
   case SELECTLIGHT:
-   drawLidarPoints(image, robotPoints, false, mapDiv);
+   drawLidarPoints(image, robotPoints, false, Point(0, 0), mapDiv);
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
-   //drawHist(image, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty())
     drawPath(image, nodes, paths, end, robotPoint, robotTheta, mapDiv);
    drawNodes(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
-   drawRobot(image, robotIcon, 1, mapDiv);
+   drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    sprintf(text, "");
    break;
 
   case SELECTFULL:
-   drawLidarPoints(image, robotPoints, false, mapDiv);
+   drawLidarPoints(image, robotPoints, false, Point(0, 0), mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
    //drawHist(image, robotPoint, robotTheta, mapDiv);
    //drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
@@ -1175,7 +1212,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
      drawPath(image, nodes, paths, i, robotPoint, robotTheta, mapDiv);
    drawNodes(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
    //drawNumbers(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
-   drawRobot(image, robotIcon, 1, mapDiv);
+   drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    if(nodes.empty())
     sprintf(text, "X %04d | Y %04d | Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
    else
@@ -1184,11 +1221,11 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    break;
 
   case SELECTDEBUGMAP:
-   drawLidarPoints(image, robotPoints, true, mapDiv);
+   drawLidarPoints(image, robotPoints, true, Point(0, 0), mapDiv);
    drawLidarLines(image, robotLinesAxes, mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
    //drawIntersects(image, map, robotPoint, robotTheta, mapDiv);
-   drawRobot(image, robotIcon, FILLED, mapDiv);
+   drawRobot(image, robotIcon, FILLED, robotPoint, robotTheta, mapDiv);
    {
     int n = 0;
     for(int i = 0; i < map.size(); i++)
@@ -1199,9 +1236,9 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    break;
 
   case SELECTDEBUGLIDAR:
-   drawLidarPoints(image, robotPoints, true, mapDiv);
+   drawLidarPoints(image, robotPoints, true, Point(0, 0), mapDiv);
    drawLidarLines(image, robotLinesAxes, mapDiv);
-   drawRobot(image, robotIcon, FILLED, mapDiv);
+   drawRobot(image, robotIcon, FILLED, robotPoint, robotTheta, mapDiv);
    sprintf(text, "Points %03d | Lines %02d/%02d | Scale %03d mm | Time %02d ms",
            robotPoints.size(), robotLinesAxes[0].size(), robotLinesAxes[1].size(), mapDiv, time);
    break;
