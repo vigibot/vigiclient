@@ -1225,7 +1225,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawLidarLines(image, robotLinesAxes, mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
    //drawIntersects(image, map, robotPoint, robotTheta, mapDiv);
-   drawRobot(image, robotIcon, FILLED, robotPoint, robotTheta, mapDiv);
+   drawRobot(image, robotIcon, FILLED, Point(0, 0), 0, mapDiv);
    {
     int n = 0;
     for(int i = 0; i < map.size(); i++)
@@ -1238,7 +1238,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   case SELECTDEBUGLIDAR:
    drawLidarPoints(image, robotPoints, true, Point(0, 0), mapDiv);
    drawLidarLines(image, robotLinesAxes, mapDiv);
-   drawRobot(image, robotIcon, FILLED, robotPoint, robotTheta, mapDiv);
+   drawRobot(image, robotIcon, FILLED, Point(0, 0), 0, mapDiv);
    sprintf(text, "Points %03d | Lines %02d/%02d | Scale %03d mm | Time %02d ms",
            robotPoints.size(), robotLinesAxes[0].size(), robotLinesAxes[1].size(), mapDiv, time);
    break;
