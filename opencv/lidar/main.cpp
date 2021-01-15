@@ -835,7 +835,7 @@ void drawLinks(Mat &image, vector<Point> &nodes, vector<array<int, 2>> &links, P
  }
 }
 
-void drawPath(Mat &image, vector<Point> &nodes, vector<int> &paths, int start, int end, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+void drawPath(Mat &image, vector<Point> &nodes, vector<int> &paths, int end, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  int n = end;
  Point oldPoint = rescaleTranslate(rotate(nodes[n] - robotPoint, -robotTheta), mapDiv);
 
@@ -1159,7 +1159,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
    //drawHist(image, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty())
-    drawPath(image, nodes, paths, start, end, robotPoint, robotTheta, mapDiv);
+    drawPath(image, nodes, paths, end, robotPoint, robotTheta, mapDiv);
    drawNodes(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
    sprintf(text, "");
@@ -1172,7 +1172,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    //drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty())
     for(int i = 0; i < nodes.size(); i++)
-     drawPath(image, nodes, paths, start, i, robotPoint, robotTheta, mapDiv);
+     drawPath(image, nodes, paths, i, robotPoint, robotTheta, mapDiv);
    drawNodes(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
    //drawNumbers(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, mapDiv);
@@ -1381,7 +1381,7 @@ int nextNode(vector<int> &paths, int currentNode, int targetNode) {
  return -1;
 }
 
-void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &paths, int targetNode, Point &robotPoint, uint16_t &robotTheta, bool &running) { // TODO
+void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &paths, int targetNode, Point &robotPoint, uint16_t &robotTheta, bool &running) {
  static bool oldRunning = false;
  static int currentNode = 0;
  static int8_t vx = 0;
@@ -1535,6 +1535,7 @@ int main(int argc, char* argv[]) {
  Point oldRobotPoint = robotPoint;
  uint16_t oldRobotTheta = robotTheta;
  robotThetaCorrector = robotTheta;
+ paths.push_back(-1);
 
  bgrInit();
 
