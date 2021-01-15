@@ -1188,7 +1188,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    if(!nodes.empty())
     drawPath(image, nodes, paths, end, offsetPoint, 0, mapDivFixed);
    drawNodes(image, nodes, targetNode, offsetPoint, 0, mapDivFixed);
-   drawRobot(image, robotIcon, 1, robotPoint - offsetPoint, robotTheta, mapDivFixed);
+   drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    sprintf(text, "");
    break;
 
