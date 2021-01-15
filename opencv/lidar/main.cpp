@@ -970,12 +970,9 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
 
  Point offsetPoint = Point(0, 0);
  int mapDivFixed = mapDiv;
+ static int closestRobot;
  static Point oldRemoteFramePoint = Point(0, 0);
- int closestRobot;
  static int oldTargetNode = 0;
- static int oldClosestRobot = 0;
- static int start = 0;
- static int end = 0;
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
  bool buttonOk = remoteFrame.switchs & 0b10000000;
@@ -1022,6 +1019,9 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  }
 
  if(!nodes.empty()) {
+  if(!running)
+   closestRobot = closestPoint(nodes, robotPoint);
+
   Point remoteFramePoint = Point(remoteFrame.xy[GOTOTOOL][0], remoteFrame.xy[GOTOTOOL][1]);
   if(remoteFramePoint != oldRemoteFramePoint) {
    oldRemoteFramePoint = remoteFramePoint;
@@ -1038,22 +1038,11 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    }
 
    targetNode = closestPoint(nodes, targetPoint);
-  }
-
-  closestRobot = closestPoint(nodes, robotPoint);
-
-  if(targetNode != oldTargetNode) {
-   start = closestRobot;
-   end = targetNode;
-   computePaths(nodes, links, start, paths);
-   oldTargetNode = targetNode;
-  }
-
-  if(closestRobot != oldClosestRobot && !running) {
-   start = targetNode;
-   end = closestRobot;
-   computePaths(nodes, links, start, paths);
-   oldClosestRobot = closestRobot;
+   if(targetNode != oldTargetNode) {
+    computePaths(nodes, links, targetNode, paths);
+    closestRobot = closestPoint(nodes, robotPoint);
+    oldTargetNode = targetNode;
+   }
   }
  }
 
@@ -1116,16 +1105,13 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     bool found = false;
     for(int i = 0; i < nodes.size(); i++) {
      if(sqDist(robotPoint, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
-      delNode(nodes, links, i);
-      addNode(mapPoints, nodes, links, robotPoint);
-      computePaths(nodes, links, 0, paths);
       found = true;
       break;
      }
     }
     if(!found) {
      addNode(mapPoints, nodes, links, robotPoint);
-     computePaths(nodes, links, 0, paths);
+     computePaths(nodes, links, targetNode, paths);
     }
    }
 
@@ -1139,19 +1125,25 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     for(int i = 0; i < nodes.size(); i++) {
      if(sqDist(robotPoint, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
       delNode(nodes, links, i);
-      if(!nodes.empty())
-       computePaths(nodes, links, 0, paths);
+      if(!nodes.empty()) {
+       if(i == targetNode)
+        targetNode = closestPoint(nodes, robotPoint);
+       else if(i < targetNode)
+        targetNode--;
+       computePaths(nodes, links, targetNode, paths);
+      }
       found = true;
       break;
      }
     }
     if(!found && !nodes.empty()) {
      delNode(nodes, links, nodes.size() - 1);
-     if(!nodes.empty())
-      computePaths(nodes, links, 0, paths);
+     if(!nodes.empty()) {
+      if(targetNode == nodes.size())
+       targetNode = closestPoint(nodes, robotPoint);
+      computePaths(nodes, links, targetNode, paths);
+     }
     }
-    if(targetNode >= nodes.size() && targetNode >= 1)
-     targetNode--;
    }
 
   }
@@ -1193,7 +1185,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawLidarPoints(image, mapPoints, false, offsetPoint, mapDivFixed);
    drawMap(image, map, true, offsetPoint, 0, mapDivFixed);
    if(!nodes.empty())
-    drawPath(image, nodes, paths, end, offsetPoint, 0, mapDivFixed);
+    drawPath(image, nodes, paths, closestRobot, offsetPoint, 0, mapDivFixed);
    drawNodes(image, nodes, targetNode, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    sprintf(text, "");
@@ -1203,7 +1195,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawLidarPoints(image, robotPoints, false, Point(0, 0), mapDiv);
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty())
-    drawPath(image, nodes, paths, end, robotPoint, robotTheta, mapDiv);
+    drawPath(image, nodes, paths, closestRobot, robotPoint, robotTheta, mapDiv);
    drawNodes(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    sprintf(text, "");
@@ -1223,8 +1215,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    if(nodes.empty())
     sprintf(text, "X %04d | Y %04d | Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
    else
-    sprintf(text, "Nodes %02d/%02d | Links %03d | X %04d/%04d | Y %04d/%04d | Theta %03d", end, nodes.size(),
-            links.size(), robotPoint.x, nodes[end].x, robotPoint.y, nodes[end].y, robotTheta * 180 / PI16);
+    sprintf(text, "Nodes %02d/%02d | Links %03d | X %04d/%04d | Y %04d/%04d | Theta %03d", targetNode, nodes.size(),
+            links.size(), robotPoint.x, nodes[targetNode].x, robotPoint.y, nodes[targetNode].y, robotTheta * 180 / PI16);
    break;
 
   case SELECTDEBUGMAP:
@@ -1413,7 +1405,7 @@ bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
  return false;
 }
 
-int nextNode(vector<int> &paths, int currentNode, int targetNode) {
+/*int nextNode(vector<int> &paths, int currentNode, int targetNode) {
  int n = targetNode;
 
  while(n != -1) {
@@ -1423,7 +1415,7 @@ int nextNode(vector<int> &paths, int currentNode, int targetNode) {
  }
 
  return -1;
-}
+}*/
 
 void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &paths, int targetNode, Point &robotPoint, uint16_t &robotTheta, bool &running) {
  static bool oldRunning = false;
@@ -1447,7 +1439,7 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &path
  }
 
  if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
-  currentNode = nextNode(paths, currentNode, targetNode);
+  currentNode = paths[currentNode];
   if(currentNode == -1)
    running = false;
  }
