@@ -968,6 +968,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
                     Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
                     bool &mappingEnabled, bool &running, int &select, int &mapDiv, int time) {
 
+ Point offsetPoint = Point(0, 0);
+ int mapDivFixed = mapDiv;
  static Point oldRemoteFramePoint = Point(0, 0);
  int closestRobot;
  static int oldTargetNode = 0;
@@ -987,32 +989,37 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  static int buttonOkCount = 0;
  static int buttonCancelCount = 0;
 
- int xmin = INT_MAX;
- int xmax = INT_MIN;
- int ymin = INT_MAX;
- int ymax = INT_MIN;
- for(int i = 0; i < map.size(); i++) {
-  if(map[i].validation < VALIDATIONFILTERKEEP)
-   continue;
-  if(xmin > map[i].a.x)
-   xmin = map[i].a.x;
-  if(xmin > map[i].b.x)
-   xmin = map[i].b.x;
-  if(xmax < map[i].a.x)
-   xmax = map[i].a.x;
-  if(xmax < map[i].b.x)
-   xmax = map[i].b.x;
-  if(ymin > map[i].a.y)
-   ymin = map[i].a.y;
-  if(ymin > map[i].b.y)
-   ymin = map[i].b.y;
-  if(ymax < map[i].a.y)
-   ymax = map[i].a.y;
-  if(ymax < map[i].b.y)
-   ymax = map[i].b.y;
+ if(!map.empty()) {
+  int xmin = INT_MAX;
+  int xmax = INT_MIN;
+  int ymin = INT_MAX;
+  int ymax = INT_MIN;
+
+  for(int i = 0; i < map.size(); i++) {
+   if(map[i].validation < VALIDATIONFILTERKEEP)
+    continue;
+
+   if(xmin > map[i].a.x)
+    xmin = map[i].a.x;
+   if(xmin > map[i].b.x)
+    xmin = map[i].b.x;
+   if(xmax < map[i].a.x)
+    xmax = map[i].a.x;
+   if(xmax < map[i].b.x)
+    xmax = map[i].b.x;
+   if(ymin > map[i].a.y)
+    ymin = map[i].a.y;
+   if(ymin > map[i].b.y)
+    ymin = map[i].b.y;
+   if(ymax < map[i].a.y)
+    ymax = map[i].a.y;
+   if(ymax < map[i].b.y)
+    ymax = map[i].b.y;
+  }
+
+  offsetPoint = Point(xmax + xmin, ymax + ymin) / 2;
+  mapDivFixed = max((xmax - xmin) / width, (ymax - ymin) / height) + 2;
  }
- Point offsetPoint = Point(xmax + xmin, ymax + ymin) / 2;
- int mapDivFixed = max((xmax - xmin) / width, (ymax - ymin) / height);
 
  if(!nodes.empty()) {
   Point remoteFramePoint = Point(remoteFrame.xy[GOTOTOOL][0], remoteFrame.xy[GOTOTOOL][1]);
