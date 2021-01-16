@@ -849,6 +849,13 @@ void drawPath(Mat &image, vector<Point> &nodes, vector<int> &paths, int end, Poi
  }
 }
 
+void drawTargetPoint(Mat &image, Point targetPoint, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+ Point point = rescaleTranslate(rotate(targetPoint - robotPoint, -robotTheta), mapDiv);
+
+ line(image, point + Point(-5, -5), point + Point(5, 5), Scalar(0, 255, 255), 1, LINE_AA);
+ line(image, point + Point(-5, 5), point + Point(5, -5), Scalar(0, 255, 255), 1, LINE_AA);
+}
+
 void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  vector<Point> polygon;
 
@@ -963,15 +970,15 @@ int closestPoint(vector<Point> &points, Point point) {
  return closest;
 }
 
-void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], vector<Line> &map,
-                    vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, int &targetNode,
+void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], vector<Line> &map, vector<Point> &mapPoints,
+                    vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, Point &targetPoint, int &targetNode,
                     Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
                     bool &mappingEnabled, bool &running, int &select, int &mapDiv, int time) {
 
  Point offsetPoint = Point(0, 0);
  int mapDivFixed = mapDiv;
- static int closestRobot;
  static Point oldRemoteFramePoint = Point(0, 0);
+ static int closestRobot;
  static int oldTargetNode = 0;
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -1019,31 +1026,30 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
                               (ymax - ymin) * 10 / (height - 10)), MAPDIVMIN, MAPDIVMAX);
  }
 
+ Point remoteFramePoint = Point(remoteFrame.xy[GOTOTOOL][0], remoteFrame.xy[GOTOTOOL][1]);
+ if(remoteFramePoint != oldRemoteFramePoint) {
+  oldRemoteFramePoint = remoteFramePoint;
+
+  if(select == SELECTFIXEDLIGHT || select == SELECTFIXEDFULL) {
+   targetPoint.x = (remoteFramePoint.x * width * mapDivFixed / 10) / 65535;
+   targetPoint.y = (remoteFramePoint.y * height * mapDivFixed / 10) / 65535;
+   targetPoint += offsetPoint;
+  } else {
+   targetPoint.x = (remoteFramePoint.x * width * mapDiv / 10) / 65535;
+   targetPoint.y = (remoteFramePoint.y * height * mapDiv / 10) / 65535;
+   targetPoint = rotate(targetPoint, robotTheta) + robotPoint;
+  }
+ }
+
  if(!nodes.empty()) {
   if(!running)
    closestRobot = closestPoint(nodes, robotPoint);
 
-  Point remoteFramePoint = Point(remoteFrame.xy[GOTOTOOL][0], remoteFrame.xy[GOTOTOOL][1]);
-  if(remoteFramePoint != oldRemoteFramePoint) {
-   oldRemoteFramePoint = remoteFramePoint;
-
-   Point targetPoint;
-   if(select == SELECTFIXEDLIGHT || select == SELECTFIXEDFULL) {
-    targetPoint.x = (remoteFramePoint.x * width * mapDivFixed / 10) / 65535;
-    targetPoint.y = (remoteFramePoint.y * height * mapDivFixed / 10) / 65535;
-    targetPoint += offsetPoint;
-   } else {
-    targetPoint.x = (remoteFramePoint.x * width * mapDiv / 10) / 65535;
-    targetPoint.y = (remoteFramePoint.y * height * mapDiv / 10) / 65535;
-    targetPoint = rotate(targetPoint, robotTheta) + robotPoint;
-   }
-
-   targetNode = closestPoint(nodes, targetPoint);
-   if(targetNode != oldTargetNode) {
-    computePaths(nodes, links, targetNode, paths);
-    closestRobot = closestPoint(nodes, robotPoint);
-    oldTargetNode = targetNode;
-   }
+  targetNode = closestPoint(nodes, targetPoint);
+  if(targetNode != oldTargetNode) {
+   computePaths(nodes, links, targetNode, paths);
+   closestRobot = closestPoint(nodes, robotPoint);
+   oldTargetNode = targetNode;
   }
  }
 
@@ -1188,6 +1194,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    if(!nodes.empty())
     drawPath(image, nodes, paths, closestRobot, offsetPoint, 0, mapDivFixed);
    drawNodes(image, nodes, targetNode, offsetPoint, 0, mapDivFixed);
+   drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    sprintf(text, "");
    break;
@@ -1199,6 +1206,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     for(int i = 0; i < nodes.size(); i++)
      drawPath(image, nodes, paths, i, offsetPoint, 0, mapDivFixed);
    drawNodes(image, nodes, targetNode, offsetPoint, 0, mapDivFixed);
+   drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    if(nodes.empty())
     sprintf(text, "X %04d | Y %04d | Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
@@ -1213,6 +1221,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    if(!nodes.empty())
     drawPath(image, nodes, paths, closestRobot, robotPoint, robotTheta, mapDiv);
    drawNodes(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
+   drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    sprintf(text, "");
    break;
@@ -1227,6 +1236,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
      drawPath(image, nodes, paths, i, robotPoint, robotTheta, mapDiv);
    drawNodes(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
    //drawNumbers(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
+   drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    if(nodes.empty())
     sprintf(text, "X %04d | Y %04d | Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
@@ -1434,14 +1444,16 @@ bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
  return -1;
 }*/
 
-void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &paths, int targetNode, Point &robotPoint, uint16_t &robotTheta, bool &running) {
+void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &paths, Point targetPoint, int targetNode,
+               Point &robotPoint, uint16_t &robotTheta, bool &running) {
+
  static bool oldRunning = false;
  static int currentNode = 0;
  static int8_t vx = 0;
  static int8_t vy = 0;
  static int8_t vz = 0;
 
- if(nodes.empty() || remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
+ if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
   running = false;
 
  if(!running) {
@@ -1449,13 +1461,18 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &path
   telemetryFrame.vy = remoteFrame.vy;
   telemetryFrame.vz = remoteFrame.vz;
   return;
- } else if(!oldRunning)
+ } else if(!oldRunning && !nodes.empty())
   currentNode = closestPoint(nodes, robotPoint);
 
- if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
-  currentNode = paths[currentNode];
-  if(currentNode == -1)
+ if(nodes.empty()) {
+  if(gotoPoint(targetPoint, vy, vz, robotPoint, robotTheta))
    running = false;
+ } else {
+  if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
+   currentNode = paths[currentNode];
+   if(currentNode == -1)
+    running = false;
+  }
  }
  oldRunning = running;
 
@@ -1577,6 +1594,7 @@ int main(int argc, char* argv[]) {
  Point robotPoint = Point(0, 0);
  uint16_t robotTheta = 0;
  bool mappingEnabled = true;
+ Point targetPoint = Point(0, 0);
  int targetNode = 0;
  bool running = false;
  int select = SELECTFIXEDFULL;
@@ -1672,12 +1690,13 @@ int main(int argc, char* argv[]) {
    }
   }
 
-  autopilot(mapPoints, nodes, paths, targetNode, robotPoint, robotTheta, running);
-
-  ui(image, robotPoints, robotLinesAxes, map,
-     mapPoints, nodes, links, paths, targetNode,
+  ui(image, robotPoints, robotLinesAxes, map, mapPoints,
+     nodes, links, paths, targetPoint, targetNode,
      robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
      mappingEnabled, running, select, mapDiv, time);
+
+  autopilot(mapPoints, nodes, paths, targetPoint, targetNode,
+            robotPoint, robotTheta, running);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
