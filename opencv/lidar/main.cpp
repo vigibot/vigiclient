@@ -1441,19 +1441,17 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &path
  static int8_t vy = 0;
  static int8_t vz = 0;
 
- if(running && !oldRunning && !nodes.empty())
-  currentNode = closestPoint(nodes, robotPoint);
-
- else if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
+ if(nodes.empty() || remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
   running = false;
- oldRunning = running;
 
  if(!running) {
   telemetryFrame.vx = remoteFrame.vx;
   telemetryFrame.vy = remoteFrame.vy;
   telemetryFrame.vz = remoteFrame.vz;
   return;
- }
+ } else if(!oldRunning)
+  currentNode = closestPoint(nodes, robotPoint);
+ oldRunning = running;
 
  if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
   currentNode = paths[currentNode];
