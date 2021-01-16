@@ -681,8 +681,8 @@ void localization(vector<Line> robotLinesAxes[], vector<Line> &map, Point &robot
 }
 
 Point rescaleTranslate(Point point, int mapDiv) {
- point.x /= mapDiv;
- point.y /= -mapDiv;
+ point.x = point.x * 10 / mapDiv;
+ point.y = point.y * 10 / -mapDiv;
  return Point(width / 2, height / 2) + point;
 }
 
@@ -1015,7 +1015,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   }
 
   offsetPoint = Point(xmax + xmin, ymax + ymin) / 2;
-  mapDivFixed = max((xmax - xmin) / width, (ymax - ymin) / height) + 2;
+  mapDivFixed = max((xmax - xmin) / width, (ymax - ymin) / height) * 10;
  }
 
  if(!nodes.empty()) {
@@ -1028,12 +1028,12 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
 
    Point targetPoint;
    if(select == SELECTFIXEDLIGHT || select == SELECTFIXEDFULL) {
-    targetPoint.x = (remoteFramePoint.x * width * mapDivFixed) / 65535;
-    targetPoint.y = (remoteFramePoint.y * height * mapDivFixed) / 65535;
+    targetPoint.x = (remoteFramePoint.x * width * mapDivFixed / 10) / 65535;
+    targetPoint.y = (remoteFramePoint.y * height * mapDivFixed / 10) / 65535;
     targetPoint += offsetPoint;
    } else {
-    targetPoint.x = (remoteFramePoint.x * width * mapDiv) / 65535;
-    targetPoint.y = (remoteFramePoint.y * height * mapDiv) / 65535;
+    targetPoint.x = (remoteFramePoint.x * width * mapDiv / 10) / 65535;
+    targetPoint.y = (remoteFramePoint.y * height * mapDiv / 10) / 65535;
     targetPoint = rotate(targetPoint, robotTheta) + robotPoint;
    }
 
@@ -1086,16 +1086,16 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   buttonMoreCount++;
   if(buttonMoreCount >= BUTTONSLONGPRESS) {
 
-   if(buttonMoreCount % 2 && mapDiv > MAPDIVMIN)
-    mapDiv--;
+   if(mapDiv > MAPDIVMIN)
+    mapDiv -= 2;
 
   }
  } else if(buttonLess) {
   buttonLessCount++;
   if(buttonLessCount >= BUTTONSLONGPRESS) {
 
-   if(buttonLessCount % 2 && mapDiv < MAPDIVMAX)
-    mapDiv++;
+   if(mapDiv < MAPDIVMAX)
+    mapDiv += 2;
 
   }
  } else if(!buttonOk && oldButtonOk) {
@@ -1246,7 +1246,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
      if(map[i].validation < VALIDATIONFILTERKEEP)
       n++;
     sprintf(text, "Pending %02d | Lines %03d | Scale %03d mm | Time %02d ms | Mapping %s",
-            n, map.size() - n, mapDiv, time, OFFON[mappingEnabled]);
+            n, map.size() - n, mapDiv / 10, time, OFFON[mappingEnabled]);
    }
    break;
 
@@ -1255,7 +1255,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawLidarLines(image, robotLinesAxes, mapDiv);
    drawRobot(image, robotIcon, FILLED, Point(0, 0), 0, mapDiv);
    sprintf(text, "Points %03d | Lines %02d/%02d | Scale %03d mm | Time %02d ms",
-           robotPoints.size(), robotLinesAxes[0].size(), robotLinesAxes[1].size(), mapDiv, time);
+           robotPoints.size(), robotLinesAxes[0].size(), robotLinesAxes[1].size(), mapDiv / 10, time);
    break;
  }
 

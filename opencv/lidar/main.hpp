@@ -21,9 +21,9 @@
 #define VZMUL 10
 
 #define MAPFILE "lidar.json"
-#define MAPDIV 10
-#define MAPDIVMIN 1
-#define MAPDIVMAX 100
+#define MAPDIV 100
+#define MAPDIVMIN 10
+#define MAPDIVMAX 1000
 
 #define AXES 2
 #define LARGEDISTTOLERANCE 300
