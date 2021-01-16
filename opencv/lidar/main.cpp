@@ -1015,7 +1015,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   }
 
   offsetPoint = Point(xmax + xmin, ymax + ymin) / 2;
-  mapDivFixed = constrain(max((xmax - xmin) / width, (ymax - ymin) / height) * 10, MAPDIVMIN, MAPDIVMAX);
+  mapDivFixed = constrain(max((xmax - xmin) / width, (ymax - ymin) / height) * 11, MAPDIVMIN, MAPDIVMAX);
  }
 
  if(!nodes.empty()) {
