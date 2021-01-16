@@ -1451,13 +1451,13 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &path
   return;
  } else if(!oldRunning)
   currentNode = closestPoint(nodes, robotPoint);
- oldRunning = running;
 
  if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
   currentNode = paths[currentNode];
   if(currentNode == -1)
    running = false;
  }
+ oldRunning = running;
 
  telemetryFrame.vx = vx;
  telemetryFrame.vy = vy;
