@@ -941,8 +941,8 @@ void delNode(vector<Point> &nodes, vector<array<int, 2>> &links, int nodeIndex) 
 
 void addNode(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, Point node) {
  for(int i = 0; i < nodes.size(); i++) {
-  if(sqDist(node, nodes[i]) <= LINKSIZEMAX * LINKSIZEMAX &&
-     !obstacle(mapPoints, node, nodes[i], LINKSIZEMAX))
+  int dist = int(sqrt(sqDist(node, nodes[i])));
+  if(dist <= LINKSIZEMAX && !obstacle(mapPoints, node, nodes[i], dist))
    links.push_back({int(nodes.size()), i});
  }
  nodes.push_back(node);
@@ -1027,7 +1027,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    oldRemoteFramePoint = remoteFramePoint;
 
    Point targetPoint;
-   if(select == SELECTFIXED) {
+   if(select == SELECTFIXEDLIGHT || select == SELECTFIXEDFULL) {
     targetPoint.x = (remoteFramePoint.x * width * mapDivFixed) / 65535;
     targetPoint.y = (remoteFramePoint.y * height * mapDivFixed) / 65535;
     targetPoint += offsetPoint;
@@ -1181,7 +1181,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    sprintf(text, "");
    break;
 
-  case SELECTFIXED:
+  case SELECTFIXEDLIGHT:
    drawLidarPoints(image, mapPoints, false, offsetPoint, mapDivFixed);
    drawMap(image, map, true, offsetPoint, 0, mapDivFixed);
    if(!nodes.empty())
@@ -1189,6 +1189,21 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawNodes(image, nodes, targetNode, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    sprintf(text, "");
+   break;
+
+  case SELECTFIXEDFULL:
+   drawLidarPoints(image, mapPoints, false, offsetPoint, mapDivFixed);
+   drawMap(image, map, false, offsetPoint, 0, mapDivFixed);
+   if(!nodes.empty())
+    for(int i = 0; i < nodes.size(); i++)
+     drawPath(image, nodes, paths, i, offsetPoint, 0, mapDivFixed);
+   drawNodes(image, nodes, targetNode, offsetPoint, 0, mapDivFixed);
+   drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
+   if(nodes.empty())
+    sprintf(text, "X %04d | Y %04d | Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
+   else
+    sprintf(text, "Nodes %02d/%02d | Links %03d | X %04d/%04d | Y %04d/%04d | Theta %03d", targetNode, nodes.size(),
+            links.size(), robotPoint.x, nodes[targetNode].x, robotPoint.y, nodes[targetNode].y, robotTheta * 180 / PI16);
    break;
 
   case SELECTLIGHT:
@@ -1230,7 +1245,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     for(int i = 0; i < map.size(); i++)
      if(map[i].validation < VALIDATIONFILTERKEEP)
       n++;
-    sprintf(text, "Pending %02d | Lines %03d | Scale %03d mm | Time %02d ms | Mapping %s", n, map.size() - n, mapDiv, time, OFFON[mappingEnabled]);
+    sprintf(text, "Pending %02d | Lines %03d | Scale %03d mm | Time %02d ms | Mapping %s",
+            n, map.size() - n, mapDiv, time, OFFON[mappingEnabled]);
    }
    break;
 
@@ -1564,7 +1580,7 @@ int main(int argc, char* argv[]) {
  bool mappingEnabled = true;
  int targetNode = 0;
  bool running = false;
- int select = SELECTLIGHT;
+ int select = SELECTFIXEDFULL;
  int mapDiv = MAPDIV;
  fprintf(stderr, "Reading map file\n");
  readMapFile(map, nodes, links, robotPoint, robotTheta, mappingEnabled, select, mapDiv);
