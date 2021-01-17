@@ -1456,6 +1456,7 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &path
 
  if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz) {
   running = false;
+  oldRunning = false;
   state = GOTOPOINT;
  }
 
