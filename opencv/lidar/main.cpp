@@ -1193,7 +1193,6 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawMap(image, map, true, offsetPoint, 0, mapDivFixed);
    if(!nodes.empty())
     drawPath(image, nodes, paths, closestRobot, offsetPoint, 0, mapDivFixed);
-   drawNodes(image, nodes, targetNode, offsetPoint, 0, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    sprintf(text, "");
@@ -1220,7 +1219,6 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty())
     drawPath(image, nodes, paths, closestRobot, robotPoint, robotTheta, mapDiv);
-   drawNodes(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
    drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    sprintf(text, "");
