@@ -62,6 +62,11 @@ enum {
 };
 
 enum {
+ GOTONODE,
+ GOTOPOINT
+};
+
+enum {
  SELECTNONE,
  SELECTFIXEDLIGHT,
  SELECTFIXEDFULL,

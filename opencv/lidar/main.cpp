@@ -1448,31 +1448,43 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &path
                Point &robotPoint, uint16_t &robotTheta, bool &running) {
 
  static bool oldRunning = false;
+ static int state = GOTOPOINT;
  static int currentNode = 0;
  static int8_t vx = 0;
  static int8_t vy = 0;
  static int8_t vz = 0;
 
- if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
+ if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz) {
   running = false;
+  state = GOTOPOINT;
+ }
 
  if(!running) {
   telemetryFrame.vx = remoteFrame.vx;
   telemetryFrame.vy = remoteFrame.vy;
   telemetryFrame.vz = remoteFrame.vz;
   return;
- } else if(!oldRunning && !nodes.empty())
-  currentNode = closestPoint(nodes, robotPoint);
-
- if(nodes.empty()) {
-  if(gotoPoint(targetPoint, vy, vz, robotPoint, robotTheta))
-   running = false;
- } else {
-  if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
-   currentNode = paths[currentNode];
-   if(currentNode == -1)
-    running = false;
+ } else if(!oldRunning && !nodes.empty()) {
+  int closestRobot = closestPoint(nodes, robotPoint);
+  if(sqDist(robotPoint, nodes[closestRobot]) < sqDist(robotPoint, targetPoint)) {
+   currentNode = closestRobot;
+   state = GOTONODE;
   }
+ }
+
+ switch(state) {
+  case GOTONODE:
+   if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
+    currentNode = paths[currentNode];
+    if(currentNode == -1)
+     state = GOTOPOINT;
+   }
+   break;
+
+  case GOTOPOINT:
+   if(gotoPoint(targetPoint, vy, vz, robotPoint, robotTheta))
+    running = false;
+   break;
  }
  oldRunning = running;
 
