@@ -771,12 +771,12 @@ void drawIntersects(Mat &image, vector<Line> &map, Point robotPoint, uint16_t ro
  }
 }
 
-void drawHist(Mat &image, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+void drawHist(Mat &image, Point histPoint, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  static Point hist[HIST] = {Point(0, 0)};
  static int n = 0;
  static Point oldPoint = Point(0, 0);
 
- hist[n++] = robotPoint;
+ hist[n++] = histPoint;
  if(n == HIST)
   n = 0;
 
@@ -786,7 +786,7 @@ void drawHist(Mat &image, Point robotPoint, uint16_t robotTheta, int mapDiv) {
   if(i != 0) {
    int sqDistTolerancePixels = LARGEDISTTOLERANCE / mapDiv;
    if(sqDist(oldPoint, point) < sqDistTolerancePixels * sqDistTolerancePixels)
-    line(image, oldPoint, point, Scalar::all(128), 1, LINE_AA);
+    line(image, oldPoint, point, Scalar(0, 128, 128), 1, LINE_AA);
   }
 
   oldPoint = point;
@@ -844,7 +844,7 @@ void drawPath(Mat &image, vector<Point> &nodes, vector<int> &paths, int end, Poi
  while(n != -1) {
   Point point = rescaleTranslate(rotate(nodes[n] - robotPoint, -robotTheta), mapDiv);
 
-  line(image, oldPoint, point, Scalar::all(128), 1, LINE_AA);
+  line(image, oldPoint, point, Scalar(128, 128, 0), 1, LINE_AA);
   oldPoint = point;
 
   n = paths[n];
@@ -1195,6 +1195,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawMap(image, map, true, offsetPoint, 0, mapDivFixed);
    if(!nodes.empty())
     drawPath(image, nodes, paths, closestRobot, offsetPoint, 0, mapDivFixed);
+   drawHist(image, robotPoint, offsetPoint, 0, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    sprintf(text, "");
@@ -1206,6 +1207,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    if(!nodes.empty())
     for(int i = 0; i < nodes.size(); i++)
      drawPath(image, nodes, paths, i, offsetPoint, 0, mapDivFixed);
+   drawHist(image, robotPoint, offsetPoint, 0, mapDivFixed);
    drawNodes(image, nodes, targetNode, offsetPoint, 0, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
@@ -1221,6 +1223,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty())
     drawPath(image, nodes, paths, closestRobot, robotPoint, robotTheta, mapDiv);
+   drawHist(image, robotPoint, robotPoint, robotTheta, mapDiv);
    drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    sprintf(text, "");
@@ -1229,17 +1232,17 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   case SELECTFULL:
    drawLidarPoints(image, robotPoints, false, Point(0, 0), mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
-   //drawHist(image, robotPoint, robotTheta, mapDiv);
    //drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty())
     for(int i = 0; i < nodes.size(); i++)
      drawPath(image, nodes, paths, i, robotPoint, robotTheta, mapDiv);
+   drawHist(image, robotPoint, robotPoint, robotTheta, mapDiv);
    drawNodes(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
    //drawNumbers(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
    drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    if(nodes.empty())
-    sprintf(text, "X %04d | Y %04d | Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
+    sprintf(text, "X %04d/%04d | Y %04d/%04d | Theta %03d", robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, robotTheta * 180 / PI16);
    else
     sprintf(text, "Nodes %02d/%02d | Links %03d | X %04d/%04d | Y %04d/%04d | Theta %03d", targetNode, nodes.size(),
             links.size(), robotPoint.x, nodes[targetNode].x, robotPoint.y, nodes[targetNode].y, robotTheta * 180 / PI16);
