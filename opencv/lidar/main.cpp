@@ -784,8 +784,8 @@ void drawHist(Mat &image, Point histPoint, Point robotPoint, uint16_t robotTheta
   Point point = rescaleTranslate(rotate(hist[(i + n) % HIST] - robotPoint, -robotTheta), mapDiv);
 
   if(i != 0) {
-   int sqDistTolerancePixels = LARGEDISTTOLERANCE / mapDiv;
-   if(sqDist(oldPoint, point) < sqDistTolerancePixels * sqDistTolerancePixels)
+   int distTolerancePixels = LARGEDISTTOLERANCE * 10 / mapDiv;
+   if(sqDist(oldPoint, point) < distTolerancePixels * distTolerancePixels)
     line(image, oldPoint, point, Scalar(0, 128, 128), 1, LINE_AA);
   }
 
@@ -1024,8 +1024,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   }
 
   offsetPoint = Point(xmax + xmin, ymax + ymin) / 2;
-  mapDivFixed = constrain(max((xmax - xmin) * 10 / (width - 10),
-                              (ymax - ymin) * 10 / (height - 10)), MAPDIVMIN, MAPDIVMAX);
+  mapDivFixed = constrain(max((xmax - xmin) * 10 / (width - 40),
+                              (ymax - ymin) * 10 / (height - 40)), MAPDIVMIN, MAPDIVMAX);
  }
 
  Point remoteFramePoint = Point(remoteFrame.xy[GOTOTOOL][0], remoteFrame.xy[GOTOTOOL][1]);
