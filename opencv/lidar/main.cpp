@@ -518,7 +518,8 @@ void mapDeduplicateErase(vector<Line> &map) {
 }
 
 bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
-                   Point &pointErrorOut, double &angularErrorOut) {
+                   Point &pointErrorOut, double &angularErrorOut,
+                   int distTolerance, double angularTolerance) {
 
  Point pointErrorSum = Point(0, 0);
  int pointErrorWeightSum = 0;
@@ -533,7 +534,7 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
    int refNorm;
 
    if(map[j].validation >= VALIDATIONFILTERSTART &&
-      testLines(mapLines[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, -SMALLDISTTOLERANCE,
+      testLines(mapLines[i], map[j], distTolerance, angularTolerance, -SMALLDISTTOLERANCE,
                 pointError, angularError, distError, refNorm)) {
     pointErrorSum += pointError * refNorm;
     pointErrorWeightSum += refNorm;
@@ -666,9 +667,10 @@ void localization(vector<Line> robotLinesAxes[], vector<Line> &map, Point &robot
 
    Point pointError;
    double angularError;
-   if(computeErrors(mapLines, map, pointError, angularError)) {
-    robotPoint -= pointError / AXES / (i + 1);
+   if(computeErrors(mapLines, map, pointError, angularError,
+      LARGEDISTTOLERANCE / (i + 1), LARGEANGULARTOLERANCE / (i + 1))) {
 
+    robotPoint -= pointError / AXES / (i + 1);
 #ifdef IMU
     robotThetaCorrector += int(angularError * double(PI16) / M_PI) / AXES / IMUTHETACORRECTORDIV;
 #else
