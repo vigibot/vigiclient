@@ -1445,30 +1445,39 @@ bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
 void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &paths, Point targetPoint, int targetNode,
                int closestRobot, Point &robotPoint, uint16_t &robotTheta, bool &running) {
 
- static bool oldRunning = false;
  static int state = GOTOPOINT;
- static int currentNode = 0;
+ static Point oldTargetPoint = robotPoint;
+ static int currentNode = -1;
  static int8_t vx = 0;
  static int8_t vy = 0;
  static int8_t vz = 0;
 
- if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz) {
+ if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
   running = false;
-  oldRunning = false;
-  state = GOTOPOINT;
- }
 
  if(!running) {
   telemetryFrame.vx = remoteFrame.vx;
   telemetryFrame.vy = remoteFrame.vy;
   telemetryFrame.vz = remoteFrame.vz;
   return;
- } else if(!oldRunning && !nodes.empty()) {
-  if(sqDist(robotPoint, nodes[closestRobot]) < sqDist(robotPoint, targetPoint)) {
-   currentNode = closestRobot;
-   state = GOTONODE;
-  }
  }
+
+ if(nodes.empty())
+  state = GOTOPOINT;
+ else if(targetPoint != oldTargetPoint) {
+  int sqDistRobotTarget = sqDist(robotPoint, targetPoint);
+
+  if(sqDist(robotPoint, nodes[closestRobot]) < sqDistRobotTarget &&
+     sqDist(targetPoint, nodes[closestRobot]) < sqDistRobotTarget) {
+
+   if(currentNode == -1)
+    currentNode = closestRobot;
+
+   state = GOTONODE;
+  } else
+   state = GOTOPOINT;
+ }
+ oldTargetPoint = targetPoint;
 
  switch(state) {
   case GOTONODE:
@@ -1481,10 +1490,15 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &path
 
   case GOTOPOINT:
    if(gotoPoint(targetPoint, vy, vz, robotPoint, robotTheta))
-    running = false;
+    state = GOTOWAITING;
+   break;
+
+  case GOTOWAITING:
+   vx = 0;
+   vy = 0;
+   vz = 0;
    break;
  }
- oldRunning = running;
 
  telemetryFrame.vx = vx;
  telemetryFrame.vy = vy;
