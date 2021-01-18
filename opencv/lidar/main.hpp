@@ -62,6 +62,7 @@ enum {
 };
 
 enum {
+ GOTOWAITING,
  GOTONODE,
  GOTOPOINT
 };

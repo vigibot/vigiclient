@@ -1032,12 +1032,12 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   oldRemoteFramePoint = remoteFramePoint;
 
   if(select == SELECTFIXEDLIGHT || select == SELECTFIXEDFULL) {
-   targetPoint.x = (remoteFramePoint.x * width * mapDivFixed / 10) / 65535;
-   targetPoint.y = (remoteFramePoint.y * height * mapDivFixed / 10) / 65535;
+   targetPoint.x = (remoteFramePoint.x * mapDivFixed / 10) * width / 65535;
+   targetPoint.y = (remoteFramePoint.y * mapDivFixed / 10) * height / 65535;
    targetPoint += offsetPoint;
   } else {
-   targetPoint.x = (remoteFramePoint.x * width * mapDiv / 10) / 65535;
-   targetPoint.y = (remoteFramePoint.y * height * mapDiv / 10) / 65535;
+   targetPoint.x = (remoteFramePoint.x * mapDiv / 10) * width / 65535;
+   targetPoint.y = (remoteFramePoint.y * mapDiv / 10) * height / 65535;
    targetPoint = rotate(targetPoint, robotTheta) + robotPoint;
   }
  }
@@ -1462,20 +1462,22 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &path
   return;
  }
 
- if(nodes.empty())
-  state = GOTOPOINT;
- else if(targetPoint != oldTargetPoint) {
-  int sqDistRobotTarget = sqDist(robotPoint, targetPoint);
-
-  if(sqDist(robotPoint, nodes[closestRobot]) < sqDistRobotTarget &&
-     sqDist(targetPoint, nodes[closestRobot]) < sqDistRobotTarget) {
-
-   if(currentNode == -1)
-    currentNode = closestRobot;
-
-   state = GOTONODE;
-  } else
+ if(targetPoint != oldTargetPoint) {
+  if(nodes.empty())
    state = GOTOPOINT;
+  else {
+   int sqDistRobotTarget = sqDist(robotPoint, targetPoint);
+
+   if(sqDist(robotPoint, nodes[closestRobot]) < sqDistRobotTarget &&
+      sqDist(targetPoint, nodes[closestRobot]) < sqDistRobotTarget) {
+
+    if(currentNode == -1)
+     currentNode = closestRobot;
+
+    state = GOTONODE;
+   } else
+    state = GOTOPOINT;
+  }
  }
  oldTargetPoint = targetPoint;
 
