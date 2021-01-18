@@ -1468,9 +1468,7 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &path
   else {
    int sqDistRobotTarget = sqDist(robotPoint, targetPoint);
 
-   if(sqDist(robotPoint, nodes[closestRobot]) < sqDistRobotTarget &&
-      sqDist(targetPoint, nodes[closestRobot]) < sqDistRobotTarget) {
-
+   if(sqDist(robotPoint, nodes[closestRobot]) < sqDistRobotTarget) {
     if(currentNode == -1)
      currentNode = closestRobot;
 
