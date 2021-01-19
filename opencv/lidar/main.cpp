@@ -979,7 +979,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
 
  Point offsetPoint = Point(0, 0);
  int mapDivFixed = mapDiv;
- static Point oldRemoteFramePoint = Point(0, 0);
+ static Point oldRemoteFramePoint = robotPoint;
  static int oldTargetNode = 0;
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
