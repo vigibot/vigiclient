@@ -873,14 +873,19 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point robotPo
 }
 
 bool obstacle(vector<Point> &mapPoints, Point robotPoint, Point targetPoint, int obstacleDetectionRange) {
+ int n = 0;
+
  for(int i = 0; i < mapPoints.size(); i++) {
   Line line = {robotPoint, targetPoint};
-  if(sqNorm(pointDistancePointLine(mapPoints[i], line)) < ROBOTWIDTH * ROBOTWIDTH) {
+  if(sqNorm(pointDistancePointLine(mapPoints[i], line)) < OBSTACLEROBOTWIDTH * OBSTACLEROBOTWIDTH) {
    int refNorm = int(sqrt(sqDist(line)));
    int distance = ratioPointLine(mapPoints[i], line) * refNorm;
 
-   if(distance > 0 && distance <= obstacleDetectionRange)
-    return true;
+   if(distance > 0 && distance <= obstacleDetectionRange) {
+    n++;
+    if(n == OBSTACLENBPOINTS)
+     return true;
+   }
   }
  }
 
@@ -958,6 +963,16 @@ void addNode(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2
  }
  nodes.push_back(node);
 }
+
+/*void delLink(vector<array<int, 2>> &links, int a, int b) {
+ for(int i = 0; i < links.size(); i++) {
+  if(links[i][0] == a && links[i][1] == b ||
+     links[i][1] == a && links[i][0] == b) {
+   links.erase(links.begin() + i);
+   break;
+  }
+ }
+}*/
 
 int closestPoint(vector<Point> &points, Point point) {
  int distMin = sqDist(point, points[0]);
