@@ -957,7 +957,7 @@ void delNode(vector<Point> &nodes, vector<array<int, 2>> &links, int nodeIndex) 
 
 void addNode(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, Point node) {
  for(int i = 0; i < nodes.size(); i++) {
-  int dist = int(sqrt(sqDist(node, nodes[i])));
+  int dist = int(sqrt(sqDist(node, nodes[i]))) + OBSTACLEROBOTLENGTH;
   if(dist <= LINKSIZEMAX && !obstacle(mapPoints, node, nodes[i], dist))
    links.push_back({int(nodes.size()), i});
  }
@@ -1459,18 +1459,33 @@ bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
  return -1;
 }*/
 
-void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &paths, Point targetPoint, int targetNode,
+void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links,
+               vector<int> &paths, Point targetPoint, int targetNode,
                int closestRobot, Point &robotPoint, uint16_t &robotTheta, bool &running) {
 
+ static vector<Point> nodesCopy;
+ static vector<array<int, 2>> linksCopy;
+ static bool oldRunning = false;
  static int state = GOTOPOINT;
  static Point oldTargetPoint = robotPoint;
  static int currentNode = -1;
+ static int obstacleCount = 0;
  static int8_t vx = 0;
  static int8_t vy = 0;
  static int8_t vz = 0;
 
  if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
   running = false;
+
+ if(running && !oldRunning) {
+  nodesCopy = nodes;
+  linksCopy = links;
+ } else if(!running && oldRunning) {
+  nodes = nodesCopy;
+  links = linksCopy;
+  computePaths(nodes, links, closestPoint(nodes, targetPoint), paths);
+ }
+ oldRunning = running;
 
  if(!running) {
   telemetryFrame.vx = remoteFrame.vx;
@@ -1498,10 +1513,23 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<int> &path
 
  switch(state) {
   case GOTONODE:
-   if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
-    currentNode = paths[currentNode];
-    if(currentNode == -1)
-     state = GOTOPOINT;
+   {
+    int dist = int(sqrt(sqDist(robotPoint, nodes[currentNode]))) + OBSTACLEROBOTLENGTH;
+    if(obstacle(mapPoints, robotPoint, nodes[currentNode], dist)) {
+     obstacleCount++;
+     if(obstacleCount == 10) {
+      obstacleCount = 0;
+      delNode(nodes, links, currentNode);
+      computePaths(nodes, links, closestPoint(nodes, targetPoint), paths);
+      currentNode = closestPoint(nodes, robotPoint);
+     }
+    }
+    if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
+     obstacleCount = 0;
+     currentNode = paths[currentNode];
+     if(currentNode == -1)
+      state = GOTOPOINT;
+    }
    }
    break;
 
@@ -1740,7 +1768,8 @@ int main(int argc, char* argv[]) {
      robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
      mappingEnabled, running, select, mapDiv, time);
 
-  autopilot(mapPoints, nodes, paths, targetPoint, targetNode,
+  autopilot(mapPoints, nodes, links,
+            paths, targetPoint, targetNode,
             closestRobot, robotPoint, robotTheta, running);
 
   if(updated) {
