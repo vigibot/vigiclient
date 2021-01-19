@@ -95,7 +95,7 @@ void extractRawLinesPascal(vector<PolarPoint> &polarPoints, vector<Point> &robot
   if(dp || sqDst > distMax * distMax) {
    int size = pointsNoDp.size();
    if(size >= NBPOINTSMIN && i > size + 1 &&
-      sqDist(pointsNoDp[0], pointsNoDp[size - 1]) >= LINESIZEMIN * LINESIZEMIN) {
+      sqDist(pointsNoDp[0], pointsNoDp[size - 1]) >= LIDARLINESMINLEN * LIDARLINESMINLEN) {
     robotRawLines.push_back(pointsNoDp);
     if(i > robotPoints.size())
      break;
@@ -142,7 +142,7 @@ void extractRawLinesMike118(vector<PolarPoint> &polarPoints, vector<Point> &robo
 
   if(newLine) {
    if(pointsNoDp.size() >= NBPOINTSMIN &&
-      sqDist(pointsNoDp[0], pointsNoDp[pointsNoDp.size() - 1]) >= LINESIZEMIN * LINESIZEMIN)
+      sqDist(pointsNoDp[0], pointsNoDp[pointsNoDp.size() - 1]) >= LIDARLINESMINLEN * LIDARLINESMINLEN)
     robotRawLines.push_back(pointsNoDp);
    pointsNoDp.clear();
    newLine = false;
@@ -423,7 +423,7 @@ void mapCleaner(vector<PolarPoint> &polarPoints, vector<Line> &map, Point robotP
     }
    }
 
-   if(sqDist(map[i]) < LINESIZEMIN * LINESIZEMIN) {
+   if(sqDist(map[i]) < MAPLINESMINLEN * MAPLINESMINLEN) {
     map.erase(map.begin() + i);
     i--;
    }
@@ -563,8 +563,10 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
  bool sort = false;
 
  for(int i = 0; i < mapLines.size(); i++) {
-  bool newLine = true;
+  if(sqDist(mapLines[i]) < MAPLINESMINLEN * MAPLINESMINLEN)
+   continue;
 
+  bool newLine = true;
   for(int j = 0; j < map.size(); j++) {
    Point pointError;
    double angularError;
@@ -1529,19 +1531,19 @@ void mapIntersects(vector<Line> &map) {
    if(!intersectLine(map[i], map[j], intersectPoint))
     continue;
 
-   if(testPointLine(map[i].a, map[j], LINESIZEMIN, LINESIZEMIN) &&
-      sqDist(map[i].a, intersectPoint) < LINESIZEMIN * LINESIZEMIN) {
+   if(testPointLine(map[i].a, map[j], MAPLINESMINLEN, MAPLINESMINLEN) &&
+      sqDist(map[i].a, intersectPoint) < MAPLINESMINLEN * MAPLINESMINLEN) {
     map[i].a = intersectPoint;
     sort = true;
    }
 
-   if(testPointLine(map[i].b, map[j], LINESIZEMIN, LINESIZEMIN) &&
-      sqDist(map[i].b, intersectPoint) < LINESIZEMIN * LINESIZEMIN) {
+   if(testPointLine(map[i].b, map[j], MAPLINESMINLEN, MAPLINESMINLEN) &&
+      sqDist(map[i].b, intersectPoint) < MAPLINESMINLEN * MAPLINESMINLEN) {
     map[i].b = intersectPoint;
     sort = true;
    }
 
-   if(sqDist(map[i]) < LINESIZEMIN * LINESIZEMIN) {
+   if(sqDist(map[i]) < MAPLINESMINLEN * MAPLINESMINLEN) {
     map.erase(map.begin() + i);
     if(j >= i)
      j--;

@@ -14,7 +14,8 @@
 #define DISTCOEF 4
 #define DISTCLAMP 50
 #define NBPOINTSMIN 5
-#define LINESIZEMIN 200
+#define LIDARLINESMINLEN 100
+#define MAPLINESMINLEN 200
 
 #define VXDIV 10
 #define VYDIV 10
