@@ -1517,7 +1517,7 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
     int dist = int(sqrt(sqDist(robotPoint, nodes[currentNode]))) + OBSTACLEROBOTLENGTH;
     if(obstacle(mapPoints, robotPoint, nodes[currentNode], dist)) {
      obstacleCount++;
-     if(obstacleCount == 10) {
+     if(obstacleCount == OBSTACLEITERATIONS) {
       obstacleCount = 0;
       delNode(nodes, links, currentNode);
       computePaths(nodes, links, closestPoint(nodes, targetPoint), paths);
