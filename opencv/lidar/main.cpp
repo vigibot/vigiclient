@@ -1048,7 +1048,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  if(remoteFramePoint != oldRemoteFramePoint) {
   oldRemoteFramePoint = remoteFramePoint;
 
-  if(select == SELECTFIXEDLIGHT || select == SELECTFIXEDFULL) {
+  if(select == SELECTNONE || select == SELECTFIXEDLIGHT || select == SELECTFIXEDFULL) {
    targetPoint.x = (remoteFramePoint.x * mapDivFixed / 10) * width / 65535;
    targetPoint.y = (remoteFramePoint.y * mapDivFixed / 10) * height / 65535;
    targetPoint += offsetPoint;
