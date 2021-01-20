@@ -1149,16 +1149,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   if(buttonCancelCount < BUTTONSLONGPRESS) {
 
    if(select <= SELECTFULL) {
-    bool found = false;
-    for(int i = 0; i < nodes.size(); i++) {
-     if(sqDist(targetPoint, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
-      delNode(nodes, links, i);
-      found = true;
-      break;
-     }
-    }
-    if(!found && !nodes.empty())
-     delNode(nodes, links, nodes.size() - 1);
+    if(!nodes.empty())
+     delNode(nodes, links, targetNode);
     if(!nodes.empty()) {
      targetNode = closestPoint(nodes, targetPoint);
      computePaths(nodes, links, targetNode, paths);
