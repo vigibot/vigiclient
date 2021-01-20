@@ -1077,7 +1077,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   buttonOkCount++;
   if(buttonOkCount == BUTTONSLONGPRESS) {
 
-   if(select <= SELECTFULL)
+   if(select >= SELECTFIXEDLIGHT && select <= SELECTFULL)
     running = !running;
    else if(select == SELECTDEBUGMAP) {
     mappingEnabled = !mappingEnabled;
@@ -1094,7 +1094,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   buttonCancelCount++;
   if(buttonCancelCount == BUTTONSLONGPRESS) {
 
-   if(select <= SELECTDEBUGMAP) {
+   if(select >= SELECTFIXEDLIGHT && select <= SELECTDEBUGMAP) {
     map.clear();
     if(nodes.empty()) {
      robotPoint = Point(0, 0);
@@ -1128,7 +1128,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  } else if(!buttonOk && oldButtonOk) {
   if(buttonOkCount < BUTTONSLONGPRESS) {
 
-   if(select <= SELECTFULL) {
+   if(select >= SELECTFIXEDLIGHT && select <= SELECTFULL) {
     bool found = false;
     for(int i = 0; i < nodes.size(); i++) {
      if(sqDist(targetPoint, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
@@ -1148,7 +1148,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  } else if(!buttonCancel && oldButtonCancel) {
   if(buttonCancelCount < BUTTONSLONGPRESS) {
 
-   if(select <= SELECTFULL) {
+   if(select >= SELECTFIXEDLIGHT && select <= SELECTFULL) {
     if(!nodes.empty())
      delNode(nodes, links, targetNode);
     if(!nodes.empty()) {
@@ -1189,6 +1189,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  char text[80];
  switch(select) {
   case SELECTNONE:
+   drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
+   drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    sprintf(text, "");
    break;
 
