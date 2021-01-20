@@ -1224,7 +1224,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    if(nodes.empty())
-    sprintf(text, "X %04d | Y %04d | Theta %03d", robotPoint.x, robotPoint.y, robotTheta * 180 / PI16);
+    sprintf(text, "X %04d/%04d | Y %04d/%04d | Theta %03d", robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, robotTheta * 180 / PI16);
    else
     sprintf(text, "Nodes %02d/%02d | Links %03d | X %04d/%04d | Y %04d/%04d | Theta %03d", targetNode, nodes.size(),
             links.size(), robotPoint.x, nodes[targetNode].x, robotPoint.y, nodes[targetNode].y, robotTheta * 180 / PI16);
