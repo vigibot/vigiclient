@@ -1469,6 +1469,7 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
  if(running && !oldRunning) {
   nodesCopy = nodes;
   linksCopy = links;
+  oldTargetPoint = robotPoint;
  } else if(!running && oldRunning) {
   nodes = nodesCopy;
   links = linksCopy;
@@ -1478,30 +1479,21 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
    paths.clear();
    paths.push_back(-1);
   }
- }
- oldRunning = running;
-
- if(!running) {
+ } else if(!running) {
   telemetryFrame.vx = remoteFrame.vx;
   telemetryFrame.vy = remoteFrame.vy;
   telemetryFrame.vz = remoteFrame.vz;
   return;
  }
+ oldRunning = running;
 
  if(targetPoint != oldTargetPoint) {
-  if(nodes.empty())
+  if(!nodes.empty() && sqDist(robotPoint, nodes[closestRobot]) < sqDist(robotPoint, targetPoint)) {
+   if(currentNode == -1)
+    currentNode = closestRobot;
+   state = GOTONODE;
+  } else
    state = GOTOPOINT;
-  else {
-   int sqDistRobotTarget = sqDist(robotPoint, targetPoint);
-
-   if(sqDist(robotPoint, nodes[closestRobot]) < sqDistRobotTarget) {
-    if(currentNode == -1)
-     currentNode = closestRobot;
-
-    state = GOTONODE;
-   } else
-    state = GOTOPOINT;
-  }
  }
  oldTargetPoint = targetPoint;
 
