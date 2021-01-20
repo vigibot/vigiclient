@@ -964,7 +964,7 @@ void addNode(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2
 
  for(int i = 0; i < nodes.size(); i++) {
   int dist = int(sqrt(sqDist(node, nodes[i]))) + OBSTACLEROBOTLENGTH;
-  if(dist <= LINKSIZEMAX && !obstacle(mapPoints, node, nodes[i], dist))
+  if(dist <= LINKSIZEMAX)
    links.push_back({int(nodes.size()), i});
  }
  nodes.push_back(node);
@@ -1131,15 +1131,14 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    if(select <= SELECTFULL) {
     bool found = false;
     for(int i = 0; i < nodes.size(); i++) {
-     if(sqDist(robotPoint, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
+     if(sqDist(targetPoint, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
       found = true;
       break;
      }
     }
     if(!found) {
-     addNode(mapPoints, nodes, links, robotPoint);
-     if(targetNode >= nodes.size())
-      targetNode = closestPoint(nodes, robotPoint);
+     addNode(mapPoints, nodes, links, targetPoint);
+     targetNode = closestPoint(nodes, targetPoint);
      computePaths(nodes, links, targetNode, paths);
     }
    }
@@ -1152,26 +1151,17 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    if(select <= SELECTFULL) {
     bool found = false;
     for(int i = 0; i < nodes.size(); i++) {
-     if(sqDist(robotPoint, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
+     if(sqDist(targetPoint, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
       delNode(nodes, links, i);
-      if(!nodes.empty()) {
-       if(targetNode >= nodes.size() || i == targetNode)
-        targetNode = closestPoint(nodes, robotPoint);
-       else if(i < targetNode)
-        targetNode--;
-       computePaths(nodes, links, targetNode, paths);
-      }
       found = true;
       break;
      }
     }
-    if(!found && !nodes.empty()) {
+    if(!found && !nodes.empty())
      delNode(nodes, links, nodes.size() - 1);
-     if(!nodes.empty()) {
-      if(targetNode >= nodes.size())
-       targetNode = closestPoint(nodes, robotPoint);
-      computePaths(nodes, links, targetNode, paths);
-     }
+    if(!nodes.empty()) {
+     targetNode = closestPoint(nodes, targetPoint);
+     computePaths(nodes, links, targetNode, paths);
     }
    }
 
