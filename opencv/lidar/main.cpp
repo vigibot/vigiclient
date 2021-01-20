@@ -1077,9 +1077,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   buttonOkCount++;
   if(buttonOkCount == BUTTONSLONGPRESS) {
 
-   if(select >= SELECTFIXEDLIGHT && select <= SELECTFULL)
-    running = !running;
-   else if(select == SELECTDEBUGMAP) {
+   if(select == SELECTDEBUGMAP) {
     mappingEnabled = !mappingEnabled;
     for(int i = 0; i < map.size(); i++) {
      if(map[i].validation < VALIDATIONFILTERKEEP) {
@@ -1087,7 +1085,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
       i--;
      }
     }
-   }
+   } else
+    running = !running;
 
   }
  } else if(buttonCancel) {
