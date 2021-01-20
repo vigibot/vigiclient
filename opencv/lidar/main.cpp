@@ -1483,7 +1483,12 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
  } else if(!running && oldRunning) {
   nodes = nodesCopy;
   links = linksCopy;
-  computePaths(nodes, links, closestPoint(nodes, targetPoint), paths);
+  if(!nodes.empty())
+   computePaths(nodes, links, closestPoint(nodes, targetPoint), paths);
+  else {
+   paths.clear();
+   paths.push_back(-1);
+  }
  }
  oldRunning = running;
 
