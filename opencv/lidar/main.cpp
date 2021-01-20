@@ -928,6 +928,8 @@ void addLink(list<pair<int, int>> adjacent[], int a, int b, int weight) {
 }
 
 void computePaths(vector<Point> &nodes, vector<array<int, 2>> &links, int start, vector<int> &paths) {
+ fprintf(stderr, "Launching Dijkstra's algorithm with %d nodes and %d links for the node %d\n", nodes.size(), links.size(), start);
+
  list<pair<int, int>> *adjacent;
  adjacent = new list<Pair>[nodes.size()];
 
@@ -940,6 +942,8 @@ void computePaths(vector<Point> &nodes, vector<array<int, 2>> &links, int start,
 }
 
 void delNode(vector<Point> &nodes, vector<array<int, 2>> &links, int nodeIndex) {
+ fprintf(stderr, "Deleting the node %d\n", nodeIndex);
+
  nodes.erase(nodes.begin() + nodeIndex);
  for(int i = 0; i < links.size(); i++) {
   if(nodeIndex == links[i][0] ||
@@ -956,6 +960,8 @@ void delNode(vector<Point> &nodes, vector<array<int, 2>> &links, int nodeIndex) 
 }
 
 void addNode(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, Point node) {
+ fprintf(stderr, "Adding the node %d\n", nodes.size());
+
  for(int i = 0; i < nodes.size(); i++) {
   int dist = int(sqrt(sqDist(node, nodes[i]))) + OBSTACLEROBOTLENGTH;
   if(dist <= LINKSIZEMAX && !obstacle(mapPoints, node, nodes[i], dist))
