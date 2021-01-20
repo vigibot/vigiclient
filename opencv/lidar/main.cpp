@@ -990,13 +990,14 @@ int closestPoint(vector<Point> &points, Point point) {
 }
 
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], vector<Line> &map, vector<Point> &mapPoints,
-                    vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, Point &targetPoint, int &targetNode, int closestRobot,
+                    vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, Point &targetPoint, int closestRobot,
                     Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
                     bool &mappingEnabled, bool &running, int &select, int &mapDiv, int time) {
 
  Point offsetPoint = Point(0, 0);
  int mapDivFixed = mapDiv;
  static Point oldRemoteFramePoint = robotPoint;
+ static int targetNode = 0;
  static int oldTargetNode = 0;
  bool buttonLess = remoteFrame.switchs & 0b00010000;
  bool buttonMore = remoteFrame.switchs & 0b00100000;
@@ -1132,6 +1133,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     }
     if(!found) {
      addNode(mapPoints, nodes, links, robotPoint);
+     if(targetNode >= nodes.size())
+      targetNode = closestPoint(nodes, robotPoint);
      computePaths(nodes, links, targetNode, paths);
     }
    }
@@ -1147,7 +1150,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
      if(sqDist(robotPoint, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
       delNode(nodes, links, i);
       if(!nodes.empty()) {
-       if(i == targetNode)
+       if(targetNode >= nodes.size() || i == targetNode)
         targetNode = closestPoint(nodes, robotPoint);
        else if(i < targetNode)
         targetNode--;
@@ -1160,7 +1163,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     if(!found && !nodes.empty()) {
      delNode(nodes, links, nodes.size() - 1);
      if(!nodes.empty()) {
-      if(targetNode == nodes.size())
+      if(targetNode >= nodes.size())
        targetNode = closestPoint(nodes, robotPoint);
       computePaths(nodes, links, targetNode, paths);
      }
@@ -1459,9 +1462,8 @@ bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
  return -1;
 }*/
 
-void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links,
-               vector<int> &paths, Point targetPoint, int targetNode,
-               int closestRobot, Point &robotPoint, uint16_t &robotTheta, bool &running) {
+void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths,
+               Point targetPoint, int closestRobot, Point &robotPoint, uint16_t &robotTheta, bool &running) {
 
  static vector<Point> nodesCopy;
  static vector<array<int, 2>> linksCopy;
@@ -1669,7 +1671,6 @@ int main(int argc, char* argv[]) {
  uint16_t robotTheta = 0;
  bool mappingEnabled = true;
  Point targetPoint = Point(0, 0);
- int targetNode = 0;
  int closestRobot = 0;
  bool running = false;
  int select = SELECTFIXEDFULL;
@@ -1769,13 +1770,11 @@ int main(int argc, char* argv[]) {
   }
 
   ui(image, robotPoints, robotLinesAxes, map, mapPoints,
-     nodes, links, paths, targetPoint, targetNode, closestRobot,
+     nodes, links, paths, targetPoint, closestRobot,
      robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
      mappingEnabled, running, select, mapDiv, time);
 
-  autopilot(mapPoints, nodes, links,
-            paths, targetPoint, targetNode,
-            closestRobot, robotPoint, robotTheta, running);
+  autopilot(mapPoints, nodes, links, paths, targetPoint, closestRobot, robotPoint, robotTheta, running);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
