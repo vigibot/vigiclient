@@ -951,6 +951,8 @@ void computePaths(vector<Point> &nodes, vector<array<int, 2>> &links, int start,
  }
 
  dijkstra(adjacent, nodes.size(), start, paths);
+
+ delete [] adjacent;
 }
 
 void delNode(vector<Point> &nodes, vector<array<int, 2>> &links, int nodeIndex) {
