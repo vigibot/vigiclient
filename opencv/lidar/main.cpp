@@ -975,8 +975,7 @@ void addNode(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2
  fprintf(stderr, "Adding the node %d\n", nodes.size());
 
  for(int i = 0; i < nodes.size(); i++) {
-  int dist = int(sqrt(sqDist(node, nodes[i]))) + OBSTACLEROBOTLENGTH;
-  if(dist <= LINKSIZEMAX)
+  if(sqDist(node, nodes[i]) <= LINKSIZEMAX * LINKSIZEMAX)
    links.push_back({int(nodes.size()), i});
  }
  nodes.push_back(node);
@@ -1012,6 +1011,10 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
                     Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
                     bool &mappingEnabled, bool &running, int &select, int &mapDiv, int time) {
 
+ int xmin = INT_MAX;
+ int xmax = INT_MIN;
+ int ymin = INT_MAX;
+ int ymax = INT_MIN;
  Point offsetPoint = Point(0, 0);
  int mapDivFixed = mapDiv;
  static Point oldRemoteFramePoint = robotPoint;
@@ -1031,11 +1034,6 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  Point centerPoint = Point(width / 2, height / 2);
 
  if(!map.empty()) {
-  int xmin = INT_MAX;
-  int xmax = INT_MIN;
-  int ymin = INT_MAX;
-  int ymax = INT_MIN;
-
   for(int i = 0; i < map.size(); i++) {
    if(map[i].validation < VALIDATIONFILTERKEEP)
     continue;
@@ -1141,17 +1139,25 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   if(buttonOkCount < BUTTONSLONGPRESS) {
 
    if(select == SELECTFIXEDFULL || select == SELECTFULL) {
-    bool found = false;
-    for(int i = 0; i < nodes.size(); i++) {
-     if(sqDist(targetPoint, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
-      found = true;
-      break;
-     }
-    }
-    if(!found) {
-     addNode(mapPoints, nodes, links, targetPoint);
+    if(remoteFramePoint.x == -32767 && remoteFramePoint.y == 32767) {
+     for(int x = xmin; x < xmax; x += AUTOGRIDSIZE)
+      for(int y = ymin; y < ymax; y += AUTOGRIDSIZE)
+       addNode(mapPoints, nodes, links, Point(x, y));
      targetNode = closestPoint(nodes, targetPoint);
      computePaths(nodes, links, targetNode, paths);
+    } else {
+     bool found = false;
+     for(int i = 0; i < nodes.size(); i++) {
+      if(sqDist(targetPoint, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
+       found = true;
+       break;
+      }
+     }
+     if(!found) {
+      addNode(mapPoints, nodes, links, targetPoint);
+      targetNode = closestPoint(nodes, targetPoint);
+      computePaths(nodes, links, targetNode, paths);
+     }
     }
    }
 
@@ -1161,11 +1167,18 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   if(buttonCancelCount < BUTTONSLONGPRESS) {
 
    if(select == SELECTFIXEDFULL || select == SELECTFULL) {
-    if(!nodes.empty())
-     delNode(nodes, links, targetNode);
-    if(!nodes.empty()) {
-     targetNode = closestPoint(nodes, targetPoint);
-     computePaths(nodes, links, targetNode, paths);
+    if(remoteFramePoint.x == -32767 && remoteFramePoint.y == 32767) {
+     nodes.clear();
+     links.clear();
+     paths.clear();
+     paths.push_back(-1);
+    } else {
+     if(!nodes.empty())
+      delNode(nodes, links, targetNode);
+     if(!nodes.empty()) {
+      targetNode = closestPoint(nodes, targetPoint);
+      computePaths(nodes, links, targetNode, paths);
+     }
     }
    }
 
