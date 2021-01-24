@@ -777,7 +777,7 @@ void drawIntersects(Mat &image, vector<Line> &map, Point robotPoint, uint16_t ro
 
    Point point = rescaleTranslate(rotate(intersectPoint - robotPoint, -robotTheta), mapDiv);
 
-   circle(image, point, 2, Scalar::all(255), FILLED, LINE_AA);
+   circle(image, point, 3, Scalar::all(255), FILLED, LINE_AA);
   }
  }
 }
@@ -804,17 +804,20 @@ void drawHist(Mat &image, Point histPoint, Point robotPoint, uint16_t robotTheta
  }
 }
 
-void drawNodes(Mat &image, vector<Point> &nodes, int targetNode, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+void drawNodes(Mat &image, vector<Point> &nodes, int closestRobot, int targetNode, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  for(int i = 0; i < nodes.size(); i++) {
   Point point = rescaleTranslate(rotate(nodes[i] - robotPoint, -robotTheta), mapDiv);
 
-  if(i == targetNode) {
-   circle(image, point, 4, Scalar::all(0), 1, LINE_AA);
-   circle(image, point + Point(1, 1), 4, Scalar::all(255), 1, LINE_AA);
+  if(i == closestRobot) {
+   circle(image, point, 3, Scalar::all(0), FILLED, LINE_AA);
+   circle(image, point + Point(1, 1), 3, Scalar(0, 0, 255), FILLED, LINE_AA);
+  } else if(i == targetNode) {
+   circle(image, point, 3, Scalar::all(0), FILLED, LINE_AA);
+   circle(image, point + Point(1, 1), 3, Scalar(0, 255, 0), FILLED, LINE_AA);
+  } else {
+   circle(image, point, 1, Scalar::all(0), FILLED, LINE_AA);
+   circle(image, point + Point(1, 1), 1, Scalar::all(255), FILLED, LINE_AA);
   }
-
-  circle(image, point, 1, Scalar::all(0), FILLED, LINE_AA);
-  circle(image, point + Point(1, 1), 1, Scalar::all(255), FILLED, LINE_AA);
  }
 }
 
@@ -1001,6 +1004,21 @@ int closestPoint(vector<Point> &points, Point point) {
  for(int i = 1; i < points.size(); i++) {
   int dist = sqDist(point, points[i]);
   if(dist < distMin) {
+   distMin = dist;
+   closest = i;
+  }
+ }
+
+ return closest;
+}
+
+int closestPointWithoutObstacle(vector<Point> &mapPoints, vector<Point> &points, Point robotPoint) {
+ int distMin = INT_MAX;
+ int closest = 0;
+
+ for(int i = 0; i < points.size(); i++) {
+  int dist = sqDist(robotPoint, points[i]);
+  if(dist < distMin && !obstacle(mapPoints, robotPoint, points[i], int(sqrt(dist)) + OBSTACLEROBOTLENGTH)) {
    distMin = dist;
    closest = i;
   }
@@ -1233,7 +1251,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     for(int i = 0; i < nodes.size(); i++)
      drawPath(image, nodes, paths, i, offsetPoint, 0, mapDivFixed);
    drawHist(image, robotPoint, offsetPoint, 0, mapDivFixed);
-   drawNodes(image, nodes, targetNode, offsetPoint, 0, mapDivFixed);
+   drawNodes(image, nodes, closestRobot, targetNode, offsetPoint, 0, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    if(nodes.empty())
@@ -1277,7 +1295,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     for(int i = 0; i < nodes.size(); i++)
      drawPath(image, nodes, paths, i, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotPoint, robotTheta, mapDiv);
-   drawNodes(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
+   drawNodes(image, nodes, closestRobot, targetNode, robotPoint, robotTheta, mapDiv);
    //drawNumbers(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
    drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
@@ -1540,7 +1558,7 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
                int(sqrt(sqDist(robotPoint, nodes[currentNode]))) + OBSTACLEROBOTLENGTH)) {
     delNode(nodes, links, currentNode);
     computePaths(nodes, links, closestPoint(nodes, targetPoint), paths);
-    currentNode = closestPoint(nodes, robotPoint);
+    currentNode = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
    }
    if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
     if(currentNode == targetNode)
@@ -1788,7 +1806,7 @@ int main(int argc, char* argv[]) {
    }
 
    if(!nodes.empty())
-    closestRobot = closestPoint(nodes, robotPoint);
+    closestRobot = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
   }
 
   ui(image, robotPoints, robotLinesAxes, mapLines, map, mapPoints,
