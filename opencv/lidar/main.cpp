@@ -1718,7 +1718,8 @@ int main(int argc, char* argv[]) {
  Point oldRobotPoint = robotPoint;
  uint16_t oldRobotTheta = robotTheta;
  robotThetaCorrector = robotTheta;
- computePaths(nodes, links, targetNode, paths);
+ if(!nodes.empty())
+  computePaths(nodes, links, targetNode, paths);
 
  bgrInit();
 
