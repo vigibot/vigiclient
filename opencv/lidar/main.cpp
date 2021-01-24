@@ -1553,9 +1553,10 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
      currentNode = paths[currentNode];
      if(currentNode == -1)
       state = GOTOWAITING;
+     break;
     }
-   }
-   break;
+   } else
+    break;
 
   case GOTOPOINT:
    if(!obstacle(mapPoints, robotPoint, targetPoint,
