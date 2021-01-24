@@ -1247,9 +1247,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   case SELECTFIXEDFULL:
    drawLidarPoints(image, mapPoints, false, Point(0, 0), offsetPoint, mapDivFixed);
    drawMap(image, map, false, offsetPoint, 0, mapDivFixed);
-   if(!nodes.empty())
-    for(int i = 0; i < nodes.size(); i++)
-     drawPath(image, nodes, paths, i, offsetPoint, 0, mapDivFixed);
+   for(int i = 0; i < nodes.size(); i++)
+    drawPath(image, nodes, paths, i, offsetPoint, 0, mapDivFixed);
    drawHist(image, robotPoint, offsetPoint, 0, mapDivFixed);
    drawNodes(image, nodes, closestRobot, targetNode, offsetPoint, 0, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
@@ -1291,9 +1290,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawLidarPoints(image, robotPoints, false, Point(0, 0), Point(0, 0), mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
    //drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
-   if(!nodes.empty())
-    for(int i = 0; i < nodes.size(); i++)
-     drawPath(image, nodes, paths, i, robotPoint, robotTheta, mapDiv);
+   for(int i = 0; i < nodes.size(); i++)
+    drawPath(image, nodes, paths, i, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotPoint, robotTheta, mapDiv);
    drawNodes(image, nodes, closestRobot, targetNode, robotPoint, robotTheta, mapDiv);
    //drawNumbers(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
@@ -1720,7 +1718,7 @@ int main(int argc, char* argv[]) {
  Point oldRobotPoint = robotPoint;
  uint16_t oldRobotTheta = robotTheta;
  robotThetaCorrector = robotTheta;
- paths.push_back(-1);
+ computePaths(nodes, links, targetNode, paths);
 
  bgrInit();
 
