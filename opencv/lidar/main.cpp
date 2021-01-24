@@ -1146,11 +1146,13 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
 
    if(select == SELECTFIXEDFULL || select == SELECTFULL) {
     if(remoteFramePoint.x == -32767 && remoteFramePoint.y == 32767) {
-     for(int x = xmin; x < xmax; x += AUTOGRIDSIZE)
-      for(int y = ymin; y < ymax; y += AUTOGRIDSIZE)
-       addNode(mapPoints, nodes, links, Point(x, y));
-     targetNode = closestPoint(nodes, targetPoint);
-     computePaths(nodes, links, targetNode, paths);
+     if(xmax > xmin && ymax > ymin) {
+      for(int x = xmin; x < xmax; x += AUTOGRIDSIZE)
+       for(int y = ymin; y < ymax; y += AUTOGRIDSIZE)
+        addNode(mapPoints, nodes, links, Point(x, y));
+      targetNode = closestPoint(nodes, targetPoint);
+      computePaths(nodes, links, targetNode, paths);
+     }
     } else {
      if(addNode(mapPoints, nodes, links, targetPoint)) {
       targetNode = closestPoint(nodes, targetPoint);
