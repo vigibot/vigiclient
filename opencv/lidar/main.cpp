@@ -987,14 +987,29 @@ bool addNode(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2
  return true;
 }
 
-void delLink(vector<array<int, 2>> &links, int a, int b) {
+void delLink(vector<Point> &nodes, vector<array<int, 2>> &links, int a, int b) {
+ bool del = false;
+ int minab = min(a, b);
+ int maxab = max(a, b);
+ bool delmin = true;
+ bool delmax = true;
+
  for(int i = 0; i < links.size(); i++) {
-  if(links[i][0] == a && links[i][1] == b ||
-     links[i][1] == a && links[i][0] == b) {
+  if(!del && (links[i][0] == a && links[i][1] == b || links[i][1] == a && links[i][0] == b)) {
    links.erase(links.begin() + i);
-   break;
+   del = true;
+  } else {
+   if(links[i][0] == minab || links[i][1] == minab)
+    delmin = false;
+   if(links[i][0] == maxab || links[i][1] == maxab)
+    delmax = false;
   }
  }
+
+ if(delmax)
+  nodes.erase(nodes.begin() + maxab);
+ if(delmin)
+  nodes.erase(nodes.begin() + minab);
 }
 
 int closestPoint(vector<Point> &points, Point point) {
@@ -1543,7 +1558,7 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
    if(obstacle(mapPoints, robotPoint, nodes[currentNode],
                int(sqrt(sqDist(robotPoint, nodes[currentNode]))) + OBSTACLEROBOTLENGTH)) {
     if(previousNode != -1 && currentNode != -1) {
-     delLink(links, previousNode, currentNode);
+     delLink(nodes, links, previousNode, currentNode);
      computePaths(nodes, links, closestPoint(nodes, targetPoint), paths);
      currentNode = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
     }
