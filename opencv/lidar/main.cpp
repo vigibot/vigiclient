@@ -691,9 +691,6 @@ Point rescaleTranslate(Point point, int mapDiv) {
 }
 
 void drawLidarPoints(Mat &image, vector<Point> &points, bool beams, Point beamsSource, Point offset, int mapDiv) {
- if(beams)
-  beamsSource = rescaleTranslate(beamsSource, mapDiv);
-
  for(int i = 0; i < points.size(); i++) {
   Point point = rescaleTranslate(points[i] - offset, mapDiv);
 
@@ -1037,7 +1034,6 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  static int buttonMoreCount = 0;
  static int buttonOkCount = 0;
  static int buttonCancelCount = 0;
- Point centerPoint = Point(width / 2, height / 2);
 
  if(!map.empty()) {
   for(int i = 0; i < map.size(); i++) {
@@ -1220,7 +1216,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    break;
 
   case SELECTFIXEDLIGHT:
-   drawLidarPoints(image, mapPoints, false, centerPoint, offsetPoint, mapDivFixed);
+   drawLidarPoints(image, mapPoints, false, Point(0, 0), offsetPoint, mapDivFixed);
    drawMap(image, map, true, offsetPoint, 0, mapDivFixed);
    if(!nodes.empty())
     drawPath(image, nodes, paths, closestRobot, offsetPoint, 0, mapDivFixed);
@@ -1231,7 +1227,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    break;
 
   case SELECTFIXEDFULL:
-   drawLidarPoints(image, mapPoints, false, centerPoint, offsetPoint, mapDivFixed);
+   drawLidarPoints(image, mapPoints, false, Point(0, 0), offsetPoint, mapDivFixed);
    drawMap(image, map, false, offsetPoint, 0, mapDivFixed);
    if(!nodes.empty())
     for(int i = 0; i < nodes.size(); i++)
@@ -1248,7 +1244,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    break;
 
   case SELECTFIXEDDEBUGMAP:
-   drawLidarPoints(image, mapPoints, true, robotPoint - offsetPoint, offsetPoint, mapDivFixed);
+   drawLidarPoints(image, mapPoints, true, rescaleTranslate(robotPoint - offsetPoint, mapDivFixed), offsetPoint, mapDivFixed);
    drawLidarLines(image, mapLines, offsetPoint, mapDivFixed);
    drawMap(image, map, false, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
@@ -1263,7 +1259,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    break;
 
   case SELECTLIGHT:
-   drawLidarPoints(image, robotPoints, false, centerPoint, Point(0, 0), mapDiv);
+   drawLidarPoints(image, robotPoints, false, Point(0, 0), Point(0, 0), mapDiv);
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty())
     drawPath(image, nodes, paths, closestRobot, robotPoint, robotTheta, mapDiv);
@@ -1274,7 +1270,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    break;
 
   case SELECTFULL:
-   drawLidarPoints(image, robotPoints, false, centerPoint, Point(0, 0), mapDiv);
+   drawLidarPoints(image, robotPoints, false, Point(0, 0), Point(0, 0), mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
    //drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty())
@@ -1293,7 +1289,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    break;
 
   case SELECTDEBUGMAP:
-   drawLidarPoints(image, robotPoints, true, centerPoint, Point(0, 0), mapDiv);
+   drawLidarPoints(image, robotPoints, true, Point(width / 2, height / 2), Point(0, 0), mapDiv);
    drawLidarLines(image, robotLinesAxes, mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
    //drawIntersects(image, map, robotPoint, robotTheta, mapDiv);
@@ -1309,7 +1305,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    break;
 
   case SELECTDEBUGLIDAR:
-   drawLidarPoints(image, robotPoints, true, centerPoint, Point(0, 0), mapDiv);
+   drawLidarPoints(image, robotPoints, true, Point(width / 2, height / 2), Point(0, 0), mapDiv);
    drawLidarLines(image, robotLinesAxes, mapDiv);
    drawRobot(image, robotIcon, FILLED, Point(0, 0), 0, mapDiv);
    sprintf(text, "Points %03d | Lines %02d/%02d | Scale %03d mm | Time %02d ms",
