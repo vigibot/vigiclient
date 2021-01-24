@@ -973,14 +973,18 @@ void delNode(vector<Point> &nodes, vector<array<int, 2>> &links, int nodeIndex) 
  }
 }
 
-void addNode(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, Point node) {
- fprintf(stderr, "Adding the node %d\n", nodes.size());
+bool addNode(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, Point node) {
+ for(int i = 0; i < nodes.size(); i++)
+  if(sqDist(node, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE)
+   return false;
 
- for(int i = 0; i < nodes.size(); i++) {
+ fprintf(stderr, "Adding the node %d\n", nodes.size());
+ for(int i = 0; i < nodes.size(); i++)
   if(sqDist(node, nodes[i]) <= LINKSIZEMAX * LINKSIZEMAX)
    links.push_back({int(nodes.size()), i});
- }
  nodes.push_back(node);
+
+ return true;
 }
 
 /*void delLink(vector<array<int, 2>> &links, int a, int b) {
@@ -1148,15 +1152,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
      targetNode = closestPoint(nodes, targetPoint);
      computePaths(nodes, links, targetNode, paths);
     } else {
-     bool found = false;
-     for(int i = 0; i < nodes.size(); i++) {
-      if(sqDist(targetPoint, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE) {
-       found = true;
-       break;
-      }
-     }
-     if(!found) {
-      addNode(mapPoints, nodes, links, targetPoint);
+     if(addNode(mapPoints, nodes, links, targetPoint)) {
       targetNode = closestPoint(nodes, targetPoint);
       computePaths(nodes, links, targetNode, paths);
      }
