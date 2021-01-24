@@ -1506,8 +1506,6 @@ bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
 void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths,
                Point targetPoint, int targetNode, int closestRobot, Point &robotPoint, uint16_t &robotTheta, bool &running) {
 
- static vector<Point> nodesCopy;
- static vector<array<int, 2>> linksCopy;
  static bool oldRunning = false;
  static int state = GOTOPOINT;
  static Point oldTargetPoint = robotPoint;
@@ -1520,20 +1518,9 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
  if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
   running = false;
 
- if(running && !oldRunning) {
-  nodesCopy = nodes;
-  linksCopy = links;
+ if(running && !oldRunning)
   oldTargetPoint = robotPoint;
- } else if(!running && oldRunning) {
-  nodes = nodesCopy;
-  links = linksCopy;
-  if(!nodes.empty())
-   computePaths(nodes, links, closestPoint(nodes, targetPoint), paths);
-  else {
-   paths.clear();
-   paths.push_back(-1);
-  }
- } else if(!running) {
+ else if(!running) {
   telemetryFrame.vx = remoteFrame.vx;
   telemetryFrame.vy = remoteFrame.vy;
   telemetryFrame.vz = remoteFrame.vz;
