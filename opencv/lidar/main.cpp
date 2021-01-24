@@ -1034,7 +1034,7 @@ int closestPoint(vector<Point> &points, Point point) {
 
 int closestPointWithoutObstacle(vector<Point> &mapPoints, vector<Point> &points, Point robotPoint) {
  int distMin = INT_MAX;
- int closest = 0;
+ int closest = -1;
 
  for(int i = 0; i < points.size(); i++) {
   int dist = sqDist(robotPoint, points[i]);
@@ -1179,6 +1179,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   if(buttonOkCount < BUTTONSLONGPRESS) {
 
    if(select == SELECTFIXEDFULL || select == SELECTFULL) {
+    running = false;
     if(remoteFramePoint.x == -32767 && remoteFramePoint.y == 32767) {
      if(xmax > xmin && ymax > ymin) {
       for(int x = xmin; x < xmax; x += AUTOGRIDSIZE)
@@ -1201,6 +1202,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   if(buttonCancelCount < BUTTONSLONGPRESS) {
 
    if(select == SELECTFIXEDFULL || select == SELECTFULL) {
+    running = false;
     if(remoteFramePoint.x == -32767 && remoteFramePoint.y == 32767) {
      nodes.clear();
      links.clear();
@@ -1524,12 +1526,11 @@ bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
 }*/
 
 void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths,
-               Point targetPoint, int targetNode, int closestRobot, Point &robotPoint, uint16_t &robotTheta, bool &running) {
+               Point targetPoint, int &targetNode, int closestRobot, Point &robotPoint, uint16_t &robotTheta, bool &running) {
 
  static int state = GOTOPOINT;
  static Point oldTargetPoint = robotPoint;
- static int previousNode = -1;
- static int currentNode = -1;
+ static int currentNode = closestRobot;
  static int8_t vx = 0;
  static int8_t vy = 0;
  static int8_t vz = 0;
@@ -1546,54 +1547,37 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
  }
 
  if(targetPoint != oldTargetPoint) {
-  if(!nodes.empty() && sqDist(robotPoint, nodes[closestRobot]) < sqDist(robotPoint, targetPoint)) {
-   if(currentNode == -1)
-    currentNode = closestRobot;
+  if(closestRobot != -1 && sqDist(robotPoint, nodes[closestRobot]) < sqDist(robotPoint, targetPoint)) {
+   currentNode = closestRobot;
    state = GOTONODE;
   } else
    state = GOTOPOINT;
   oldTargetPoint = targetPoint;
- }
+ } else if(state != GOTOWAITING && (closestRobot == -1 || currentNode == -1))
+  state = GOTOPOINT;
 
  switch(state) {
   case GOTONODE:
-   if(!nodes.size()) {
-    state = GOTOPOINT;
-    break;
-   }
-   if(currentNode >= nodes.size())
-    currentNode = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
    if(obstacle(mapPoints, robotPoint, nodes[currentNode],
                int(sqrt(sqDist(robotPoint, nodes[currentNode]))) + OBSTACLEROBOTLENGTH)) {
-    if(previousNode != -1 && currentNode != -1) {
-     delLink(nodes, links, previousNode, currentNode);
-     computePaths(nodes, links, closestPoint(nodes, targetPoint), paths);
-     currentNode = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
-    }
-   }
-   if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
-    previousNode = currentNode;
-    if(currentNode == targetNode)
-     state = GOTOPOINT;
-    else {
-     currentNode = paths[currentNode];
-     if(currentNode == -1)
-      state = GOTOWAITING;
-     break;
-    }
-   } else
-    break;
+    delLink(nodes, links, closestRobot, currentNode);
+    targetNode = closestPoint(nodes, targetPoint);
+    computePaths(nodes, links, targetNode, paths);
+    currentNode = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
+   } else if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta))
+    currentNode = paths[currentNode];
+   break;
 
   case GOTOPOINT:
    {
     int dist = int(sqrt(sqDist(robotPoint, targetPoint))) + OBSTACLEROBOTLENGTH;
     if(dist > GOTOPOINTDISTOBSTACLE)
      dist = GOTOPOINTDISTOBSTACLE;
-    if(!obstacle(mapPoints, robotPoint, targetPoint, dist) &&
-       !gotoPoint(targetPoint, vy, vz, robotPoint, robotTheta))
-     break;
-    else
+    if(obstacle(mapPoints, robotPoint, targetPoint, dist) ||
+       gotoPoint(targetPoint, vy, vz, robotPoint, robotTheta))
      state = GOTOWAITING;
+    else
+     break;
    }
 
   case GOTOWAITING:
