@@ -1543,33 +1543,41 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
 
  switch(state) {
   case GOTONODE:
-   {
-    int dist = int(sqrt(sqDist(robotPoint, nodes[currentNode]))) + OBSTACLEROBOTLENGTH;
-    if(obstacle(mapPoints, robotPoint, nodes[currentNode], dist)) {
-     obstacleCount++;
-     if(obstacleCount == OBSTACLEITERATIONS) {
-      obstacleCount = 0;
-      delNode(nodes, links, currentNode);
-      computePaths(nodes, links, closestPoint(nodes, targetPoint), paths);
-      currentNode = closestPoint(nodes, robotPoint);
-     }
-    }
-    if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
+   if(obstacle(mapPoints, robotPoint, nodes[currentNode],
+               int(sqrt(sqDist(robotPoint, nodes[currentNode]))) + OBSTACLEROBOTLENGTH)) {
+    obstacleCount++;
+    if(obstacleCount == OBSTACLEITERATIONS) {
      obstacleCount = 0;
-     if(currentNode == targetNode)
-      state = GOTOPOINT;
-     else {
-      currentNode = paths[currentNode];
-      if(currentNode == -1)
-       state = GOTOWAITING;
-     }
+     delNode(nodes, links, currentNode);
+     computePaths(nodes, links, closestPoint(nodes, targetPoint), paths);
+     currentNode = closestPoint(nodes, robotPoint);
+    }
+   }
+   if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
+    obstacleCount = 0;
+    if(currentNode == targetNode)
+     state = GOTOPOINT;
+    else {
+     currentNode = paths[currentNode];
+     if(currentNode == -1)
+      state = GOTOWAITING;
     }
    }
    break;
 
   case GOTOPOINT:
-   if(gotoPoint(targetPoint, vy, vz, robotPoint, robotTheta))
+   if(obstacle(mapPoints, robotPoint, targetPoint,
+               int(sqrt(sqDist(robotPoint, targetPoint))) + OBSTACLEROBOTLENGTH)) {
+    obstacleCount++;
+    if(obstacleCount == OBSTACLEITERATIONS) {
+     obstacleCount = 0;
+     state = GOTOWAITING;
+    }
+   }
+   if(gotoPoint(targetPoint, vy, vz, robotPoint, robotTheta)) {
+    obstacleCount = 0;
     state = GOTOWAITING;
+   }
    break;
 
   case GOTOWAITING:
