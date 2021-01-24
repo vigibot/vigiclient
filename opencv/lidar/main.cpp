@@ -1502,7 +1502,6 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
  static int state = GOTOPOINT;
  static Point oldTargetPoint = robotPoint;
  static int currentNode = -1;
- static int obstacleCount = 0;
  static int8_t vx = 0;
  static int8_t vy = 0;
  static int8_t vz = 0;
@@ -1545,16 +1544,11 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
   case GOTONODE:
    if(obstacle(mapPoints, robotPoint, nodes[currentNode],
                int(sqrt(sqDist(robotPoint, nodes[currentNode]))) + OBSTACLEROBOTLENGTH)) {
-    obstacleCount++;
-    if(obstacleCount == OBSTACLEITERATIONS) {
-     obstacleCount = 0;
-     delNode(nodes, links, currentNode);
-     computePaths(nodes, links, closestPoint(nodes, targetPoint), paths);
-     currentNode = closestPoint(nodes, robotPoint);
-    }
+    delNode(nodes, links, currentNode);
+    computePaths(nodes, links, closestPoint(nodes, targetPoint), paths);
+    currentNode = closestPoint(nodes, robotPoint);
    }
    if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
-    obstacleCount = 0;
     if(currentNode == targetNode)
      state = GOTOPOINT;
     else {
