@@ -996,6 +996,7 @@ void delLink(vector<Point> &nodes, vector<array<int, 2>> &links, int a, int b) {
 
  for(int i = 0; i < links.size(); i++) {
   if(!del && (links[i][0] == a && links[i][1] == b || links[i][1] == a && links[i][0] == b)) {
+   fprintf(stderr, "Deleting the link %d\n", i);
    links.erase(links.begin() + i);
    del = true;
   } else {
@@ -1006,10 +1007,14 @@ void delLink(vector<Point> &nodes, vector<array<int, 2>> &links, int a, int b) {
   }
  }
 
- if(delmax)
+ if(delmax) {
+  fprintf(stderr, "Deleting the node without link %d\n", maxab);
   nodes.erase(nodes.begin() + maxab);
- if(delmin)
+ }
+ if(delmin) {
+  fprintf(stderr, "Deleting the node without link %d\n", minab);
   nodes.erase(nodes.begin() + minab);
+ }
 }
 
 int closestPoint(vector<Point> &points, Point point) {
