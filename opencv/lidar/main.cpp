@@ -1567,17 +1567,10 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
 
   case GOTOPOINT:
    if(obstacle(mapPoints, robotPoint, targetPoint,
-               int(sqrt(sqDist(robotPoint, targetPoint))) + OBSTACLEROBOTLENGTH)) {
-    obstacleCount++;
-    if(obstacleCount == OBSTACLEITERATIONS) {
-     obstacleCount = 0;
-     state = GOTOWAITING;
-    }
-   }
-   if(gotoPoint(targetPoint, vy, vz, robotPoint, robotTheta)) {
-    obstacleCount = 0;
+               int(sqrt(sqDist(robotPoint, targetPoint))) + OBSTACLEROBOTLENGTH))
     state = GOTOWAITING;
-   }
+   else if(gotoPoint(targetPoint, vy, vz, robotPoint, robotTheta))
+    state = GOTOWAITING;
    break;
 
   case GOTOWAITING:
