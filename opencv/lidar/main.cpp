@@ -1555,11 +1555,15 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
    state = GOTONODE;
   } else
    state = GOTOPOINT;
+  oldTargetPoint = targetPoint;
  }
- oldTargetPoint = targetPoint;
 
  switch(state) {
   case GOTONODE:
+   if(!nodes.size()) {
+    state = GOTOPOINT;
+    break;
+   }
    if(obstacle(mapPoints, robotPoint, nodes[currentNode],
                int(sqrt(sqDist(robotPoint, nodes[currentNode]))) + OBSTACLEROBOTLENGTH)) {
     if(previousNode != -1 && currentNode != -1) {
