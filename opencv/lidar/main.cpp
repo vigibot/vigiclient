@@ -1005,9 +1005,10 @@ void delLink(vector<Point> &nodes, vector<array<int, 2>> &links, int a, int b) {
  bool delmax = true;
 
  for(int i = 0; i < links.size(); i++) {
-  if(!del && (links[i][0] == a && links[i][1] == b || links[i][1] == a && links[i][0] == b)) {
+  if(!del && (links[i][0] == a && links[i][1] == b || links[i][0] == b && links[i][1] == a)) {
    fprintf(stderr, "Deleting the link %d\n", i);
    links.erase(links.begin() + i);
+   i--;
    del = true;
   } else {
    if(links[i][0] == minab || links[i][1] == minab)
