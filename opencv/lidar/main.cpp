@@ -961,6 +961,7 @@ void delNode(vector<Point> &nodes, vector<array<int, 2>> &links, int nodeIndex) 
  for(int i = 0; i < links.size(); i++) {
   if(nodeIndex == links[i][0] ||
      nodeIndex == links[i][1]) {
+   fprintf(stderr, "Deleting the associated link %d\n", i);
    links.erase(links.begin() + i);
    i--;
   } else {
