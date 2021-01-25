@@ -1546,12 +1546,13 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
 
  if(targetPoint != oldTargetPoint) {
   if(closestRobot != -1 && sqDist(robotPoint, nodes[closestRobot]) < sqDist(robotPoint, targetPoint)) {
-   currentNode = closestRobot;
+   currentNode = paths[closestRobot];
    state = GOTONODE;
   } else
    state = GOTOPOINT;
   oldTargetPoint = targetPoint;
- } else if(state != GOTOWAITING && (closestRobot == -1 || currentNode == -1))
+ }
+ if(state != GOTOWAITING && (closestRobot == -1 || currentNode == -1))
   state = GOTOPOINT;
 
  switch(state) {
