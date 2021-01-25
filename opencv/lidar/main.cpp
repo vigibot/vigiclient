@@ -951,6 +951,7 @@ void computePaths(vector<Point> &nodes, vector<array<int, 2>> &links, int start,
  dijkstra(adjacent, nodes.size(), start, paths);
 
  delete [] adjacent;
+ fprintf(stderr, "Ending Dijkstra's algorithm\n");
 }
 
 void delNode(vector<Point> &nodes, vector<array<int, 2>> &links, int nodeIndex) {
@@ -983,6 +984,17 @@ bool addNode(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2
  nodes.push_back(node);
 
  return true;
+}
+
+void delLink(vector<array<int, 2>> &links, int a, int b) {
+ for(int i = 0; i < links.size(); i++) {
+  if(links[i][0] == a && links[i][1] == b ||
+     links[i][1] == a && links[i][0] == b) {
+   fprintf(stderr, "Deleting the link %d\n", i);
+   links.erase(links.begin() + i);
+   break;
+  }
+ }
 }
 
 void delLink(vector<Point> &nodes, vector<array<int, 2>> &links, int a, int b) {
