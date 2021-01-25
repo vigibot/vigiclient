@@ -1705,7 +1705,7 @@ int main(int argc, char* argv[]) {
  bool mappingEnabled = true;
  Point targetPoint = Point(0, 0);
  int targetNode = 0;
- int closestRobot = 0;
+ int closestRobot = -1;
  bool running = false;
  int select = SELECTFIXEDFULL;
  int mapDiv = MAPDIV;
@@ -1800,8 +1800,7 @@ int main(int argc, char* argv[]) {
     robotToMap(robotPoints, mapPoints, robotPoint, robotTheta);
    }
 
-   if(!nodes.empty())
-    closestRobot = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
+   closestRobot = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
   }
 
   ui(image, robotPoints, robotLinesAxes, mapLines, map, mapPoints,
