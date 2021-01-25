@@ -1573,9 +1573,12 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
    if(obstacle(mapPoints, robotPoint, nodes[currentNode],
                int(sqrt(sqDist(robotPoint, nodes[currentNode]))) + OBSTACLEROBOTLENGTH)) {
     delLink(nodes, links, closestRobot, currentNode);
-    targetNode = closestPoint(nodes, targetPoint);
-    computePaths(nodes, links, targetNode, paths);
-    currentNode = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
+    if(!nodes.empty() {
+     targetNode = closestPoint(nodes, targetPoint);
+     computePaths(nodes, links, targetNode, paths);
+     currentNode = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
+    } else
+     state = GOTOPOINT;
    } else if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta))
     currentNode = paths[currentNode];
    break;
