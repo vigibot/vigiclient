@@ -954,7 +954,21 @@ void computePaths(vector<Point> &nodes, vector<array<int, 2>> &links, int start,
  fprintf(stderr, "Ending Dijkstra's algorithm\n");
 }
 
-void delNode(vector<Point> &nodes, vector<array<int, 2>> &links, int nodeIndex) {
+bool addNodeAndLinks(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, Point node) {
+ for(int i = 0; i < nodes.size(); i++)
+  if(sqDist(node, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE)
+   return false;
+
+ fprintf(stderr, "Adding the node %d\n", nodes.size());
+ for(int i = 0; i < nodes.size(); i++)
+  if(sqDist(node, nodes[i]) <= LINKSIZEMAX * LINKSIZEMAX)
+   links.push_back({int(nodes.size()), i});
+ nodes.push_back(node);
+
+ return true;
+}
+
+void delNodeAndLinks(vector<Point> &nodes, vector<array<int, 2>> &links, int nodeIndex) {
  fprintf(stderr, "Deleting the node %d\n", nodeIndex);
 
  nodes.erase(nodes.begin() + nodeIndex);
@@ -973,32 +987,19 @@ void delNode(vector<Point> &nodes, vector<array<int, 2>> &links, int nodeIndex) 
  }
 }
 
-bool addNode(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, Point node) {
- for(int i = 0; i < nodes.size(); i++)
-  if(sqDist(node, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE)
-   return false;
+void delNode(vector<Point> &nodes, vector<array<int, 2>> &links, int nodeIndex) {
+ fprintf(stderr, "Deleting the node %d\n", nodeIndex);
 
- fprintf(stderr, "Adding the node %d\n", nodes.size());
- for(int i = 0; i < nodes.size(); i++)
-  if(sqDist(node, nodes[i]) <= LINKSIZEMAX * LINKSIZEMAX)
-   links.push_back({int(nodes.size()), i});
- nodes.push_back(node);
-
- return true;
-}
-
-void delLink(vector<array<int, 2>> &links, int a, int b) {
+ nodes.erase(nodes.begin() + nodeIndex);
  for(int i = 0; i < links.size(); i++) {
-  if(links[i][0] == a && links[i][1] == b ||
-     links[i][1] == a && links[i][0] == b) {
-   fprintf(stderr, "Deleting the link %d\n", i);
-   links.erase(links.begin() + i);
-   break;
-  }
+  if(nodeIndex < links[i][0])
+   links[i][0]--;
+  if(nodeIndex < links[i][1])
+   links[i][1]--;
  }
 }
 
-void delLink(vector<Point> &nodes, vector<array<int, 2>> &links, int a, int b) {
+void delLinkAndNodes(vector<Point> &nodes, vector<array<int, 2>> &links, int a, int b) {
  bool del = false;
  int minab = min(a, b);
  int maxab = max(a, b);
@@ -1021,13 +1022,24 @@ void delLink(vector<Point> &nodes, vector<array<int, 2>> &links, int a, int b) {
 
  if(delmax) {
   fprintf(stderr, "Deleting the node without link %d\n", maxab);
-  nodes.erase(nodes.begin() + maxab);
+  delNode(nodes, links, maxab);
  }
  if(delmin) {
   fprintf(stderr, "Deleting the node without link %d\n", minab);
-  nodes.erase(nodes.begin() + minab);
+  delNode(nodes, links, minab);
  }
 }
+
+/*void delLink(vector<array<int, 2>> &links, int a, int b) {
+ for(int i = 0; i < links.size(); i++) {
+  if(links[i][0] == a && links[i][1] == b ||
+     links[i][1] == a && links[i][0] == b) {
+   fprintf(stderr, "Deleting the link %d\n", i);
+   links.erase(links.begin() + i);
+   break;
+  }
+ }
+}*/
 
 int closestPoint(vector<Point> &points, Point point) {
  int distMin = sqDist(point, points[0]);
@@ -1196,12 +1208,12 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
      if(xmax > xmin && ymax > ymin) {
       for(int x = xmin; x < xmax; x += AUTOGRIDSIZE)
        for(int y = ymin; y < ymax; y += AUTOGRIDSIZE)
-        addNode(mapPoints, nodes, links, Point(x, y));
+        addNodeAndLinks(mapPoints, nodes, links, Point(x, y));
       targetNode = closestPoint(nodes, targetPoint);
       computePaths(nodes, links, targetNode, paths);
      }
     } else {
-     if(addNode(mapPoints, nodes, links, targetPoint)) {
+     if(addNodeAndLinks(mapPoints, nodes, links, targetPoint)) {
       targetNode = closestPoint(nodes, targetPoint);
       computePaths(nodes, links, targetNode, paths);
      }
@@ -1222,7 +1234,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
      paths.push_back(-1);
     } else {
      if(!nodes.empty())
-      delNode(nodes, links, targetNode);
+      delNodeAndLinks(nodes, links, targetNode);
      if(!nodes.empty()) {
       targetNode = closestPoint(nodes, targetPoint);
       computePaths(nodes, links, targetNode, paths);
@@ -1573,7 +1585,7 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
   case GOTONODE:
    if(obstacle(mapPoints, robotPoint, nodes[currentNode],
                int(sqrt(sqDist(robotPoint, nodes[currentNode]))) + OBSTACLEROBOTLENGTH)) {
-    delLink(nodes, links, closestRobot, currentNode);
+    delLinkAndNodes(nodes, links, closestRobot, currentNode);
     if(!nodes.empty()) {
      targetNode = closestPoint(nodes, targetPoint);
      computePaths(nodes, links, targetNode, paths);
