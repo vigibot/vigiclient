@@ -954,18 +954,12 @@ void computePaths(vector<Point> &nodes, vector<array<int, 2>> &links, int start,
  fprintf(stderr, "Ending Dijkstra's algorithm\n");
 }
 
-bool addNodeAndLinks(vector<Point> &nodes, vector<array<int, 2>> &links, Point node) {
- for(int i = 0; i < nodes.size(); i++)
-  if(sqDist(node, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE)
-   return false;
-
+void addNodeAndLinks(vector<Point> &nodes, vector<array<int, 2>> &links, Point node) {
  fprintf(stderr, "Adding the node %d\n", nodes.size());
  for(int i = 0; i < nodes.size(); i++)
-  if(sqDist(node, nodes[i]) <= LINKSIZEMAX * LINKSIZEMAX)
+  if(sqDist(node, nodes[i]) <= LINKSSIZEMAX * LINKSSIZEMAX)
    links.push_back({int(nodes.size()), i});
  nodes.push_back(node);
-
- return true;
 }
 
 void delNodeAndLinks(vector<Point> &nodes, vector<array<int, 2>> &links, int nodeIndex) {
@@ -1071,7 +1065,7 @@ int closestPointWithoutObstacle(vector<Point> &mapPoints, vector<Point> &points,
  return closest;
 }
 
-void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], vector<Line> &mapLines, vector<Line> &map, vector<Point> &mapPoints,
+void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], vector<Line> &mapLines, vector<Line> &map, vector<Point> &mapPoints,
                     vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, Point &targetPoint, int &targetNode, int closestRobot,
                     Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
                     bool &mappingEnabled, bool &running, int &select, int &mapDiv, int time) {
@@ -1205,15 +1199,31 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    if(select == SELECTFIXEDFULL || select == SELECTFULL) {
     running = false;
     if(remoteFramePoint.x == -32767 && remoteFramePoint.y == 32767) {
-     if(xmax > xmin && ymax > ymin) {
-      for(int x = xmin; x < xmax; x += AUTOGRIDSIZE)
-       for(int y = ymin; y < ymax; y += AUTOGRIDSIZE)
-        addNodeAndLinks(nodes, links, Point(x, y));
-      targetNode = closestPoint(nodes, targetPoint);
-      computePaths(nodes, links, targetNode, paths);
+     for(int i = 0; i < polarPoints.size(); i++) {
+      for(int j = polarPoints[i].distance; j > 0; j -= 10) {
+       Point closerPoint = Point(j * sin16(polarPoints[i].theta) / ONE16,
+                                 j * cos16(polarPoints[i].theta) / ONE16);
+       Point closerMapPoint = robotPoint + rotate(closerPoint, robotTheta);
+       int add = true;
+       for(int k = 1; k < mapPoints.size(); k++)
+        if(testPointLine(closerMapPoint, {mapPoints[k - 1], mapPoints[k]}, DISTFROMOBSTACLE, DISTFROMOBSTACLE))
+         add = false;
+       for(int k = 0; k < nodes.size(); k++)
+        if(sqDist(closerMapPoint, nodes[k]) < LINKSSIZEMIN * LINKSSIZEMIN)
+         add = false;
+       if(add)
+        addNodeAndLinks(nodes, links, closerMapPoint);
+      }
      }
+     targetNode = closestPoint(nodes, targetPoint);
+     computePaths(nodes, links, targetNode, paths);
     } else {
-     if(addNodeAndLinks(nodes, links, targetPoint)) {
+     int add = true;
+     for(int i = 0; i < nodes.size(); i++)
+      if(sqDist(targetPoint, nodes[i]) < LINKSSIZEMIN * LINKSSIZEMIN)
+       add = false;
+     if(add) {
+      addNodeAndLinks(nodes, links, targetPoint);
       targetNode = closestPoint(nodes, targetPoint);
       computePaths(nodes, links, targetNode, paths);
      }
@@ -1600,8 +1610,8 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
   case GOTOPOINT:
    {
     int dist = int(sqrt(sqDist(robotPoint, targetPoint))) + OBSTACLEROBOTLENGTH;
-    if(dist > GOTOPOINTDISTOBSTACLE)
-     dist = GOTOPOINTDISTOBSTACLE;
+    if(dist > DISTFROMOBSTACLE)
+     dist = DISTFROMOBSTACLE;
     if(obstacle(mapPoints, robotPoint, targetPoint, dist) ||
        gotoPoint(targetPoint, vy, vz, robotPoint, robotTheta))
      state = GOTOWAITING;
@@ -1834,7 +1844,7 @@ int main(int argc, char* argv[]) {
    closestRobot = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
   }
 
-  ui(image, robotPoints, robotLinesAxes, mapLines, map, mapPoints,
+  ui(image, polarPoints, robotPoints, robotLinesAxes, mapLines, map, mapPoints,
      nodes, links, paths, targetPoint, targetNode, closestRobot,
      robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
      mappingEnabled, running, select, mapDiv, time);
