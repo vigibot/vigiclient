@@ -1197,30 +1197,53 @@ void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints,
    if(select == SELECTFIXEDFULL || select == SELECTFULL) {
     running = false;
     if(remoteFramePoint.x == -32767 && remoteFramePoint.y == 32767) {
+
      for(int i = 0; i < polarPoints.size(); i++) {
       for(int j = polarPoints[i].distance - LINKSSIZEMIN; j > LINKSSIZEMIN; j -= LINKSSIZEMIN) {
        Point closerPoint = Point(j * sin16(polarPoints[i].theta) / ONE16,
                                  j * cos16(polarPoints[i].theta) / ONE16);
        Point closerMapPoint = robotPoint + rotate(closerPoint, robotTheta);
-       int add = true;
-       for(int k = 1; k < mapPoints.size(); k++)
-        if(testPointLine(closerMapPoint, {mapPoints[k - 1], mapPoints[k]}, DISTFROMOBSTACLE, DISTFROMOBSTACLE))
-         add = false;
-       for(int k = 0; k < nodes.size(); k++)
-        if(sqDist(closerMapPoint, nodes[k]) < LINKSSIZEMIN * LINKSSIZEMIN)
-         add = false;
-       if(add)
-        addNodeAndLinks(nodes, links, closerMapPoint);
+
+       bool ok1 = true;
+       bool ok2 = false;
+       for(int k = 0; k < nodes.size(); k++) {
+        int dist = sqDist(closerMapPoint, nodes[k]);
+
+        if(dist <= LINKSSIZEMIN * LINKSSIZEMIN)
+         ok1 = false;
+        else if(dist <= LINKSSIZEMAX * LINKSSIZEMAX)
+         ok2 = true;
+       }
+
+       if(ok1 && (ok2 || nodes.empty())) {
+        for(int k = 1; k < mapPoints.size(); k++)
+         if(testPointLine(closerMapPoint, {mapPoints[k - 1], mapPoints[k]}, DISTFROMOBSTACLE, DISTFROMOBSTACLE))
+          ok1 = false;
+
+        if(ok1)
+         addNodeAndLinks(nodes, links, closerMapPoint);
+       }
+
       }
      }
-     targetNode = closestPoint(nodes, targetPoint);
-     computePaths(nodes, links, targetNode, paths);
+
+     if(!nodes.empty()) {
+      targetNode = closestPoint(nodes, targetPoint);
+      computePaths(nodes, links, targetNode, paths);
+     }
     } else {
-     int add = true;
-     for(int i = 0; i < nodes.size(); i++)
-      if(sqDist(targetPoint, nodes[i]) < LINKSSIZEMIN * LINKSSIZEMIN)
-       add = false;
-     if(add) {
+     bool ok1 = true;
+     bool ok2 = false;
+     for(int k = 0; k < nodes.size(); k++) {
+      int dist = sqDist(targetPoint, nodes[k]);
+
+      if(dist <= LINKSSIZEMIN * LINKSSIZEMIN)
+       ok1 = false;
+      else if(dist <= LINKSSIZEMAX * LINKSSIZEMAX)
+       ok2 = true;
+     }
+
+     if(ok1 && (ok2 || nodes.empty())) {
       addNodeAndLinks(nodes, links, targetPoint);
       targetNode = closestPoint(nodes, targetPoint);
       computePaths(nodes, links, targetNode, paths);
