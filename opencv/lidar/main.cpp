@@ -952,12 +952,72 @@ void computePaths(vector<Point> &nodes, vector<array<int, 2>> &links, int start,
  fprintf(stderr, "Ending Dijkstra's algorithm\n");
 }
 
-void addNodeAndLinks(vector<Point> &nodes, vector<array<int, 2>> &links, Point node) {
- fprintf(stderr, "Adding the node %d\n", nodes.size());
- for(int i = 0; i < nodes.size(); i++)
-  if(sqDist(node, nodes[i]) <= LINKSSIZEMAX * LINKSSIZEMAX)
-   links.push_back({int(nodes.size()), i});
- nodes.push_back(node);
+int closestPoint(vector<Point> &points, Point point) {
+ int distMin = sqDist(point, points[0]);
+ int closest = 0;
+
+ for(int i = 1; i < points.size(); i++) {
+  int dist = sqDist(point, points[i]);
+  if(dist < distMin) {
+   distMin = dist;
+   closest = i;
+  }
+ }
+
+ return closest;
+}
+
+int closestPointWithoutObstacle(vector<Point> &mapPoints, vector<Point> &points, Point robotPoint) {
+ int distMin = INT_MAX;
+ int closest = -1;
+
+ for(int i = 0; i < points.size(); i++) {
+  int dist = sqDist(robotPoint, points[i]);
+  if(dist < distMin && !obstacle(mapPoints, robotPoint, points[i], int(sqrt(dist)) + OBSTACLEROBOTLENGTH)) {
+   distMin = dist;
+   closest = i;
+  }
+ }
+
+ return closest;
+}
+
+bool addNodeAndLinks(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, Point node) {
+ if(nodes.empty()) {
+  nodes.push_back(node);
+  return true;
+ }
+
+ int closest = closestPoint(nodes, node);
+ if(sqDist(node, nodes[closest]) < LINKSSIZEMIN * LINKSSIZEMIN)
+  return false;
+
+ vector<array<int, 2>> linksBuffer;
+ for(int i = 0; i < nodes.size(); i++) {
+  int dist = sqDist(node, nodes[i]);
+
+  if(dist <= LINKSSIZEMAX * LINKSSIZEMAX)
+   linksBuffer.push_back({int(nodes.size()), i});
+ }
+
+ if(!linksBuffer.empty()) {
+  bool ok = true;
+
+  for(int i = 1; i < mapPoints.size(); i++)
+   if(testPointLine(node, {mapPoints[i - 1], mapPoints[i]}, DISTFROMOBSTACLE, DISTFROMOBSTACLE))
+    ok = false;
+
+  if(ok) {
+   fprintf(stderr, "Adding the node %d with %d link(s)\n", nodes.size(), linksBuffer.size());
+   nodes.push_back(node);
+   for(int i = 0; i < linksBuffer.size(); i++)
+    links.push_back(linksBuffer[i]);
+
+   return true;
+  }
+ }
+
+ return false;
 }
 
 void delNodeAndLinks(vector<Point> &nodes, vector<array<int, 2>> &links, int nodeIndex) {
@@ -1032,36 +1092,6 @@ void delLinkAndNodes(vector<Point> &nodes, vector<array<int, 2>> &links, int a, 
   }
  }
 }*/
-
-int closestPoint(vector<Point> &points, Point point) {
- int distMin = sqDist(point, points[0]);
- int closest = 0;
-
- for(int i = 1; i < points.size(); i++) {
-  int dist = sqDist(point, points[i]);
-  if(dist < distMin) {
-   distMin = dist;
-   closest = i;
-  }
- }
-
- return closest;
-}
-
-int closestPointWithoutObstacle(vector<Point> &mapPoints, vector<Point> &points, Point robotPoint) {
- int distMin = INT_MAX;
- int closest = -1;
-
- for(int i = 0; i < points.size(); i++) {
-  int dist = sqDist(robotPoint, points[i]);
-  if(dist < distMin && !obstacle(mapPoints, robotPoint, points[i], int(sqrt(dist)) + OBSTACLEROBOTLENGTH)) {
-   distMin = dist;
-   closest = i;
-  }
- }
-
- return closest;
-}
 
 void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], vector<Line> &mapLines, vector<Line> &map, vector<Point> &mapPoints,
                     vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, Point &targetPoint, int &targetNode, int closestRobot,
@@ -1203,27 +1233,7 @@ void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints,
        Point closerPoint = Point(j * sin16(polarPoints[i].theta) / ONE16,
                                  j * cos16(polarPoints[i].theta) / ONE16);
        Point closerMapPoint = robotPoint + rotate(closerPoint, robotTheta);
-
-       bool ok1 = true;
-       bool ok2 = false;
-       for(int k = 0; k < nodes.size(); k++) {
-        int dist = sqDist(closerMapPoint, nodes[k]);
-
-        if(dist <= LINKSSIZEMIN * LINKSSIZEMIN)
-         ok1 = false;
-        else if(dist <= LINKSSIZEMAX * LINKSSIZEMAX)
-         ok2 = true;
-       }
-
-       if(ok1 && (ok2 || nodes.empty())) {
-        for(int k = 1; k < mapPoints.size(); k++)
-         if(testPointLine(closerMapPoint, {mapPoints[k - 1], mapPoints[k]}, DISTFROMOBSTACLE, DISTFROMOBSTACLE))
-          ok1 = false;
-
-        if(ok1)
-         addNodeAndLinks(nodes, links, closerMapPoint);
-       }
-
+       addNodeAndLinks(mapPoints, nodes, links, closerMapPoint);
       }
      }
 
@@ -1232,19 +1242,7 @@ void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints,
       computePaths(nodes, links, targetNode, paths);
      }
     } else {
-     bool ok1 = true;
-     bool ok2 = false;
-     for(int k = 0; k < nodes.size(); k++) {
-      int dist = sqDist(targetPoint, nodes[k]);
-
-      if(dist <= LINKSSIZEMIN * LINKSSIZEMIN)
-       ok1 = false;
-      else if(dist <= LINKSSIZEMAX * LINKSSIZEMAX)
-       ok2 = true;
-     }
-
-     if(ok1 && (ok2 || nodes.empty())) {
-      addNodeAndLinks(nodes, links, targetPoint);
+     if(addNodeAndLinks(mapPoints, nodes, links, targetPoint)) {
       targetNode = closestPoint(nodes, targetPoint);
       computePaths(nodes, links, targetNode, paths);
      }
