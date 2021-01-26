@@ -954,7 +954,7 @@ void computePaths(vector<Point> &nodes, vector<array<int, 2>> &links, int start,
  fprintf(stderr, "Ending Dijkstra's algorithm\n");
 }
 
-bool addNodeAndLinks(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, Point node) {
+bool addNodeAndLinks(vector<Point> &nodes, vector<array<int, 2>> &links, Point node) {
  for(int i = 0; i < nodes.size(); i++)
   if(sqDist(node, nodes[i]) < GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE)
    return false;
@@ -1208,12 +1208,12 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
      if(xmax > xmin && ymax > ymin) {
       for(int x = xmin; x < xmax; x += AUTOGRIDSIZE)
        for(int y = ymin; y < ymax; y += AUTOGRIDSIZE)
-        addNodeAndLinks(mapPoints, nodes, links, Point(x, y));
+        addNodeAndLinks(nodes, links, Point(x, y));
       targetNode = closestPoint(nodes, targetPoint);
       computePaths(nodes, links, targetNode, paths);
      }
     } else {
-     if(addNodeAndLinks(mapPoints, nodes, links, targetPoint)) {
+     if(addNodeAndLinks(nodes, links, targetPoint)) {
       targetNode = closestPoint(nodes, targetPoint);
       computePaths(nodes, links, targetNode, paths);
      }
@@ -1585,7 +1585,8 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
   case GOTONODE:
    if(obstacle(mapPoints, robotPoint, nodes[currentNode],
                int(sqrt(sqDist(robotPoint, nodes[currentNode]))) + OBSTACLEROBOTLENGTH)) {
-    delLinkAndNodes(nodes, links, closestRobot, currentNode);
+    //delLinkAndNodes(nodes, links, closestRobot, currentNode);
+    delNodeAndLinks(nodes, links, currentNode);
     if(!nodes.empty()) {
      targetNode = closestPoint(nodes, targetPoint);
      computePaths(nodes, links, targetNode, paths);
