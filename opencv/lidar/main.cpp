@@ -1200,7 +1200,7 @@ void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints,
     running = false;
     if(remoteFramePoint.x == -32767 && remoteFramePoint.y == 32767) {
      for(int i = 0; i < polarPoints.size(); i++) {
-      for(int j = polarPoints[i].distance; j > 0; j -= 10) {
+      for(int j = polarPoints[i].distance - LINKSSIZEMIN; j > LINKSSIZEMIN; j -= LINKSSIZEMIN) {
        Point closerPoint = Point(j * sin16(polarPoints[i].theta) / ONE16,
                                  j * cos16(polarPoints[i].theta) / ONE16);
        Point closerMapPoint = robotPoint + rotate(closerPoint, robotTheta);
