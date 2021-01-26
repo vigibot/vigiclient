@@ -809,13 +809,11 @@ void drawNodes(Mat &image, vector<Point> &nodes, int closestRobot, int targetNod
   Point point = rescaleTranslate(rotate(nodes[i] - robotPoint, -robotTheta), mapDiv);
 
   if(i == closestRobot)
-   circle(image, point + Point(1, 1), 3, Scalar(0, 0, 255), FILLED, LINE_AA);
+   circle(image, point, 3, Scalar(0, 0, 255), FILLED, LINE_AA);
   else if(i == targetNode)
-   circle(image, point + Point(1, 1), 3, Scalar(0, 255, 0), FILLED, LINE_AA);
-  else {
-   circle(image, point, 1, Scalar::all(0), FILLED, LINE_AA);
-   circle(image, point + Point(1, 1), 1, Scalar::all(255), FILLED, LINE_AA);
-  }
+   circle(image, point, 3, Scalar(0, 255, 0), FILLED, LINE_AA);
+  else
+   circle(image, point, 1, Scalar::all(255), FILLED, LINE_AA);
  }
 }
 
