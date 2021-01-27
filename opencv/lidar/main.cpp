@@ -762,26 +762,6 @@ void drawMap(Mat &image, vector<Line> &map, bool light, Point robotPoint, uint16
  }
 }
 
-void drawIntersects(Mat &image, vector<Line> &map, Point robotPoint, uint16_t robotTheta, int mapDiv) {
- for(int i = 0; i < map.size(); i++) {
-  if(map[i].validation < VALIDATIONFILTERKEEP)
-   continue;
-
-  for(int j = i + 1; j < map.size(); j++) {
-   if(map[j].validation < VALIDATIONFILTERKEEP)
-    continue;
-
-   Point intersectPoint;
-   if(!intersectLine(map[i], map[j], intersectPoint))
-    continue;
-
-   Point point = rescaleTranslate(rotate(intersectPoint - robotPoint, -robotTheta), mapDiv);
-
-   circle(image, point, 3, Scalar::all(255), FILLED, LINE_AA);
-  }
- }
-}
-
 void drawHist(Mat &image, Point histPoint, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  static Point hist[HIST] = {Point(0, 0)};
  static int n = 0;
@@ -804,47 +784,9 @@ void drawHist(Mat &image, Point histPoint, Point robotPoint, uint16_t robotTheta
  }
 }
 
-void drawNodes(Mat &image, vector<Point> &nodes, int closestRobot, int targetNode, Point robotPoint, uint16_t robotTheta, int mapDiv) {
- for(int i = 0; i < nodes.size(); i++) {
-  Point point = rescaleTranslate(rotate(nodes[i] - robotPoint, -robotTheta), mapDiv);
-
-  if(i == closestRobot)
-   circle(image, point, 3, Scalar(0, 0, 255), FILLED, LINE_AA);
-  else if(i == targetNode)
-   circle(image, point, 3, Scalar(0, 255, 0), FILLED, LINE_AA);
-  else
-   circle(image, point, 1, Scalar::all(255), FILLED, LINE_AA);
- }
-}
-
-void drawNumbers(Mat &image, vector<Point> &nodes, int targetNode, Point robotPoint, uint16_t robotTheta, int mapDiv) {
- for(int i = 0; i < nodes.size(); i++) {
-  Point point = rescaleTranslate(rotate(nodes[i] - robotPoint, -robotTheta), mapDiv);
-
-  char text[8];
-  sprintf(text, "%d", i);
-
-  int baseline;
-  Size textSize = getTextSize(text, FONT_HERSHEY_PLAIN, 1.0, 1, &baseline);
-  Point textPoint = Point(-textSize.width / 2, textSize.height / 2) + point;
-
-  putText(image, text, textPoint, FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
-  putText(image, text, textPoint + Point(1, 1), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
-
-  if(i == targetNode) {
-   circle(image, point, textSize.width / 2 + 3, Scalar::all(0), 1, LINE_AA);
-   circle(image, point + Point(1, 1), textSize.width / 2 + 3, Scalar::all(255), 1, LINE_AA);
-  }
- }
-}
-
-void drawLinks(Mat &image, vector<Point> &nodes, vector<array<int, 2>> &links, Point robotPoint, uint16_t robotTheta, int mapDiv) {
- for(int i = 0; i < links.size(); i++) {
-  Point point1 = rescaleTranslate(rotate(nodes[links[i][0]] - robotPoint, -robotTheta), mapDiv);
-  Point point2 = rescaleTranslate(rotate(nodes[links[i][1]] - robotPoint, -robotTheta), mapDiv);
-
-  line(image, point1, point2, Scalar::all(128), 1, LINE_AA);
- }
+void drawColoredPoint(Mat &image, Point point, Scalar color, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+ point = rescaleTranslate(rotate(point - robotPoint, -robotTheta), mapDiv);
+ circle(image, point, 3, color, FILLED, LINE_AA);
 }
 
 void drawPath(Mat &image, vector<Point> &nodes, vector<int> &paths, int end, Point robotPoint, uint16_t robotTheta, int mapDiv) {
@@ -879,6 +821,63 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point robotPo
  vector<vector<Point>> tmp(1, polygon);
  drawContours(image, tmp, -1, Scalar::all(255), thickness, LINE_AA);
 }
+
+/*void drawNodes(Mat &image, vector<Point> &nodes, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+ for(int i = 0; i < nodes.size(); i++) {
+  Point point = rescaleTranslate(rotate(nodes[i] - robotPoint, -robotTheta), mapDiv);
+  circle(image, point, 1, Scalar::all(255), FILLED, LINE_AA);
+ }
+}
+
+void drawNumbers(Mat &image, vector<Point> &nodes, int targetNode, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+ for(int i = 0; i < nodes.size(); i++) {
+  Point point = rescaleTranslate(rotate(nodes[i] - robotPoint, -robotTheta), mapDiv);
+
+  char text[8];
+  sprintf(text, "%d", i);
+
+  int baseline;
+  Size textSize = getTextSize(text, FONT_HERSHEY_PLAIN, 1.0, 1, &baseline);
+  Point textPoint = Point(-textSize.width / 2, textSize.height / 2) + point;
+
+  putText(image, text, textPoint, FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
+  putText(image, text, textPoint + Point(1, 1), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
+
+  if(i == targetNode) {
+   circle(image, point, textSize.width / 2 + 3, Scalar::all(0), 1, LINE_AA);
+   circle(image, point + Point(1, 1), textSize.width / 2 + 3, Scalar::all(255), 1, LINE_AA);
+  }
+ }
+}
+
+void drawLinks(Mat &image, vector<Point> &nodes, vector<array<int, 2>> &links, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+ for(int i = 0; i < links.size(); i++) {
+  Point point1 = rescaleTranslate(rotate(nodes[links[i][0]] - robotPoint, -robotTheta), mapDiv);
+  Point point2 = rescaleTranslate(rotate(nodes[links[i][1]] - robotPoint, -robotTheta), mapDiv);
+
+  line(image, point1, point2, Scalar::all(128), 1, LINE_AA);
+ }
+}
+
+void drawIntersects(Mat &image, vector<Line> &map, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+ for(int i = 0; i < map.size(); i++) {
+  if(map[i].validation < VALIDATIONFILTERKEEP)
+   continue;
+
+  for(int j = i + 1; j < map.size(); j++) {
+   if(map[j].validation < VALIDATIONFILTERKEEP)
+    continue;
+
+   Point intersectPoint;
+   if(!intersectLine(map[i], map[j], intersectPoint))
+    continue;
+
+   Point point = rescaleTranslate(rotate(intersectPoint - robotPoint, -robotTheta), mapDiv);
+
+   circle(image, point, 3, Scalar::all(255), FILLED, LINE_AA);
+  }
+ }
+}*/
 
 bool obstacle(vector<Point> &mapPoints, Point robotPoint, Point targetPoint, int obstacleDetectionRange) {
  int n = 0;
@@ -1229,7 +1228,7 @@ void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints,
     if(remoteFramePoint.x == -32767 && remoteFramePoint.y == 32767) {
 
      for(int i = 0; i < polarPoints.size(); i++) {
-      for(int j = LINKSSIZEMIN; j < polarPoints[i].distance - LINKSSIZEMIN; j += LINKSSIZEMIN) {
+      for(int j = LINKSSIZEMIN; j < polarPoints[i].distance - LINKSSIZEMIN; j += LINKSSIZEMIN / 2) {
        Point closerPoint = Point(j * sin16(polarPoints[i].theta) / ONE16,
                                  j * cos16(polarPoints[i].theta) / ONE16);
        Point closerMapPoint = robotPoint + rotate(closerPoint, robotTheta);
@@ -1325,7 +1324,10 @@ void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints,
    for(int i = 0; i < nodes.size(); i++)
     drawPath(image, nodes, paths, i, offsetPoint, 0, mapDivFixed);
    drawHist(image, robotPoint, offsetPoint, 0, mapDivFixed);
-   drawNodes(image, nodes, closestRobot, targetNode, offsetPoint, 0, mapDivFixed);
+   if(!nodes.empty()) {
+    drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), offsetPoint, 0, mapDivFixed);
+    drawColoredPoint(image, nodes[targetNode], Scalar(0, 255, 0), offsetPoint, 0, mapDivFixed);
+   }
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    if(nodes.empty())
@@ -1364,12 +1366,13 @@ void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints,
   case SELECTFULL:
    drawLidarPoints(image, robotPoints, false, Point(0, 0), Point(0, 0), mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
-   //drawLinks(image, nodes, links, robotPoint, robotTheta, mapDiv);
    for(int i = 0; i < nodes.size(); i++)
     drawPath(image, nodes, paths, i, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotPoint, robotTheta, mapDiv);
-   drawNodes(image, nodes, closestRobot, targetNode, robotPoint, robotTheta, mapDiv);
-   //drawNumbers(image, nodes, targetNode, robotPoint, robotTheta, mapDiv);
+   if(!nodes.empty()) {
+    drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), robotPoint, robotTheta, mapDiv);
+    drawColoredPoint(image, nodes[targetNode], Scalar(0, 255, 0), robotPoint, robotTheta, mapDiv);
+   }
    drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    if(nodes.empty())
@@ -1383,7 +1386,6 @@ void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints,
    drawLidarPoints(image, robotPoints, true, Point(width / 2, height / 2), Point(0, 0), mapDiv);
    drawLidarLines(image, robotLinesAxes, mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
-   //drawIntersects(image, map, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, FILLED, Point(0, 0), 0, mapDiv);
    {
     int n = 0;
