@@ -1181,6 +1181,19 @@ void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints,
       i--;
      }
     }
+   } else if(select == SELECTFIXEDFULL || select == SELECTFULL) {
+    for(int i = 0; i < polarPoints.size(); i++) {
+     for(int j = LINKSSIZEMIN; j < polarPoints[i].distance - LINKSSIZEMIN; j += LINKSSIZEMIN / 2) {
+      Point closerPoint = Point(j * sin16(polarPoints[i].theta) / ONE16,
+                                j * cos16(polarPoints[i].theta) / ONE16);
+      Point closerMapPoint = robotPoint + rotate(closerPoint, robotTheta);
+      addNodeAndLinks(mapPoints, nodes, links, closerMapPoint);
+     }
+    }
+    if(!nodes.empty()) {
+     targetNode = closestPoint(nodes, targetPoint);
+     computePaths(nodes, links, targetNode, paths);
+    }
    } else
     running = !running;
 
@@ -1201,6 +1214,12 @@ void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints,
      robotThetaCorrector = 0;
 #endif
     }
+   } else if(select == SELECTFIXEDFULL || select == SELECTFULL) {
+    running = false;
+    nodes.clear();
+    links.clear();
+    paths.clear();
+    paths.push_back(-1);
    }
 
   }
@@ -1224,27 +1243,9 @@ void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints,
   if(buttonOkCount < BUTTONSLONGPRESS) {
 
    if(select == SELECTFIXEDFULL || select == SELECTFULL) {
-    running = false;
-    if(remoteFramePoint.x == -32767 && remoteFramePoint.y == 32767) {
-
-     for(int i = 0; i < polarPoints.size(); i++) {
-      for(int j = LINKSSIZEMIN; j < polarPoints[i].distance - LINKSSIZEMIN; j += LINKSSIZEMIN / 2) {
-       Point closerPoint = Point(j * sin16(polarPoints[i].theta) / ONE16,
-                                 j * cos16(polarPoints[i].theta) / ONE16);
-       Point closerMapPoint = robotPoint + rotate(closerPoint, robotTheta);
-       addNodeAndLinks(mapPoints, nodes, links, closerMapPoint);
-      }
-     }
-
-     if(!nodes.empty()) {
-      targetNode = closestPoint(nodes, targetPoint);
-      computePaths(nodes, links, targetNode, paths);
-     }
-    } else {
-     if(addNodeAndLinks(mapPoints, nodes, links, targetPoint)) {
-      targetNode = closestPoint(nodes, targetPoint);
-      computePaths(nodes, links, targetNode, paths);
-     }
+    if(addNodeAndLinks(mapPoints, nodes, links, targetPoint)) {
+     targetNode = closestPoint(nodes, targetPoint);
+     computePaths(nodes, links, targetNode, paths);
     }
    }
 
@@ -1254,19 +1255,11 @@ void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints,
   if(buttonCancelCount < BUTTONSLONGPRESS) {
 
    if(select == SELECTFIXEDFULL || select == SELECTFULL) {
-    running = false;
-    if(remoteFramePoint.x == -32767 && remoteFramePoint.y == 32767) {
-     nodes.clear();
-     links.clear();
-     paths.clear();
-     paths.push_back(-1);
-    } else {
-     if(!nodes.empty())
-      delNodeAndLinks(nodes, links, targetNode);
-     if(!nodes.empty()) {
-      targetNode = closestPoint(nodes, targetPoint);
-      computePaths(nodes, links, targetNode, paths);
-     }
+    if(!nodes.empty())
+     delNodeAndLinks(nodes, links, targetNode);
+    if(!nodes.empty()) {
+     targetNode = closestPoint(nodes, targetPoint);
+     computePaths(nodes, links, targetNode, paths);
     }
    }
 
