@@ -821,14 +821,14 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point robotPo
  drawContours(image, tmp, -1, Scalar::all(255), thickness, LINE_AA);
 }
 
-/*void drawNodes(Mat &image, vector<Point> &nodes, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+void drawNodes(Mat &image, vector<Point> &nodes, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  for(int i = 0; i < nodes.size(); i++) {
   Point point = rescaleTranslate(rotate(nodes[i] - robotPoint, -robotTheta), mapDiv);
   circle(image, point, 1, Scalar::all(255), FILLED, LINE_AA);
  }
 }
 
-void drawNumbers(Mat &image, vector<Point> &nodes, int targetNode, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+/*void drawNumbers(Mat &image, vector<Point> &nodes, int targetNode, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  for(int i = 0; i < nodes.size(); i++) {
   Point point = rescaleTranslate(rotate(nodes[i] - robotPoint, -robotTheta), mapDiv);
 
@@ -1328,8 +1328,11 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   case SELECTFIXEDFULL:
    drawLidarPoints(image, mapPoints, false, Point(0, 0), offsetPoint, mapDivFixed);
    drawMap(image, map, false, offsetPoint, 0, mapDivFixed);
-   for(int i = 0; i < nodes.size(); i++)
-    drawPath(image, nodes, paths, i, offsetPoint, 0, mapDivFixed);
+   //for(int i = 0; i < nodes.size(); i++)
+    //drawPath(image, nodes, paths, i, offsetPoint, 0, mapDivFixed);
+   if(!nodes.empty())
+    drawPath(image, nodes, paths, closestRobot, offsetPoint, 0, mapDivFixed);
+   drawNodes(image, nodes, offsetPoint, 0, mapDivFixed);
    drawHist(image, robotPoint, offsetPoint, 0, mapDivFixed);
    if(!nodes.empty()) {
     drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), offsetPoint, 0, mapDivFixed);
@@ -1338,7 +1341,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    if(nodes.empty())
-    sprintf(text, "X %04d/%04d | Y %04d/%04d | Theta %03d", robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, robotTheta * 180 / PI16);
+    sprintf(text, "X %04d/%04d | Y %04d/%04d | Theta %03d | Graphing %s",
+            robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, robotTheta * 180 / PI16, OFFON[graphingEnabled]);
    else
     sprintf(text, "Nodes %02d | Links %03d | X %04d | Y %04d | Theta %03d | Graphing %s",
             nodes.size(), links.size(), robotPoint.x, robotPoint.y, robotTheta * 180 / PI16, OFFON[graphingEnabled]);
@@ -1373,8 +1377,11 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   case SELECTFULL:
    drawLidarPoints(image, robotPoints, false, Point(0, 0), Point(0, 0), mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
-   for(int i = 0; i < nodes.size(); i++)
-    drawPath(image, nodes, paths, i, robotPoint, robotTheta, mapDiv);
+   //for(int i = 0; i < nodes.size(); i++)
+    //drawPath(image, nodes, paths, i, robotPoint, robotTheta, mapDiv);
+   if(!nodes.empty())
+    drawPath(image, nodes, paths, closestRobot, robotPoint, robotTheta, mapDiv);
+   drawNodes(image, nodes, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty()) {
     drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), robotPoint, robotTheta, mapDiv);
@@ -1383,7 +1390,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    if(nodes.empty())
-    sprintf(text, "X %04d/%04d | Y %04d/%04d | Theta %03d", robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, robotTheta * 180 / PI16);
+    sprintf(text, "X %04d/%04d | Y %04d/%04d | Theta %03d | Graphing %s",
+            robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, robotTheta * 180 / PI16, OFFON[graphingEnabled]);
    else
     sprintf(text, "Nodes %02d | Links %03d | X %04d | Y %04d | Theta %03d | Graphing %s",
             nodes.size(), links.size(), robotPoint.x, robotPoint.y, robotTheta * 180 / PI16, OFFON[graphingEnabled]);
@@ -1774,7 +1782,7 @@ int main(int argc, char* argv[]) {
  Point robotPoint = Point(0, 0);
  uint16_t robotTheta = 0;
  bool mappingEnabled = true;
- bool graphingEnabled = true;
+ bool graphingEnabled = false;
  Point targetPoint = Point(0, 0);
  int targetNode = 0;
  int closestRobot = -1;
