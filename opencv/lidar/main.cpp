@@ -66,7 +66,7 @@ int sqDist(Point point1, Point point2) {
  return sqNorm(diff);
 }
 
-void extractRawLinesPascal(vector<PolarPoint> &polarPoints, vector<Point> &robotPoints, vector<vector<Point>> &robotRawLines) {
+/*void extractRawLinesPascal(vector<PolarPoint> &polarPoints, vector<Point> &robotPoints, vector<vector<Point>> &robotRawLines) {
  vector<Point> pointsDp;
  vector<Point> pointsNoDp;
  Point oldRobotPoints = Point(0, 0);
@@ -105,7 +105,7 @@ void extractRawLinesPascal(vector<PolarPoint> &polarPoints, vector<Point> &robot
   } else
    pointsNoDp.push_back(robotPoints[ii]);
  }
-}
+}*/
 
 void extractRawLinesMike118(vector<PolarPoint> &polarPoints, vector<Point> &robotPoints, vector<vector<Point>> &robotRawLines) {
  vector<Point> pointsDp;
@@ -621,25 +621,24 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
 void mapFiltersDecay(vector<Line> &map) {
  static int n = 0;
 
- if(n == MAPFILTERSDECAY) {
-  for(int i = 0; i < map.size(); i++) {
-
-   if(map[i].validation > VALIDATIONFILTERKILL && map[i].validation < VALIDATIONFILTERKEEP)
-    map[i].validation--;
-   else if(map[i].validation <= VALIDATIONFILTERKILL) {
-    map.erase(map.begin() + i);
-    i--;
-   }
-
-   if(map[i].shrinka < SHRINKFILTER)
-    map[i].shrinka++;
-   if(map[i].shrinkb < SHRINKFILTER)
-    map[i].shrinkb++;
-  }
+ if(n++ == MAPFILTERSDECAY)
   n = 0;
- }
+ else
+  return;
 
- n++;
+ for(int i = 0; i < map.size(); i++) {
+  if(map[i].validation > VALIDATIONFILTERKILL && map[i].validation < VALIDATIONFILTERKEEP)
+   map[i].validation--;
+  else if(map[i].validation <= VALIDATIONFILTERKILL) {
+   map.erase(map.begin() + i);
+   i--;
+  }
+
+  if(map[i].shrinka < SHRINKFILTER)
+   map[i].shrinka++;
+  if(map[i].shrinkb < SHRINKFILTER)
+   map[i].shrinkb++;
+ }
 }
 
 void splitAxes(vector<Line> &robotLines, vector<Line> robotLinesAxes[]) {
@@ -1092,10 +1091,36 @@ void delLinkAndNodes(vector<Point> &nodes, vector<array<int, 2>> &links, int a, 
  }
 }*/
 
-void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], vector<Line> &mapLines, vector<Line> &map, vector<Point> &mapPoints,
+void graphing(vector<PolarPoint> &polarPoints, vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links,
+              vector<int> &paths, Point targetPoint, int &targetNode, Point robotPoint, uint16_t robotTheta) {
+
+ static int n = 0;
+
+ if(n++ == GRAPHINGSLOWDOWN)
+  n = 0;
+ else
+  return;
+
+ for(int i = 0; i < polarPoints.size(); i++) {
+  for(int j = LINKSSIZEMIN; j < polarPoints[i].distance - LINKSSIZEMIN; j += LINKSSIZEMIN / 2) {
+   Point closerPoint = Point(j * sin16(polarPoints[i].theta) / ONE16,
+                             j * cos16(polarPoints[i].theta) / ONE16);
+
+   Point closerMapPoint = robotPoint + rotate(closerPoint, robotTheta);
+   addNodeAndLinks(mapPoints, nodes, links, closerMapPoint);
+  }
+ }
+
+ if(!nodes.empty()) {
+  targetNode = closestPoint(nodes, targetPoint);
+  computePaths(nodes, links, targetNode, paths);
+ }
+}
+
+void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], vector<Line> &mapLines, vector<Line> &map, vector<Point> &mapPoints,
                     vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, Point &targetPoint, int &targetNode, int closestRobot,
                     Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
-                    bool &mappingEnabled, bool &running, int &select, int &mapDiv, int time) {
+                    bool &mappingEnabled, bool &graphingEnabled, bool &running, int &select, int &mapDiv, int time) {
 
  int xmin = INT_MAX;
  int xmax = INT_MIN;
@@ -1181,20 +1206,9 @@ void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints,
       i--;
      }
     }
-   } else if(select == SELECTFIXEDFULL || select == SELECTFULL) {
-    for(int i = 0; i < polarPoints.size(); i++) {
-     for(int j = LINKSSIZEMIN; j < polarPoints[i].distance - LINKSSIZEMIN; j += LINKSSIZEMIN / 2) {
-      Point closerPoint = Point(j * sin16(polarPoints[i].theta) / ONE16,
-                                j * cos16(polarPoints[i].theta) / ONE16);
-      Point closerMapPoint = robotPoint + rotate(closerPoint, robotTheta);
-      addNodeAndLinks(mapPoints, nodes, links, closerMapPoint);
-     }
-    }
-    if(!nodes.empty()) {
-     targetNode = closestPoint(nodes, targetPoint);
-     computePaths(nodes, links, targetNode, paths);
-    }
-   } else
+   } else if(select == SELECTFIXEDFULL || select == SELECTFULL)
+    graphingEnabled = !graphingEnabled;
+   else
     running = !running;
 
   }
@@ -1326,8 +1340,8 @@ void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints,
    if(nodes.empty())
     sprintf(text, "X %04d/%04d | Y %04d/%04d | Theta %03d", robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, robotTheta * 180 / PI16);
    else
-    sprintf(text, "Nodes %02d/%02d | Links %03d | X %04d/%04d | Y %04d/%04d | Theta %03d", targetNode, nodes.size(),
-            links.size(), robotPoint.x, nodes[targetNode].x, robotPoint.y, nodes[targetNode].y, robotTheta * 180 / PI16);
+    sprintf(text, "Nodes %02d | Links %03d | X %04d | Y %04d | Theta %03d | Graphing %s",
+            nodes.size(), links.size(), robotPoint.x, robotPoint.y, robotTheta * 180 / PI16, OFFON[graphingEnabled]);
    break;
 
   case SELECTFIXEDDEBUGMAP:
@@ -1371,8 +1385,8 @@ void ui(Mat &image, vector<PolarPoint> &polarPoints, vector<Point> &robotPoints,
    if(nodes.empty())
     sprintf(text, "X %04d/%04d | Y %04d/%04d | Theta %03d", robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, robotTheta * 180 / PI16);
    else
-    sprintf(text, "Nodes %02d/%02d | Links %03d | X %04d/%04d | Y %04d/%04d | Theta %03d", targetNode, nodes.size(),
-            links.size(), robotPoint.x, nodes[targetNode].x, robotPoint.y, nodes[targetNode].y, robotTheta * 180 / PI16);
+    sprintf(text, "Nodes %02d | Links %03d | X %04d | Y %04d | Theta %03d | Graphing %s",
+            nodes.size(), links.size(), robotPoint.x, robotPoint.y, robotTheta * 180 / PI16, OFFON[graphingEnabled]);
    break;
 
   case SELECTDEBUGMAP:
@@ -1438,7 +1452,7 @@ void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t robotTheta, uint16
 }*/
 
 void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>> &links, Point robotPoint,
-                  uint16_t robotTheta, bool mappingEnabled, int select, int mapDiv) {
+                  uint16_t robotTheta, bool mappingEnabled, bool graphingEnabled, int select, int mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::WRITE);
 
  if(fs.isOpened()) {
@@ -1471,6 +1485,7 @@ void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>>
   fs << "robotTheta" << robotTheta;
 
   fs << "mappingEnabled" << mappingEnabled;
+  fs << "graphingEnabled" << graphingEnabled;
   fs << "select" << select;
   fs << "mapDiv" << mapDiv;
 
@@ -1480,7 +1495,7 @@ void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>>
 }
 
 void readMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>> &links, Point &robotPoint,
-                 uint16_t &robotTheta, bool &mappingEnabled, int &select, int &mapDiv) {
+                 uint16_t &robotTheta, bool &mappingEnabled, bool &graphingEnabled, int &select, int &mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::READ);
 
  if(fs.isOpened()) {
@@ -1516,6 +1531,7 @@ void readMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>> 
   fs["robotTheta"] >> robotTheta;
 
   fs["mappingEnabled"] >> mappingEnabled;
+  fs["graphingEnabled"] >> graphingEnabled;
   fs["select"] >> select;
   fs["mapDiv"] >> mapDiv;
 
@@ -1758,6 +1774,7 @@ int main(int argc, char* argv[]) {
  Point robotPoint = Point(0, 0);
  uint16_t robotTheta = 0;
  bool mappingEnabled = true;
+ bool graphingEnabled = true;
  Point targetPoint = Point(0, 0);
  int targetNode = 0;
  int closestRobot = -1;
@@ -1765,7 +1782,7 @@ int main(int argc, char* argv[]) {
  int select = SELECTFIXEDFULL;
  int mapDiv = MAPDIV;
  fprintf(stderr, "Reading map file\n");
- readMapFile(map, nodes, links, robotPoint, robotTheta, mappingEnabled, select, mapDiv);
+ readMapFile(map, nodes, links, robotPoint, robotTheta, mappingEnabled, graphingEnabled, select, mapDiv);
  Point oldRobotPoint = robotPoint;
  uint16_t oldRobotTheta = robotTheta;
  robotThetaCorrector = robotTheta;
@@ -1853,15 +1870,18 @@ int main(int argc, char* argv[]) {
 
     mapPoints.clear();
     robotToMap(robotPoints, mapPoints, robotPoint, robotTheta);
+
+    if(graphingEnabled)
+     graphing(polarPoints, mapPoints, nodes, links, paths, targetPoint, targetNode, robotPoint, robotTheta);
    }
 
    closestRobot = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
   }
 
-  ui(image, polarPoints, robotPoints, robotLinesAxes, mapLines, map, mapPoints,
+  ui(image, robotPoints, robotLinesAxes, mapLines, map, mapPoints,
      nodes, links, paths, targetPoint, targetNode, closestRobot,
      robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
-     mappingEnabled, running, select, mapDiv, time);
+     mappingEnabled, graphingEnabled, running, select, mapDiv, time);
 
   autopilot(mapPoints, nodes, links, paths, targetPoint, targetNode, closestRobot, robotPoint, robotTheta, running);
 
@@ -1895,7 +1915,7 @@ int main(int argc, char* argv[]) {
  stopLidar(ld);
 
  fprintf(stderr, "Writing map file\n");
- writeMapFile(map, nodes, links, robotPoint, robotTheta, mappingEnabled, select, mapDiv);
+ writeMapFile(map, nodes, links, robotPoint, robotTheta, mappingEnabled, graphingEnabled, select, mapDiv);
 
  fprintf(stderr, "Stopping\n");
  return 0;
