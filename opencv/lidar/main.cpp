@@ -824,7 +824,7 @@ void drawRobot(Mat &image, vector<Point> robotIcon, int thickness, Point robotPo
 void drawNodes(Mat &image, vector<Point> &nodes, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  for(int i = 0; i < nodes.size(); i++) {
   Point point = rescaleTranslate(rotate(nodes[i] - robotPoint, -robotTheta), mapDiv);
-  circle(image, point, 1, Scalar::all(255), FILLED, LINE_AA);
+  circle(image, point, 1, Scalar::all(128), FILLED, LINE_AA);
  }
 }
 
