@@ -1103,7 +1103,7 @@ void graphing(vector<PolarPoint> &polarPoints, vector<Point> &mapPoints, vector<
   return;
 
  for(int i = 0; i < polarPoints.size(); i++) {
-  for(int j = LINKSSIZEMIN; j < polarPoints[i].distance - LINKSSIZEMIN; j += LINKSSIZEMIN / 2) {
+  for(int j = polarPoints[i].distance - LINKSSIZEMIN; j > LINKSSIZEMIN; j -= LINKSSIZEMIN / 2) {
    Point closerPoint = Point(j * sin16(polarPoints[i].theta) / ONE16,
                              j * cos16(polarPoints[i].theta) / ONE16);
 
