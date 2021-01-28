@@ -898,7 +898,7 @@ bool obstacle(vector<Point> &mapPoints, Point robotPoint, Point targetPoint, int
  return false;
 }
 
-void dijkstra(list<pair<int, int>> adjacent[], int nbNodes, int start, vector<int> &pathsOut) {
+void dijkstra(list<pair<int, int>> adjacent[], int nbNodes, int start, vector<int> &pathsOut, vector<int> &distsOut) {
  priority_queue<Pair, vector<Pair>, greater<Pair>> pq;
  vector<int> dists(nbNodes, INT_MAX);
  vector<bool> flags(nbNodes, false);
@@ -926,6 +926,7 @@ void dijkstra(list<pair<int, int>> adjacent[], int nbNodes, int start, vector<in
  }
 
  pathsOut = paths;
+ distsOut = dists;
 }
 
 void addLink(list<pair<int, int>> adjacent[], int a, int b, int weight) {
@@ -933,7 +934,7 @@ void addLink(list<pair<int, int>> adjacent[], int a, int b, int weight) {
  adjacent[b].push_back(make_pair(a, weight));
 }
 
-void computePaths(vector<Point> &nodes, vector<array<int, 2>> &links, int start, vector<int> &paths) {
+void computePaths(vector<Point> &nodes, vector<array<int, 2>> &links, int start, vector<int> &paths, vector<int> &dists) {
  fprintf(stderr, "Launching Dijkstra's algorithm with %d nodes and %d links for the node %d\n", nodes.size(), links.size(), start);
 
  list<pair<int, int>> *adjacent;
@@ -944,7 +945,7 @@ void computePaths(vector<Point> &nodes, vector<array<int, 2>> &links, int start,
   addLink(adjacent, links[i][0], links[i][1], dist);
  }
 
- dijkstra(adjacent, nodes.size(), start, paths);
+ dijkstra(adjacent, nodes.size(), start, paths, dists);
 
  delete [] adjacent;
  fprintf(stderr, "Ending Dijkstra's algorithm\n");
@@ -1092,7 +1093,7 @@ void delLinkAndNodes(vector<Point> &nodes, vector<array<int, 2>> &links, int a, 
 }*/
 
 void graphing(vector<PolarPoint> &polarPoints, vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links,
-              vector<int> &paths, Point targetPoint, int &targetNode, Point robotPoint, uint16_t robotTheta) {
+              vector<int> &paths, vector<int> &dists, Point targetPoint, int &targetNode, Point robotPoint, uint16_t robotTheta) {
 
  static int n = 0;
 
@@ -1113,12 +1114,12 @@ void graphing(vector<PolarPoint> &polarPoints, vector<Point> &mapPoints, vector<
 
  if(!nodes.empty()) {
   targetNode = closestPoint(nodes, targetPoint);
-  computePaths(nodes, links, targetNode, paths);
+  computePaths(nodes, links, targetNode, paths, dists);
  }
 }
 
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], vector<Line> &mapLines, vector<Line> &map, vector<Point> &mapPoints,
-                    vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, Point &targetPoint, int &targetNode, int closestRobot,
+                    vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, vector<int> &dists, Point &targetPoint, int &targetNode, int closestRobot,
                     Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
                     bool &mappingEnabled, bool &graphingEnabled, bool &running, int &select, int &mapDiv, int time) {
 
@@ -1189,7 +1190,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  if(!nodes.empty()) {
   targetNode = closestPoint(nodes, targetPoint);
   if(targetNode != oldTargetNode) {
-   computePaths(nodes, links, targetNode, paths);
+   computePaths(nodes, links, targetNode, paths, dists);
    oldTargetNode = targetNode;
   }
  }
@@ -1259,7 +1260,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    if(select == SELECTFIXEDFULL || select == SELECTFULL) {
     if(addNodeAndLinks(mapPoints, nodes, links, targetPoint)) {
      targetNode = closestPoint(nodes, targetPoint);
-     computePaths(nodes, links, targetNode, paths);
+     computePaths(nodes, links, targetNode, paths, dists);
     }
    }
 
@@ -1273,7 +1274,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
      delNodeAndLinks(nodes, links, targetNode);
     if(!nodes.empty()) {
      targetNode = closestPoint(nodes, targetPoint);
-     computePaths(nodes, links, targetNode, paths);
+     computePaths(nodes, links, targetNode, paths, dists);
     }
    } else if(select == SELECTFIXEDDEBUGMAP || select == SELECTDEBUGMAP) {
     for(int i = 0; i < map.size(); i++) {
@@ -1329,7 +1330,10 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawHist(image, robotPoint, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
-   sprintf(text, "");
+   if(nodes.empty())
+    sprintf(text, "Autopilot %s", OFFON[running]);
+   else
+    sprintf(text, "Route length %05d mm | Autopilot %s", dists[closestRobot], OFFON[running]);
    break;
 
   case SELECTFIXEDFULL:
@@ -1348,10 +1352,10 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    if(nodes.empty())
-    sprintf(text, "X %04d/%04d | Y %04d/%04d | Theta %03d | Graphing %s",
+    sprintf(text, "X %04d/%04d mm | Y %04d/%04d mm | Theta %03d | Graph %s",
             robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, robotTheta * 180 / PI16, OFFON[graphingEnabled]);
    else
-    sprintf(text, "Nodes %02d | Links %03d | X %04d | Y %04d | Theta %03d | Graphing %s",
+    sprintf(text, "Nodes %04d | Links %05d | X %04d | Y %04d | Theta %03d | Graph %s",
             nodes.size(), links.size(), robotPoint.x, robotPoint.y, robotTheta * 180 / PI16, OFFON[graphingEnabled]);
    break;
 
@@ -1379,7 +1383,10 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawHist(image, robotPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
-   sprintf(text, "");
+   if(nodes.empty())
+    sprintf(text, "Autopilot %s", OFFON[running]);
+   else
+    sprintf(text, "Route length %05d mm | Autopilot %s", dists[closestRobot], OFFON[running]);
    break;
 
   case SELECTFULL:
@@ -1398,10 +1405,10 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    if(nodes.empty())
-    sprintf(text, "X %04d/%04d | Y %04d/%04d | Theta %03d | Graphing %s",
+    sprintf(text, "X %04d/%04d mm | Y %04d/%04d mm | Theta %03d | Graph %s",
             robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, robotTheta * 180 / PI16, OFFON[graphingEnabled]);
    else
-    sprintf(text, "Nodes %02d | Links %03d | X %04d | Y %04d | Theta %03d | Graphing %s",
+    sprintf(text, "Nodes %04d | Links %05d | X %04d | Y %04d | Theta %03d | Graph %s",
             nodes.size(), links.size(), robotPoint.x, robotPoint.y, robotTheta * 180 / PI16, OFFON[graphingEnabled]);
    break;
 
@@ -1606,7 +1613,7 @@ bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
  return -1;
 }*/
 
-void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths,
+void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, vector<int> &dists,
                Point targetPoint, int &targetNode, int closestRobot, Point &robotPoint, uint16_t &robotTheta, bool &running) {
 
  static int state = GOTOPOINT;
@@ -1646,7 +1653,7 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
     delNodeAndLinks(nodes, links, currentNode);
     if(!nodes.empty()) {
      targetNode = closestPoint(nodes, targetPoint);
-     computePaths(nodes, links, targetNode, paths);
+     computePaths(nodes, links, targetNode, paths, dists);
      currentNode = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
     } else
      state = GOTOPOINT;
@@ -1787,6 +1794,7 @@ int main(int argc, char* argv[]) {
  vector<Point> nodes;
  vector<array<int, 2>> links;
  vector<int> paths;
+ vector<int> dists;
 
  Point robotPoint = Point(0, 0);
  uint16_t robotTheta = 0;
@@ -1804,7 +1812,7 @@ int main(int argc, char* argv[]) {
  uint16_t oldRobotTheta = robotTheta;
  robotThetaCorrector = robotTheta;
  if(!nodes.empty())
-  computePaths(nodes, links, targetNode, paths);
+  computePaths(nodes, links, targetNode, paths, dists);
 
  bgrInit();
 
@@ -1889,18 +1897,19 @@ int main(int argc, char* argv[]) {
     robotToMap(robotPoints, mapPoints, robotPoint, robotTheta);
 
     if(graphingEnabled)
-     graphing(polarPoints, mapPoints, nodes, links, paths, targetPoint, targetNode, robotPoint, robotTheta);
+     graphing(polarPoints, mapPoints, nodes, links, paths, dists, targetPoint, targetNode, robotPoint, robotTheta);
    }
 
    closestRobot = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
   }
 
   ui(image, robotPoints, robotLinesAxes, mapLines, map, mapPoints,
-     nodes, links, paths, targetPoint, targetNode, closestRobot,
+     nodes, links, paths, dists, targetPoint, targetNode, closestRobot,
      robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
      mappingEnabled, graphingEnabled, running, select, mapDiv, time);
 
-  autopilot(mapPoints, nodes, links, paths, targetPoint, targetNode, closestRobot, robotPoint, robotTheta, running);
+  autopilot(mapPoints, nodes, links, paths, dists,
+            targetPoint, targetNode, closestRobot, robotPoint, robotTheta, running);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
