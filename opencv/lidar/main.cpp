@@ -1198,7 +1198,9 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   buttonOkCount++;
   if(buttonOkCount == BUTTONSLONGPRESS) {
 
-   if(select == SELECTFIXEDDEBUGMAP || select == SELECTDEBUGMAP) {
+   if(select == SELECTFIXEDFULL || select == SELECTFULL)
+    graphingEnabled = !graphingEnabled;
+   else if(select == SELECTFIXEDDEBUGMAP || select == SELECTDEBUGMAP) {
     mappingEnabled = !mappingEnabled;
     for(int i = 0; i < map.size(); i++) {
      if(map[i].validation < VALIDATIONFILTERKEEP) {
@@ -1206,9 +1208,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
       i--;
      }
     }
-   } else if(select == SELECTFIXEDFULL || select == SELECTFULL)
-    graphingEnabled = !graphingEnabled;
-   else
+   } else
     running = !running;
 
   }
@@ -1216,7 +1216,13 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   buttonCancelCount++;
   if(buttonCancelCount == BUTTONSLONGPRESS) {
 
-   if(select == SELECTFIXEDDEBUGMAP || select == SELECTDEBUGMAP) {
+   if(select == SELECTFIXEDFULL || select == SELECTFULL) {
+    running = false;
+    nodes.clear();
+    links.clear();
+    paths.clear();
+    paths.push_back(-1);
+   } else if(select == SELECTFIXEDDEBUGMAP || select == SELECTDEBUGMAP) {
     map.clear();
     if(nodes.empty()) {
      robotPoint = Point(0, 0);
@@ -1228,12 +1234,6 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
      robotThetaCorrector = 0;
 #endif
     }
-   } else if(select == SELECTFIXEDFULL || select == SELECTFULL) {
-    running = false;
-    nodes.clear();
-    links.clear();
-    paths.clear();
-    paths.push_back(-1);
    }
 
   }
@@ -1275,6 +1275,13 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
      targetNode = closestPoint(nodes, targetPoint);
      computePaths(nodes, links, targetNode, paths);
     }
+   } else if(select == SELECTFIXEDDEBUGMAP || select == SELECTDEBUGMAP) {
+    for(int i = 0; i < map.size(); i++) {
+     if(testPointLine(targetPoint, {map[i].a, map[i].b}, DISTFROMOBSTACLE, DISTFROMOBSTACLE)) {
+      map.erase(map.begin() + i);
+      break;
+     }
+    }
    }
 
   }
@@ -1309,8 +1316,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  char text[80];
  switch(select) {
   case SELECTNONE:
-   drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, 1, robotPoint - offsetPoint, robotTheta, mapDivFixed);
+   drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    sprintf(text, "");
    break;
 
@@ -1320,8 +1327,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    if(!nodes.empty())
     drawPath(image, nodes, paths, closestRobot, offsetPoint, 0, mapDivFixed);
    drawHist(image, robotPoint, offsetPoint, 0, mapDivFixed);
-   drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
+   drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    sprintf(text, "");
    break;
 
@@ -1338,8 +1345,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), offsetPoint, 0, mapDivFixed);
     drawColoredPoint(image, nodes[targetNode], Scalar(0, 255, 0), offsetPoint, 0, mapDivFixed);
    }
-   drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
+   drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    if(nodes.empty())
     sprintf(text, "X %04d/%04d | Y %04d/%04d | Theta %03d | Graphing %s",
             robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, robotTheta * 180 / PI16, OFFON[graphingEnabled]);
@@ -1353,6 +1360,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawLidarLines(image, mapLines, offsetPoint, mapDivFixed);
    drawMap(image, map, false, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
+   drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    {
     int n = 0;
     for(int i = 0; i < map.size(); i++)
@@ -1369,8 +1377,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    if(!nodes.empty())
     drawPath(image, nodes, paths, closestRobot, robotPoint, robotTheta, mapDiv);
    drawHist(image, robotPoint, robotPoint, robotTheta, mapDiv);
-   drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
+   drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    sprintf(text, "");
    break;
 
@@ -1387,8 +1395,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), robotPoint, robotTheta, mapDiv);
     drawColoredPoint(image, nodes[targetNode], Scalar(0, 255, 0), robotPoint, robotTheta, mapDiv);
    }
-   drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
+   drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    if(nodes.empty())
     sprintf(text, "X %04d/%04d | Y %04d/%04d | Theta %03d | Graphing %s",
             robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, robotTheta * 180 / PI16, OFFON[graphingEnabled]);
@@ -1402,6 +1410,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawLidarLines(image, robotLinesAxes, mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, FILLED, Point(0, 0), 0, mapDiv);
+   drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    {
     int n = 0;
     for(int i = 0; i < map.size(); i++)
