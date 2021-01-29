@@ -1344,7 +1344,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     if(!nodes.empty() && closestRobot != -1 && paths[closestRobot] != -1)
      sprintf(text, "Target %05d mm | Route length %05d mm | Autopilot %s", dist, dists[closestRobot], OFFON[running]);
     else
-     sprintf(text, "Target %05d mm | Autopilot %s", dist, OFFON[running]);
+     sprintf(text, "Target %05d mm | No route | Autopilot %s", dist, OFFON[running]);
    }
    break;
 
@@ -1410,7 +1410,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     if(!nodes.empty() && closestRobot != -1 && paths[closestRobot] != -1)
      sprintf(text, "Target %05d mm | Route length %05d mm | Autopilot %s", dist, dists[closestRobot], OFFON[running]);
     else
-     sprintf(text, "Target %05d mm | Autopilot %s", dist, OFFON[running]);
+     sprintf(text, "Target %05d mm | No route | Autopilot %s", dist, OFFON[running]);
    }
    break;
 
