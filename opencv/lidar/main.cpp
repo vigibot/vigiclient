@@ -1329,17 +1329,19 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawLidarPoints(image, mapPoints, false, Point(0, 0), offsetPoint, mapDivFixed);
    drawMap(image, map, true, offsetPoint, 0, mapDivFixed);
    if(!nodes.empty()) {
-    drawPath(image, nodes, paths, closestRobot, offsetPoint, 0, mapDivFixed);
-    drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), offsetPoint, 0, mapDivFixed);
-    if(paths[closestRobot] != -1)
-     drawColoredPoint(image, nodes[paths[closestRobot]], Scalar(0, 255, 255), offsetPoint, 0, mapDivFixed);
+    if(closestRobot != -1) {
+     drawPath(image, nodes, paths, closestRobot, offsetPoint, 0, mapDivFixed);
+     drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), offsetPoint, 0, mapDivFixed);
+     if(paths[closestRobot] != -1)
+      drawColoredPoint(image, nodes[paths[closestRobot]], Scalar(0, 255, 255), offsetPoint, 0, mapDivFixed);
+    }
     drawColoredPoint(image, nodes[targetNode], Scalar(0, 255, 0), offsetPoint, 0, mapDivFixed);
    }
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    {
     int dist = int(sqrt(sqDist(robotPoint, targetPoint)));
-    if(!nodes.empty() && paths[closestRobot] != -1)
+    if(!nodes.empty() && closestRobot != -1 && paths[closestRobot] != -1)
      sprintf(text, "Target %05d mm | Route length %05d mm | Autopilot %s", dist, dists[closestRobot], OFFON[running]);
     else
      sprintf(text, "Target %05d mm | Autopilot %s", dist, OFFON[running]);
@@ -1353,11 +1355,13 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    //for(int i = 0; i < nodes.size(); i++)
     //drawPath(image, nodes, paths, i, offsetPoint, 0, mapDivFixed);
    if(!nodes.empty()) {
-    drawPath(image, nodes, paths, closestRobot, offsetPoint, 0, mapDivFixed);
     drawNodes(image, nodes, offsetPoint, 0, mapDivFixed);
-    drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), offsetPoint, 0, mapDivFixed);
-    if(paths[closestRobot] != -1)
-     drawColoredPoint(image, nodes[paths[closestRobot]], Scalar(0, 255, 255), offsetPoint, 0, mapDivFixed);
+    if(closestRobot != -1) {
+     drawPath(image, nodes, paths, closestRobot, offsetPoint, 0, mapDivFixed);
+     drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), offsetPoint, 0, mapDivFixed);
+     if(paths[closestRobot] != -1)
+      drawColoredPoint(image, nodes[paths[closestRobot]], Scalar(0, 255, 255), offsetPoint, 0, mapDivFixed);
+    }
     drawColoredPoint(image, nodes[targetNode], Scalar(0, 255, 0), offsetPoint, 0, mapDivFixed);
    }
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
@@ -1391,17 +1395,19 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawLidarPoints(image, robotPoints, false, Point(0, 0), Point(0, 0), mapDiv);
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty()) {
-    drawPath(image, nodes, paths, closestRobot, robotPoint, robotTheta, mapDiv);
-    drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), robotPoint, robotTheta, mapDiv);
-    if(paths[closestRobot] != -1)
-     drawColoredPoint(image, nodes[paths[closestRobot]], Scalar(0, 255, 255), robotPoint, robotTheta, mapDiv);
+    if(closestRobot != -1) {
+     drawPath(image, nodes, paths, closestRobot, robotPoint, robotTheta, mapDiv);
+     drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), robotPoint, robotTheta, mapDiv);
+     if(paths[closestRobot] != -1)
+      drawColoredPoint(image, nodes[paths[closestRobot]], Scalar(0, 255, 255), robotPoint, robotTheta, mapDiv);
+    }
     drawColoredPoint(image, nodes[targetNode], Scalar(0, 255, 0), robotPoint, robotTheta, mapDiv);
    }
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    {
     int dist = int(sqrt(sqDist(robotPoint, targetPoint)));
-    if(!nodes.empty() && paths[closestRobot] != -1)
+    if(!nodes.empty() && closestRobot != -1 && paths[closestRobot] != -1)
      sprintf(text, "Target %05d mm | Route length %05d mm | Autopilot %s", dist, dists[closestRobot], OFFON[running]);
     else
      sprintf(text, "Target %05d mm | Autopilot %s", dist, OFFON[running]);
@@ -1415,11 +1421,13 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    //for(int i = 0; i < nodes.size(); i++)
     //drawPath(image, nodes, paths, i, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty()) {
-    drawPath(image, nodes, paths, closestRobot, robotPoint, robotTheta, mapDiv);
     drawNodes(image, nodes, robotPoint, robotTheta, mapDiv);
-    drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), robotPoint, robotTheta, mapDiv);
-    if(paths[closestRobot] != -1)
-     drawColoredPoint(image, nodes[paths[closestRobot]], Scalar(0, 255, 255), robotPoint, robotTheta, mapDiv);
+    if(closestRobot != -1) {
+     drawPath(image, nodes, paths, closestRobot, robotPoint, robotTheta, mapDiv);
+     drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), robotPoint, robotTheta, mapDiv);
+     if(paths[closestRobot] != -1)
+      drawColoredPoint(image, nodes[paths[closestRobot]], Scalar(0, 255, 255), robotPoint, robotTheta, mapDiv);
+    }
     drawColoredPoint(image, nodes[targetNode], Scalar(0, 255, 0), robotPoint, robotTheta, mapDiv);
    }
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
@@ -1662,6 +1670,7 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
    state = GOTOPOINT;
   oldTargetPoint = targetPoint;
  }
+
  if(state != GOTOWAITING && (closestRobot == -1 || currentNode == -1))
   state = GOTOPOINT;
 
