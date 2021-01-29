@@ -785,7 +785,7 @@ void drawHist(Mat &image, Point histPoint, Point robotPoint, uint16_t robotTheta
 
 void drawColoredPoint(Mat &image, Point point, Scalar color, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  point = rescaleTranslate(rotate(point - robotPoint, -robotTheta), mapDiv);
- circle(image, point, 3, color, FILLED, LINE_AA);
+ circle(image, point, 2, color, FILLED, LINE_AA);
 }
 
 void drawPath(Mat &image, vector<Point> &nodes, vector<int> &paths, int end, Point robotPoint, uint16_t robotTheta, int mapDiv) {
@@ -873,7 +873,7 @@ void drawIntersects(Mat &image, vector<Line> &map, Point robotPoint, uint16_t ro
 
    Point point = rescaleTranslate(rotate(intersectPoint - robotPoint, -robotTheta), mapDiv);
 
-   circle(image, point, 3, Scalar::all(255), FILLED, LINE_AA);
+   circle(image, point, 2, Scalar::all(255), FILLED, LINE_AA);
   }
  }
 }*/
@@ -1119,7 +1119,7 @@ void graphing(vector<PolarPoint> &polarPoints, vector<Point> &mapPoints, vector<
 }
 
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], vector<Line> &mapLines, vector<Line> &map, vector<Point> &mapPoints,
-                    vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, vector<int> &dists, Point &targetPoint, int &targetNode, int closestRobot,
+                    vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, vector<int> &dists, Point &targetPoint, int &targetNode, int &closestRobot,
                     Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
                     bool &mappingEnabled, bool &graphingEnabled, bool &running, int &select, int &mapDiv, int time) {
 
@@ -1261,6 +1261,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     if(addNodeAndLinks(mapPoints, nodes, links, targetPoint)) {
      targetNode = closestPoint(nodes, targetPoint);
      computePaths(nodes, links, targetNode, paths, dists);
+     closestRobot = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
     }
    }
 
@@ -1275,6 +1276,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     if(!nodes.empty()) {
      targetNode = closestPoint(nodes, targetPoint);
      computePaths(nodes, links, targetNode, paths, dists);
+     closestRobot = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
     }
    } else if(select == SELECTFIXEDDEBUGMAP || select == SELECTDEBUGMAP) {
     for(int i = 0; i < map.size(); i++) {
@@ -1323,11 +1325,16 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    break;
 
   case SELECTFIXEDLIGHT:
+   drawHist(image, robotPoint, offsetPoint, 0, mapDivFixed);
    drawLidarPoints(image, mapPoints, false, Point(0, 0), offsetPoint, mapDivFixed);
    drawMap(image, map, true, offsetPoint, 0, mapDivFixed);
-   if(!nodes.empty())
+   if(!nodes.empty()) {
     drawPath(image, nodes, paths, closestRobot, offsetPoint, 0, mapDivFixed);
-   drawHist(image, robotPoint, offsetPoint, 0, mapDivFixed);
+    drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), offsetPoint, 0, mapDivFixed);
+    if(paths[closestRobot] != -1)
+     drawColoredPoint(image, nodes[paths[closestRobot]], Scalar(0, 255, 255), offsetPoint, 0, mapDivFixed);
+    drawColoredPoint(image, nodes[targetNode], Scalar(0, 255, 0), offsetPoint, 0, mapDivFixed);
+   }
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    if(nodes.empty())
@@ -1337,16 +1344,17 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    break;
 
   case SELECTFIXEDFULL:
+   drawHist(image, robotPoint, offsetPoint, 0, mapDivFixed);
    drawLidarPoints(image, mapPoints, false, Point(0, 0), offsetPoint, mapDivFixed);
    drawMap(image, map, false, offsetPoint, 0, mapDivFixed);
    //for(int i = 0; i < nodes.size(); i++)
     //drawPath(image, nodes, paths, i, offsetPoint, 0, mapDivFixed);
-   if(!nodes.empty())
-    drawPath(image, nodes, paths, closestRobot, offsetPoint, 0, mapDivFixed);
-   drawNodes(image, nodes, offsetPoint, 0, mapDivFixed);
-   drawHist(image, robotPoint, offsetPoint, 0, mapDivFixed);
    if(!nodes.empty()) {
+    drawPath(image, nodes, paths, closestRobot, offsetPoint, 0, mapDivFixed);
+    drawNodes(image, nodes, offsetPoint, 0, mapDivFixed);
     drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), offsetPoint, 0, mapDivFixed);
+    if(paths[closestRobot] != -1)
+     drawColoredPoint(image, nodes[paths[closestRobot]], Scalar(0, 255, 255), offsetPoint, 0, mapDivFixed);
     drawColoredPoint(image, nodes[targetNode], Scalar(0, 255, 0), offsetPoint, 0, mapDivFixed);
    }
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
@@ -1376,11 +1384,16 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    break;
 
   case SELECTLIGHT:
+   drawHist(image, robotPoint, robotPoint, robotTheta, mapDiv);
    drawLidarPoints(image, robotPoints, false, Point(0, 0), Point(0, 0), mapDiv);
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
-   if(!nodes.empty())
+   if(!nodes.empty()) {
     drawPath(image, nodes, paths, closestRobot, robotPoint, robotTheta, mapDiv);
-   drawHist(image, robotPoint, robotPoint, robotTheta, mapDiv);
+    drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), robotPoint, robotTheta, mapDiv);
+    if(paths[closestRobot] != -1)
+     drawColoredPoint(image, nodes[paths[closestRobot]], Scalar(0, 255, 255), robotPoint, robotTheta, mapDiv);
+    drawColoredPoint(image, nodes[targetNode], Scalar(0, 255, 0), robotPoint, robotTheta, mapDiv);
+   }
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    if(nodes.empty())
@@ -1390,16 +1403,17 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    break;
 
   case SELECTFULL:
+   drawHist(image, robotPoint, robotPoint, robotTheta, mapDiv);
    drawLidarPoints(image, robotPoints, false, Point(0, 0), Point(0, 0), mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
    //for(int i = 0; i < nodes.size(); i++)
     //drawPath(image, nodes, paths, i, robotPoint, robotTheta, mapDiv);
-   if(!nodes.empty())
-    drawPath(image, nodes, paths, closestRobot, robotPoint, robotTheta, mapDiv);
-   drawNodes(image, nodes, robotPoint, robotTheta, mapDiv);
-   drawHist(image, robotPoint, robotPoint, robotTheta, mapDiv);
    if(!nodes.empty()) {
+    drawPath(image, nodes, paths, closestRobot, robotPoint, robotTheta, mapDiv);
+    drawNodes(image, nodes, robotPoint, robotTheta, mapDiv);
     drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), robotPoint, robotTheta, mapDiv);
+    if(paths[closestRobot] != -1)
+     drawColoredPoint(image, nodes[paths[closestRobot]], Scalar(0, 255, 255), robotPoint, robotTheta, mapDiv);
     drawColoredPoint(image, nodes[targetNode], Scalar(0, 255, 0), robotPoint, robotTheta, mapDiv);
    }
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
