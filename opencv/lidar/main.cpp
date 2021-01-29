@@ -1337,10 +1337,13 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    }
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
-   if(nodes.empty())
-    sprintf(text, "Autopilot %s", OFFON[running]);
-   else
-    sprintf(text, "Route length %05d mm | Autopilot %s", dists[closestRobot], OFFON[running]);
+   {
+    int dist = int(sqrt(sqDist(robotPoint, targetPoint)));
+    if(!nodes.empty() && paths[closestRobot] != -1)
+     sprintf(text, "Target %05d mm | Route length %05d mm | Autopilot %s", dist, dists[closestRobot], OFFON[running]);
+    else
+     sprintf(text, "Target %05d mm | Autopilot %s", dist, OFFON[running]);
+   }
    break;
 
   case SELECTFIXEDFULL:
@@ -1396,10 +1399,13 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    }
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
-   if(nodes.empty())
-    sprintf(text, "Autopilot %s", OFFON[running]);
-   else
-    sprintf(text, "Route length %05d mm | Autopilot %s", dists[closestRobot], OFFON[running]);
+   {
+    int dist = int(sqrt(sqDist(robotPoint, targetPoint)));
+    if(!nodes.empty() && paths[closestRobot] != -1)
+     sprintf(text, "Target %05d mm | Route length %05d mm | Autopilot %s", dist, dists[closestRobot], OFFON[running]);
+    else
+     sprintf(text, "Target %05d mm | Autopilot %s", dist, OFFON[running]);
+   }
    break;
 
   case SELECTFULL:
