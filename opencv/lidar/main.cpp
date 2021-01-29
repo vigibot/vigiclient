@@ -1671,8 +1671,10 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
   oldTargetPoint = targetPoint;
  }
 
- if(state != GOTOWAITING && (closestRobot == -1 || currentNode == -1))
+ if(state != GOTOWAITING && closestRobot == -1)
   state = GOTOPOINT;
+ else if(currentNode == -1)
+  state = GOTOWAITING;
 
  switch(state) {
   case GOTONODE:
@@ -1684,10 +1686,13 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
      targetNode = closestPoint(nodes, targetPoint);
      computePaths(nodes, links, targetNode, paths, dists);
      currentNode = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
-    } else
+    }
+   } else if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
+    if(currentNode == targetNode)
      state = GOTOPOINT;
-   } else if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta))
-    currentNode = paths[currentNode];
+    else
+     currentNode = paths[currentNode];
+   }
    break;
 
   case GOTOPOINT:
