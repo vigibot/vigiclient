@@ -1102,17 +1102,18 @@ void graphing(vector<PolarPoint> &polarPoints, vector<Point> &mapPoints, vector<
  else
   return;
 
+ bool added = false;
  for(int i = 0; i < polarPoints.size(); i++) {
   for(int j = polarPoints[i].distance - LINKSSIZEMIN; j > LINKSSIZEMIN; j -= LINKSSIZEMIN / 2) {
    Point closerPoint = Point(j * sin16(polarPoints[i].theta) / ONE16,
                              j * cos16(polarPoints[i].theta) / ONE16);
 
    Point closerMapPoint = robotPoint + rotate(closerPoint, robotTheta);
-   addNodeAndLinks(mapPoints, nodes, links, closerMapPoint);
+   added |= addNodeAndLinks(mapPoints, nodes, links, closerMapPoint);
   }
  }
 
- if(!nodes.empty()) {
+ if(added) {
   targetNode = closestPoint(nodes, targetPoint);
   computePaths(nodes, links, targetNode, paths, dists);
  }
