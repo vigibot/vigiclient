@@ -545,8 +545,9 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
      angularErrorSum += angularError * mapLinesWeight;
      angularErrorWeightSum += mapLinesWeight;
     }
-   }
 
+    break;
+   }
   }
  }
 
@@ -681,10 +682,9 @@ void localization(vector<Line> robotLinesAxes[], vector<Line> &map, int confiden
 #else
     robotTheta += int(angularError * double(PI16) / M_PI) / AXES / (i + 1);
 #endif
-
    }
 
-   if(i == 0) // TODO
+   if(i == 0)
     confidences[j] = confidence;
   }
  }
