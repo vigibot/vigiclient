@@ -559,8 +559,11 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
    angularErrorOut = angularErrorSum / angularErrorWeightSum;
 
   return true;
- } else
+ } else {
+  confidence = 0;
+
   return false;
+ }
 }
 
 void mapping(vector<Line> &mapLines, vector<Line> &map) {
