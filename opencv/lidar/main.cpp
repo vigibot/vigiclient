@@ -308,7 +308,7 @@ bool testPointLine(Point point, Line line, int distTolerance, int lengthMargin) 
 }
 
 bool testLines(Line line1, Line line2, int distTolerance, double angularTolerance, int lengthMargin,
-               Point &pointError, double &angularError, int &distError, int &refNorm) {
+               Point &pointError, double &angularError, int &distError) {
 
  angularError = diffAngle(line1, line2);
  if(fabs(angularError) > angularTolerance)
@@ -319,7 +319,7 @@ bool testLines(Line line1, Line line2, int distTolerance, double angularToleranc
  if(distError > distTolerance)
   return false;
 
- refNorm = int(sqrt(sqDist(line2)));
+ int refNorm = int(sqrt(sqDist(line2)));
  int distance1 = ratioPointLine(line1.a, line2) * refNorm;
  int distance2 = ratioPointLine(line1.b, line2) * refNorm;
 
@@ -456,9 +456,8 @@ void mapDeduplicateAverage(vector<Line> &map) {
    Point pointError;
    double angularError;
    int distError;
-   int refNorm;
    if(testLines(map[i], map[j], SMALLDISTTOLERANCE, SMALLANGULARTOLERANCE, -SMALLDISTTOLERANCE,
-                pointError, angularError, distError, refNorm))
+                pointError, angularError, distError))
     id.push_back(j);
   }
 
@@ -507,9 +506,8 @@ void mapDeduplicateErase(vector<Line> &map) {
    Point pointError;
    double angularError;
    int distError;
-   int refNorm;
    if(testLines(map[i], map[j], LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE, -SMALLDISTTOLERANCE,
-                pointError, angularError, distError, refNorm)) {
+                pointError, angularError, distError)) {
     map.erase(map.begin() + j);
     j--;
    }
@@ -518,30 +516,34 @@ void mapDeduplicateErase(vector<Line> &map) {
 }
 
 bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
-                   Point &pointErrorOut, double &angularErrorOut,
+                   Point &pointErrorOut, double &angularErrorOut, int &confidence,
                    int distTolerance, double angularTolerance) {
 
+ int mapLinesWeightSum = 0;
  Point pointErrorSum = Point(0, 0);
  int pointErrorWeightSum = 0;
  double angularErrorSum = 0.0;
  int angularErrorWeightSum = 0;
 
  for(int i = 0; i < mapLines.size(); i++) {
+  int mapLinesWeight = int(sqrt(sqDist(mapLines[i])));
+  mapLinesWeightSum += mapLinesWeight;
+
   for(int j = 0; j < map.size(); j++) {
    Point pointError;
    double angularError;
    int distError;
-   int refNorm;
 
    if(map[j].validation >= VALIDATIONFILTERSTART &&
       testLines(mapLines[i], map[j], distTolerance, angularTolerance, -SMALLDISTTOLERANCE,
-                pointError, angularError, distError, refNorm)) {
-    pointErrorSum += pointError * refNorm;
-    pointErrorWeightSum += refNorm;
+                pointError, angularError, distError)) {
+
+    pointErrorSum += pointError * mapLinesWeight;
+    pointErrorWeightSum += mapLinesWeight;
 
     if(map[j].validation >= VALIDATIONFILTERKEEP) {
-     angularErrorSum += angularError * refNorm;
-     angularErrorWeightSum += refNorm;
+     angularErrorSum += angularError * mapLinesWeight;
+     angularErrorWeightSum += mapLinesWeight;
     }
    }
 
@@ -549,6 +551,8 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
  }
 
  if(pointErrorWeightSum) {
+  confidence = pointErrorWeightSum * 100 / mapLinesWeightSum;
+
   pointErrorOut = pointErrorSum / pointErrorWeightSum;
   if(angularErrorWeightSum)
    angularErrorOut = angularErrorSum / angularErrorWeightSum;
@@ -571,9 +575,8 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
    Point pointError;
    double angularError;
    int distError;
-   int refNorm;
    if(!testLines(mapLines[i], map[j], LARGEDISTTOLERANCE * 2, LARGEANGULARTOLERANCE, -SMALLDISTTOLERANCE,
-      pointError, angularError, distError, refNorm))
+      pointError, angularError, distError))
     continue;
 
    newLine = false;
@@ -658,7 +661,7 @@ void splitAxes(vector<Line> &robotLines, vector<Line> robotLinesAxes[]) {
  }
 }
 
-void localization(vector<Line> robotLinesAxes[], vector<Line> &map, Point &robotPoint, uint16_t &robotTheta) {
+void localization(vector<Line> robotLinesAxes[], vector<Line> &map, int confidences[], Point &robotPoint, uint16_t &robotTheta) {
  vector<Line> mapLines;
 
  for(int i = 0; i < NBITERATIONS; i++) {
@@ -668,7 +671,8 @@ void localization(vector<Line> robotLinesAxes[], vector<Line> &map, Point &robot
 
    Point pointError;
    double angularError;
-   if(computeErrors(mapLines, map, pointError, angularError,
+   int confidence;
+   if(computeErrors(mapLines, map, pointError, angularError, confidence,
       LARGEDISTTOLERANCE / (i + 1), LARGEANGULARTOLERANCE / (i + 1))) {
 
     robotPoint -= pointError / AXES / (i + 1);
@@ -679,6 +683,9 @@ void localization(vector<Line> robotLinesAxes[], vector<Line> &map, Point &robot
 #endif
 
    }
+
+   if(i == 0) // TODO
+    confidences[j] = confidence;
   }
  }
 }
@@ -1122,7 +1129,7 @@ void graphing(vector<PolarPoint> &polarPoints, vector<Point> &mapPoints, vector<
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], vector<Line> &mapLines, vector<Line> &map, vector<Point> &mapPoints,
                     vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, vector<int> &dists, Point &targetPoint, int &targetNode, int &closestRobot,
                     Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
-                    bool &mappingEnabled, bool &graphingEnabled, bool &running, int &select, int &mapDiv, int time) {
+                    bool &mappingEnabled, bool &graphingEnabled, bool &running, int &select, int &mapDiv, int confidences[], int time) {
 
  int xmin = INT_MAX;
  int xmax = INT_MIN;
@@ -1386,8 +1393,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     for(int i = 0; i < map.size(); i++)
      if(map[i].validation < VALIDATIONFILTERKEEP)
       n++;
-    sprintf(text, "Pending %02d | Lines %03d | Scale %03d mm | Time %02d ms | Mapping %s",
-            n, map.size() - n, mapDiv / 10, time, OFFON[mappingEnabled]);
+    sprintf(text, "Pending %02d | Lines %03d | Scale %03d mm | %03d %03d % | %02d ms | Mapping %s",
+            n, map.size() - n, mapDiv / 10, confidences[0], confidences[1], time, OFFON[mappingEnabled]);
    }
    break;
 
@@ -1452,8 +1459,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     for(int i = 0; i < map.size(); i++)
      if(map[i].validation < VALIDATIONFILTERKEEP)
       n++;
-    sprintf(text, "Pending %02d | Lines %03d | Scale %03d mm | Time %02d ms | Mapping %s",
-            n, map.size() - n, mapDiv / 10, time, OFFON[mappingEnabled]);
+    sprintf(text, "Pending %02d | Lines %03d | Scale %03d mm | %03d %03d % | %02d ms | Mapping %s",
+            n, map.size() - n, mapDiv / 10, confidences[0], confidences[1], time, OFFON[mappingEnabled]);
    }
    break;
 
@@ -1841,6 +1848,7 @@ int main(int argc, char* argv[]) {
  bool running = false;
  int select = SELECTFIXEDFULL;
  int mapDiv = MAPDIV;
+ int confidences[AXES] = {0};
  fprintf(stderr, "Reading map file\n");
  readMapFile(map, nodes, links, robotPoint, robotTheta, mappingEnabled, graphingEnabled, select, mapDiv);
  Point oldRobotPoint = robotPoint;
@@ -1914,7 +1922,7 @@ int main(int argc, char* argv[]) {
     for(int i = 0; i < AXES; i++)
      robotLinesAxes[i].clear();
     splitAxes(robotLines, robotLinesAxes);
-    localization(robotLinesAxes, map, robotPoint, robotTheta);
+    localization(robotLinesAxes, map, confidences, robotPoint, robotTheta);
 
     mapLines.clear();
     robotToMap(robotLines, mapLines, robotPoint, robotTheta);
@@ -1941,7 +1949,7 @@ int main(int argc, char* argv[]) {
   ui(image, robotPoints, robotLinesAxes, mapLines, map, mapPoints,
      nodes, links, paths, dists, targetPoint, targetNode, closestRobot,
      robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
-     mappingEnabled, graphingEnabled, running, select, mapDiv, time);
+     mappingEnabled, graphingEnabled, running, select, mapDiv, confidences, time);
 
   autopilot(mapPoints, nodes, links, paths, dists,
             targetPoint, targetNode, closestRobot, robotPoint, robotTheta, running);
