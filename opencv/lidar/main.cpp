@@ -1353,7 +1353,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    {
     int dist = int(sqrt(sqDist(robotPoint, targetPoint)));
     if(!nodes.empty() && closestRobot != -1 && dists[closestRobot] != INT_MAX)
-     sprintf(text, "Target %05d mm | Route length %05d mm | Autopilot %s", dist, dists[closestRobot], OFFON[running]);
+     sprintf(text, "Target %05d mm | Route %05d mm | Autopilot %s", dist, dists[closestRobot], OFFON[running]);
     else
      sprintf(text, "Target %05d mm | No route | Autopilot %s", dist, OFFON[running]);
    }
@@ -1396,7 +1396,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     for(int i = 0; i < map.size(); i++)
      if(map[i].validation < VALIDATIONFILTERKEEP)
       n++;
-    sprintf(text, "Pending %02d | Lines %03d | Scale %03d mm | %03d %03d % | %02d ms | Mapping %s",
+    sprintf(text, "Pending %02d | Lines %03d | Scale %03d mm | %03d %03d % | %02d ms | Mapp %s",
             n, map.size() - n, mapDiv / 10, confidences[0], confidences[1], time, OFFON[mappingEnabled]);
    }
    break;
@@ -1419,7 +1419,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    {
     int dist = int(sqrt(sqDist(robotPoint, targetPoint)));
     if(!nodes.empty() && closestRobot != -1 && dists[closestRobot] != INT_MAX)
-     sprintf(text, "Target %05d mm | Route length %05d mm | Autopilot %s", dist, dists[closestRobot], OFFON[running]);
+     sprintf(text, "Target %05d mm | Route %05d mm | Autopilot %s", dist, dists[closestRobot], OFFON[running]);
     else
      sprintf(text, "Target %05d mm | No route | Autopilot %s", dist, OFFON[running]);
    }
@@ -1462,7 +1462,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     for(int i = 0; i < map.size(); i++)
      if(map[i].validation < VALIDATIONFILTERKEEP)
       n++;
-    sprintf(text, "Pending %02d | Lines %03d | Scale %03d mm | %03d %03d % | %02d ms | Mapping %s",
+    sprintf(text, "Pending %02d | Lines %03d | Scale %03d mm | %03d %03d % | %02d ms | Map %s",
             n, map.size() - n, mapDiv / 10, confidences[0], confidences[1], time, OFFON[mappingEnabled]);
    }
    break;
