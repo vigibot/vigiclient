@@ -729,7 +729,7 @@ void relocalization(vector<Line> mapLines, int confidences[], Point &robotPoint)
     n = -n;
    if(n > RELOCALIZATIONS)
     n = 1;
-   robotPoint = robotPointInit + translateAxe(ref, axe, n * LARGEDISTTOLERANCE / 2);
+   robotPoint = robotPointInit + translateAxe(ref, axe, n * LARGEDISTTOLERANCE);
   }
  }
 }
