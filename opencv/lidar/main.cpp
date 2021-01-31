@@ -693,46 +693,6 @@ void localization(vector<Line> robotLinesAxes[], vector<Line> &map, int confiden
  }
 }
 
-Point translateAxe(Line ref, int axe, int dist) {
- Point dir = ref.b - ref.a;
- dir = rotate(dir, axe * PI16 / AXES + PI16 / 2);
- return dist * dir / int(sqrt(sqNorm(dir)));
-}
-
-void relocalization(vector<Line> mapLines, int confidences[], Point &robotPoint) {
- static int lost = false;
- static Point robotPointInit;
- static Line ref;
- static int axe;
- static int n;
-
- if(!lost) {
-  for(int i = 0; i < AXES; i++) {
-   if(confidences[i] < RELOCALIZATIONMIN) {
-    lost = true;
-    robotPointInit = robotPoint;
-    ref = mapLines[0];
-    axe = i;
-    n = 0;
-    break;
-   }
-  }
- }
-
- if(lost) {
-  if(confidences[axe] < RELOCALIZATIONMAX) {
-   if(n <= 0)
-    n = -n + 1;
-   else
-    n = -n;
-   if(n > RELOCALIZATIONS)
-    n = 1;
-   robotPoint = robotPointInit + translateAxe(ref, axe, n * LARGEDISTTOLERANCE / 2);
-  } else
-   lost = false;
- }
-}
-
 Point rescaleTranslate(Point point, int mapDiv) {
  point.x = point.x * 10 / mapDiv;
  point.y = point.y * 10 / -mapDiv;
@@ -757,10 +717,23 @@ void drawLidarLines(Mat &image, vector<Line> robotLinesAxes[], int mapDiv) {
    Point point1 = rescaleTranslate(robotLinesAxes[i][j].a, mapDiv);
    Point point2 = rescaleTranslate(robotLinesAxes[i][j].b, mapDiv);
 
-   if(i == 0)
-    line(image, point1, point2, Scalar(128, 128, 255), 1, LINE_AA);
-   else
-    line(image, point1, point2, Scalar(255, 128, 128), 1, LINE_AA);
+   Scalar color;
+   switch(i) {
+    case 0:
+     color = Scalar::all(255);
+     break;
+    case 1:
+     color = Scalar(128, 128, 255);
+     break;
+    case 2:
+     color = Scalar(128, 255, 128);
+     break;
+    case 3:
+     color = Scalar(255, 128, 128);
+     break;
+   }
+
+   line(image, point1, point2, color, 1, LINE_AA);
   }
  }
 }
@@ -1970,8 +1943,6 @@ int main(int argc, char* argv[]) {
 
     mapLines.clear();
     robotToMap(robotLines, mapLines, robotPoint, robotTheta);
-
-    relocalization(mapLines, confidences, robotPoint);
 
     if(mappingEnabled) {
      mapping(mapLines, map);
