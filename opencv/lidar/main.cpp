@@ -551,19 +551,19 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
   }
  }
 
- if(pointErrorWeightSum) {
+ if(mapLinesWeightSum)
   confidence = pointErrorWeightSum * 100 / mapLinesWeightSum;
+ else
+  confidence = 100;
 
+ if(pointErrorWeightSum) {
   pointErrorOut = pointErrorSum / pointErrorWeightSum;
   if(angularErrorWeightSum)
    angularErrorOut = angularErrorSum / angularErrorWeightSum;
 
   return true;
- } else {
-  confidence = 0;
-
+ } else
   return false;
- }
 }
 
 void mapping(vector<Line> &mapLines, vector<Line> &map) {
@@ -666,17 +666,17 @@ void splitAxes(vector<Line> &robotLines, vector<Line> robotLinesAxes[]) {
 }
 
 void localization(vector<Line> robotLinesAxes[], vector<Line> &map, int confidences[], Point &robotPoint, uint16_t &robotTheta) {
- vector<Line> mapLines;
+ vector<Line> mapLinesAxe;
 
  for(int i = 0; i < NBITERATIONS; i++) {
   for(int j = 0; j < AXES; j++) {
-   mapLines.clear();
-   robotToMap(robotLinesAxes[j], mapLines, robotPoint, robotTheta);
+   mapLinesAxe.clear();
+   robotToMap(robotLinesAxes[j], mapLinesAxe, robotPoint, robotTheta);
 
    Point pointError;
    double angularError;
    int confidence;
-   if(computeErrors(mapLines, map, pointError, angularError, confidence,
+   if(computeErrors(mapLinesAxe, map, pointError, angularError, confidence,
       LARGEDISTTOLERANCE / (i + 1), LARGEANGULARTOLERANCE / (i + 1))) {
 
     robotPoint -= pointError / AXES / (i + 1);
@@ -708,7 +708,7 @@ void relocalization(vector<Line> mapLines, int confidences[], Point &robotPoint)
 
  if(!lost) {
   for(int i = 0; i < AXES; i++) {
-   if(confidences[i] < RELOCALIZATIONMIN) {
+   if(confidences[i] <= RELOCALIZATIONSTART) {
     lost = true;
     robotPointInit = robotPoint;
     ref = mapLines[0];
@@ -720,7 +720,9 @@ void relocalization(vector<Line> mapLines, int confidences[], Point &robotPoint)
  }
 
  if(lost) {
-  if(confidences[axe] < RELOCALIZATIONMAX) {
+  if(confidences[axe] >= RELOCALIZATIONSTOP)
+   lost = false;
+  else {
    if(n <= 0)
     n = -n + 1;
    else
@@ -728,8 +730,7 @@ void relocalization(vector<Line> mapLines, int confidences[], Point &robotPoint)
    if(n > RELOCALIZATIONS)
     n = 1;
    robotPoint = robotPointInit + translateAxe(ref, axe, n * LARGEDISTTOLERANCE / 2);
-  } else
-   lost = false;
+  }
  }
 }
 
