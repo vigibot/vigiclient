@@ -1352,10 +1352,14 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    {
     int dist = int(sqrt(sqDist(robotPoint, targetPoint)));
-    if(!nodes.empty() && closestRobot != -1 && dists[closestRobot] != INT_MAX)
-     sprintf(text, "Target %05d mm | Route %05d mm | Autopilot %s", dist, dists[closestRobot], OFFON[running]);
-    else
-     sprintf(text, "Target %05d mm | No route | Autopilot %s", dist, OFFON[running]);
+    if(nodes.empty())
+     sprintf(text, "Target %05d mm | Autopilot %s", dist, OFFON[running]);
+    else {
+     if(closestRobot != -1 && dists[closestRobot] != INT_MAX)
+      sprintf(text, "Target %05d mm | Route %05d mm | Autopilot %s", dist, dists[closestRobot], OFFON[running]);
+     else
+      sprintf(text, "Target %05d mm | No route | Autopilot %s", dist, OFFON[running]);
+    }
    }
    break;
 
@@ -1377,12 +1381,15 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    }
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
-   if(nodes.empty())
-    sprintf(text, "X %04d/%04d mm | Y %04d/%04d mm | Theta %03d | Graph %s",
-            robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, robotTheta * 180 / PI16, OFFON[graphingEnabled]);
-   else
-    sprintf(text, "Nodes %04d | Links %05d | X %04d | Y %04d | Theta %03d | Graph %s",
-            nodes.size(), links.size(), robotPoint.x, robotPoint.y, robotTheta * 180 / PI16, OFFON[graphingEnabled]);
+   {
+    int thetaDeg = robotTheta * 180 / PI16;
+    if(nodes.empty())
+     sprintf(text, "X %04d/%04d mm | Y %04d/%04d mm | Theta %03d | Graph %s",
+             robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, thetaDeg, OFFON[graphingEnabled]);
+    else
+     sprintf(text, "Nodes %04d | Links %05d | X %04d | Y %04d | Theta %03d | Graph %s",
+             nodes.size(), links.size(), robotPoint.x, robotPoint.y, thetaDeg, OFFON[graphingEnabled]);
+   }
    break;
 
   case SELECTFIXEDDEBUGMAP:
@@ -1396,7 +1403,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     for(int i = 0; i < map.size(); i++)
      if(map[i].validation < VALIDATIONFILTERKEEP)
       n++;
-    sprintf(text, "Pending %02d | Lines %03d | Scale %03d mm | %03d %03d % | %02d ms | Mapp %s",
+    sprintf(text, "Pending %02d | Lines %03d | Scale %03d mm | %03d %03d % | %02d ms | Map %s",
             n, map.size() - n, mapDiv / 10, confidences[0], confidences[1], time, OFFON[mappingEnabled]);
    }
    break;
@@ -1418,10 +1425,14 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    {
     int dist = int(sqrt(sqDist(robotPoint, targetPoint)));
-    if(!nodes.empty() && closestRobot != -1 && dists[closestRobot] != INT_MAX)
-     sprintf(text, "Target %05d mm | Route %05d mm | Autopilot %s", dist, dists[closestRobot], OFFON[running]);
-    else
-     sprintf(text, "Target %05d mm | No route | Autopilot %s", dist, OFFON[running]);
+    if(nodes.empty())
+     sprintf(text, "Target %05d mm | Autopilot %s", dist, OFFON[running]);
+    else {
+     if(closestRobot != -1 && dists[closestRobot] != INT_MAX)
+      sprintf(text, "Target %05d mm | Route %05d mm | Autopilot %s", dist, dists[closestRobot], OFFON[running]);
+     else
+      sprintf(text, "Target %05d mm | No route | Autopilot %s", dist, OFFON[running]);
+    }
    }
    break;
 
@@ -1443,12 +1454,15 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    }
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
-   if(nodes.empty())
-    sprintf(text, "X %04d/%04d mm | Y %04d/%04d mm | Theta %03d | Graph %s",
-            robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, robotTheta * 180 / PI16, OFFON[graphingEnabled]);
-   else
-    sprintf(text, "Nodes %04d | Links %05d | X %04d | Y %04d | Theta %03d | Graph %s",
-            nodes.size(), links.size(), robotPoint.x, robotPoint.y, robotTheta * 180 / PI16, OFFON[graphingEnabled]);
+   {
+    int thetaDeg = robotTheta * 180 / PI16;
+    if(nodes.empty())
+     sprintf(text, "X %04d/%04d mm | Y %04d/%04d mm | Theta %03d | Graph %s",
+             robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, thetaDeg, OFFON[graphingEnabled]);
+    else
+     sprintf(text, "Nodes %04d | Links %05d | X %04d | Y %04d | Theta %03d | Graph %s",
+             nodes.size(), links.size(), robotPoint.x, robotPoint.y, thetaDeg, OFFON[graphingEnabled]);
+   }
    break;
 
   case SELECTDEBUGMAP:
