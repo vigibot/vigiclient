@@ -1281,16 +1281,20 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   buttonMoreCount++;
   if(buttonMoreCount >= BUTTONSLONGPRESS) {
 
-   if(mapDiv > MAPDIVMIN)
-    mapDiv -= 2;
+   if(select >= SELECTLIGHT && select <= SELECTDEBUGLIDAR) {
+    if(mapDiv > MAPDIVMIN)
+     mapDiv -= 2;
+   }
 
   }
  } else if(buttonLess) {
   buttonLessCount++;
   if(buttonLessCount >= BUTTONSLONGPRESS) {
 
-   if(mapDiv < MAPDIVMAX)
-    mapDiv += 2;
+   if(select >= SELECTLIGHT && select <= SELECTDEBUGLIDAR) {
+    if(mapDiv < MAPDIVMAX)
+     mapDiv += 2;
+   }
 
   }
  } else if(!buttonOk && oldButtonOk) {
@@ -1969,10 +1973,14 @@ int main(int argc, char* argv[]) {
     splitAxes(robotLines, robotLinesAxes);
     localization(robotLinesAxes, map, confidences, robotPoint, robotTheta);
 
+    mapPoints.clear();
+    robotToMap(robotPoints, mapPoints, robotPoint, robotTheta);
+
     mapLines.clear();
     robotToMap(robotLines, mapLines, robotPoint, robotTheta);
 
-    relocalization(mapLines, confidences, robotPoint);
+    if(!mappingEnabled && !graphingEnabled)
+     relocalization(mapLines, confidences, robotPoint);
 
     if(mappingEnabled) {
      mapping(mapLines, map);
@@ -1982,9 +1990,6 @@ int main(int argc, char* argv[]) {
      mapIntersects(map);
      mapFiltersDecay(map);
     }
-
-    mapPoints.clear();
-    robotToMap(robotPoints, mapPoints, robotPoint, robotTheta);
 
     if(graphingEnabled)
      graphing(polarPoints, mapPoints, nodes, links, paths, dists, targetPoint, targetNode, robotPoint, robotTheta);
