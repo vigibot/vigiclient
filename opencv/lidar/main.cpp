@@ -667,6 +667,7 @@ void splitAxes(vector<Line> &robotLines, vector<Line> robotLinesAxes[]) {
 
 void localization(vector<Line> robotLinesAxes[], vector<Line> &map, int confidences[], Point &robotPoint, uint16_t &robotTheta) {
  vector<Line> mapLinesAxe;
+ static int c[AXES] = {0};
 
  for(int i = 0; i < NBITERATIONS; i++) {
   for(int j = 0; j < AXES; j++) {
@@ -677,18 +678,14 @@ void localization(vector<Line> robotLinesAxes[], vector<Line> &map, int confiden
    double angularError;
    int confidence;
    int distTolerance;
-   double angularTolerance;
 
-   if(confidences[j] <= TOLERANCESBOOSTTRIGGER) {
-    distTolerance = LARGEDISTTOLERANCE * TOLERANCESBOOSTFACTOR;
-    angularTolerance = LARGEANGULARTOLERANCE * TOLERANCESBOOSTFACTOR;
-   } else {
+   if(c[j] <= RECOVERYCONFIDENCE)
+    distTolerance = RECOVERYDISTTOLERANCE;
+   else
     distTolerance = LARGEDISTTOLERANCE;
-    angularTolerance = LARGEANGULARTOLERANCE;
-   }
 
    if(computeErrors(mapLinesAxe, map, pointError, angularError, confidence,
-      distTolerance / (i + 1), angularTolerance / (i + 1))) {
+      distTolerance / (i + 1), LARGEANGULARTOLERANCE / (i + 1))) {
 
     robotPoint -= pointError / (i + 1);
 #ifdef IMU
@@ -702,6 +699,9 @@ void localization(vector<Line> robotLinesAxes[], vector<Line> &map, int confiden
     confidences[j] = confidence;
   }
  }
+
+ for(int i = 0; i < AXES; i++)
+  c[i] = confidences[i];
 }
 
 Point rescaleTranslate(Point point, int mapDiv) {
