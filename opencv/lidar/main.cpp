@@ -679,11 +679,11 @@ void localization(vector<Line> robotLinesAxes[], vector<Line> &map, int confiden
    if(computeErrors(mapLinesAxe, map, pointError, angularError, confidence,
       LARGEDISTTOLERANCE / (i + 1), LARGEANGULARTOLERANCE / (i + 1))) {
 
-    robotPoint -= pointError / AXES / (i + 1);
+    robotPoint -= pointError / (i + 1);
 #ifdef IMU
-    robotThetaCorrector += int(angularError * double(PI16) / M_PI) / AXES / IMUTHETACORRECTORDIV;
+    robotThetaCorrector += int(angularError * double(PI16) / M_PI) / IMUTHETACORRECTORDIV;
 #else
-    robotTheta += int(angularError * double(PI16) / M_PI) / AXES / (i + 1);
+    robotTheta += int(angularError * double(PI16) / M_PI) / (i + 1);
 #endif
    }
 
