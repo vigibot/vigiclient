@@ -676,8 +676,19 @@ void localization(vector<Line> robotLinesAxes[], vector<Line> &map, int confiden
    Point pointError;
    double angularError;
    int confidence;
+   int distTolerance;
+   double angularTolerance;
+
+   if(confidences[j] <= TOLERANCESBOOSTTRIGGER) {
+    distTolerance = LARGEDISTTOLERANCE * TOLERANCESBOOSTFACTOR;
+    angularTolerance = LARGEANGULARTOLERANCE * TOLERANCESBOOSTFACTOR;
+   } else {
+    distTolerance = LARGEDISTTOLERANCE;
+    angularTolerance = LARGEANGULARTOLERANCE;
+   }
+
    if(computeErrors(mapLinesAxe, map, pointError, angularError, confidence,
-      LARGEDISTTOLERANCE / (i + 1), LARGEANGULARTOLERANCE / (i + 1))) {
+      distTolerance / (i + 1), angularTolerance / (i + 1))) {
 
     robotPoint -= pointError / (i + 1);
 #ifdef IMU
@@ -689,47 +700,6 @@ void localization(vector<Line> robotLinesAxes[], vector<Line> &map, int confiden
 
    if(i == 0)
     confidences[j] = confidence;
-  }
- }
-}
-
-Point translateAxe(Line ref, int axe, int dist) {
- Point dir = ref.b - ref.a;
- dir = rotate(dir, axe * PI16 / AXES + PI16 / 2);
- return dist * dir / int(sqrt(sqNorm(dir)));
-}
-
-void relocalization(vector<Line> mapLines, int confidences[], Point &robotPoint) {
- static int lost = false;
- static Point robotPointInit;
- static Line ref;
- static int axe;
- static int n;
-
- if(!lost) {
-  for(int i = 0; i < AXES; i++) {
-   if(confidences[i] <= RELOCALIZATIONSTART) {
-    lost = true;
-    robotPointInit = robotPoint;
-    ref = mapLines[0];
-    axe = i;
-    n = 0;
-    break;
-   }
-  }
- }
-
- if(lost) {
-  if(confidences[axe] >= RELOCALIZATIONSTOP)
-   lost = false;
-  else {
-   if(n <= 0)
-    n = -n + 1;
-   else
-    n = -n;
-   if(n > RELOCALIZATIONS)
-    n = 1;
-   robotPoint = robotPointInit + translateAxe(ref, axe, n * LARGEDISTTOLERANCE);
   }
  }
 }
@@ -1978,9 +1948,6 @@ int main(int argc, char* argv[]) {
 
     mapLines.clear();
     robotToMap(robotLines, mapLines, robotPoint, robotTheta);
-
-    if(!mappingEnabled && !graphingEnabled)
-     relocalization(mapLines, confidences, robotPoint);
 
     if(mappingEnabled) {
      mapping(mapLines, map);
