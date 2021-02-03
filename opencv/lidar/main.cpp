@@ -330,6 +330,40 @@ bool testLines(Line line1, Line line2, int distTolerance, double angularToleranc
  return true;
 }
 
+bool testLines(Line line1, Line line2, int distTolerance, double angularTolerance, int lengthMargin,
+               Point &pointError, double &angularError, int &distError, int &length) {
+
+ angularError = diffAngle(line1, line2);
+ if(fabs(angularError) > angularTolerance)
+  return false;
+
+ pointError = pointDistancePointLine((line1.a + line1.b) / 2, line2);
+ distError = int(sqrt(sqNorm(pointError)));
+ if(distError > distTolerance)
+  return false;
+
+ int refNorm = int(sqrt(sqDist(line2)));
+ double ratio1 = ratioPointLine(line1.a, line2);
+ double ratio2 = ratioPointLine(line1.b, line2);
+ int distance1 = ratio1 * refNorm;
+ int distance2 = ratio2 * refNorm;
+
+ if(distance1 < -lengthMargin && distance2 < -lengthMargin ||
+    distance1 > refNorm + lengthMargin && distance2 > refNorm + lengthMargin)
+  return false;
+
+ if(ratio1 <= 0 && ratio2 >= 1 || ratio1 >= 1 && ratio2 <= 0)
+  length = refNorm;
+ else if(ratio1 >= 0 && ratio1 <= 1 || ratio2 >= 0 && ratio1 <= 1)
+  length = int(sqrt(sqDist(line1)));
+ else if(ratio1 <= 0 && ratio2 <= 1)
+  length = int(sqrt(sqDist(line2.a, line1.b)));
+ else
+  length = int(sqrt(sqDist(line1.a, line2.b)));
+
+ return true;
+}
+
 bool intersect(Line line1, Line line2, Point &intersectPoint) {
  Point2d x = line2.a - line1.a;
  Point2d d1 = line1.b - line1.a;
@@ -526,24 +560,24 @@ bool computeErrors(vector<Line> &mapLines, vector<Line> &map,
  int angularErrorWeightSum = 0;
 
  for(int i = 0; i < mapLines.size(); i++) {
-  int mapLinesWeight = int(sqrt(sqDist(mapLines[i])));
-  mapLinesWeightSum += mapLinesWeight;
+  mapLinesWeightSum += int(sqrt(sqDist(mapLines[i])));
 
   for(int j = 0; j < map.size(); j++) {
    Point pointError;
    double angularError;
    int distError;
+   int length;
 
    if(map[j].validation >= VALIDATIONFILTERSTART &&
       testLines(mapLines[i], map[j], distTolerance, angularTolerance, -SMALLDISTTOLERANCE,
-                pointError, angularError, distError)) {
+                pointError, angularError, distError, length)) {
 
-    pointErrorSum += pointError * mapLinesWeight;
-    pointErrorWeightSum += mapLinesWeight;
+    pointErrorSum += pointError * length;
+    pointErrorWeightSum += length;
 
     if(map[j].validation >= VALIDATIONFILTERKEEP) {
-     angularErrorSum += angularError * mapLinesWeight;
-     angularErrorWeightSum += mapLinesWeight;
+     angularErrorSum += angularError * length;
+     angularErrorWeightSum += length;
     }
 
     break;
