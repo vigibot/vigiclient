@@ -352,14 +352,23 @@ bool testLines(Line line1, Line line2, int distTolerance, double angularToleranc
     distance1 > refNorm + lengthMargin && distance2 > refNorm + lengthMargin)
   return false;
 
- if(ratio1 <= 0 && ratio2 >= 1 || ratio1 >= 1 && ratio2 <= 0)
-  length = refNorm;
- else if(ratio1 >= 0 && ratio1 <= 1 && ratio2 >= 0 && ratio2 <= 1)
+ bool test1 = ratio1 >= 0 && ratio1 <= 1; // Point line1.a is in line2
+ bool test2 = ratio2 >= 0 && ratio2 <= 1; // Point line1.b is in line2
+
+ if(test1 && test2)
   length = int(sqrt(sqDist(line1)));
- else if(ratio1 <= 0 && ratio2 <= 1)
-  length = int(sqrt(sqDist(line2.a, line1.b)));
- else
-  length = int(sqrt(sqDist(line1.a, line2.b)));
+ else if(test1 && !test2) {
+  if(ratio2 <= 0)
+   length = int(sqrt(sqDist(line1.a, line2.a)));
+  else
+   length = int(sqrt(sqDist(line1.a, line2.b)));
+ } else if(!test1 && test2) {
+  if(ratio1 <= 0)
+   length = int(sqrt(sqDist(line1.b, line2.a)));
+  else
+   length = int(sqrt(sqDist(line1.b, line2.b)));
+ } else
+  length = refNorm;
 
  return true;
 }
