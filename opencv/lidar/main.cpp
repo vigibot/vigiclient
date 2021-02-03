@@ -354,7 +354,7 @@ bool testLines(Line line1, Line line2, int distTolerance, double angularToleranc
 
  if(ratio1 <= 0 && ratio2 >= 1 || ratio1 >= 1 && ratio2 <= 0)
   length = refNorm;
- else if(ratio1 >= 0 && ratio1 <= 1 || ratio2 >= 0 && ratio1 <= 1)
+ else if(ratio1 >= 0 && ratio1 <= 1 || ratio2 >= 0 && ratio2 <= 1)
   length = int(sqrt(sqDist(line1)));
  else if(ratio1 <= 0 && ratio2 <= 1)
   length = int(sqrt(sqDist(line2.a, line1.b)));
