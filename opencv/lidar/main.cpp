@@ -204,6 +204,11 @@ Point rotate(Point point, uint16_t theta) {
               (point.x * sin16(theta) + point.y * cos16(theta)) / ONE16);
 }
 
+void robotToMap(Line lineIn, Line &lineOut, Point robotPoint, uint16_t robotTheta) {
+ lineOut = {robotPoint + rotate(lineIn.a, robotTheta),
+            robotPoint + rotate(lineIn.b, robotTheta)};
+}
+
 void robotToMap(vector<Line> &linesIn, vector<Line> &linesOut, Point robotPoint, uint16_t robotTheta) {
  for(int i = 0; i < linesIn.size(); i++) {
   linesOut.push_back({robotPoint + rotate(linesIn[i].a, robotTheta),
@@ -929,6 +934,59 @@ void drawIntersects(Mat &image, vector<Line> &map, Point robotPoint, uint16_t ro
  }
 }*/
 
+bool computeLocalization(Line mapRef1, Line mapRef2, Line robotLine1, Line robotLine2,
+                         Point distance1, Point distance2, Line &mapLine1, Line &mapLine2, Point &robotPoint, uint16_t &robotTheta) {
+
+ if(sqDist(mapRef1) < sqDist(robotLine1) * LINELENGTHTOLERANCEPERCENT / 100 ||
+    sqDist(mapRef2) < sqDist(robotLine2) * LINELENGTHTOLERANCEPERCENT / 100)
+  return false;
+
+ robotTheta = int(diffAngle(lineAngle(robotLine1), lineAngle(mapRef1)) * double(PI16) / M_PI);
+
+ robotPoint = -pointDistancePointLine({0, 0}, mapRef1) + rotate(distance1, robotTheta) +
+              -pointDistancePointLine({0, 0}, mapRef2) + rotate(distance2, robotTheta);
+
+ robotToMap(robotLine1, mapLine1, robotPoint, robotTheta);
+ robotToMap(robotLine2, mapLine2, robotPoint, robotTheta);
+
+ return true;
+}
+
+void computeLocalizations(vector<Line> robotLinesAxes[], vector<Line> &map, vector<Point> &robotPoints, vector<uint16_t> &robotThetas) {
+ Line robotLine1 = robotLinesAxes[0][0];
+ Line robotLine2 = robotLinesAxes[1][0];
+ double refAngle = diffAngle(robotLine1, robotLine2);
+ Point distance1 = pointDistancePointLine({0, 0}, robotLine1);
+ Point distance2 = pointDistancePointLine({0, 0}, robotLine2);
+
+ for(int i = 0; i < map.size(); i++) {
+  for(int j = i + 1; j < map.size(); j++) {
+   double angle = diffAngle(map[i], map[j]);
+   bool ok = false;
+   Line mapLine1;
+   Line mapLine2;
+   Point robotPoint;
+   uint16_t robotTheta;
+
+   if(fabs(angle - refAngle) < LARGEANGULARTOLERANCE)
+    ok = computeLocalization(map[i], map[j], robotLine1, robotLine2,
+                             distance1, distance2, mapLine1, mapLine2, robotPoint, robotTheta);
+   else if(fabs(angle + refAngle) < LARGEANGULARTOLERANCE)
+    ok = computeLocalization(map[j], map[i], robotLine1, robotLine2,
+                             distance1, distance2, mapLine2, mapLine1, robotPoint, robotTheta);
+
+   if(ok &&
+      testPointLine(mapLine1.a, map[i], LARGEDISTTOLERANCE, LARGEDISTTOLERANCE) &&
+      testPointLine(mapLine1.b, map[i], LARGEDISTTOLERANCE, LARGEDISTTOLERANCE) &&
+      testPointLine(mapLine2.a, map[j], LARGEDISTTOLERANCE, LARGEDISTTOLERANCE) &&
+      testPointLine(mapLine2.b, map[j], LARGEDISTTOLERANCE, LARGEDISTTOLERANCE)) {
+    robotPoints.push_back(robotPoint);
+    robotThetas.push_back(robotTheta);
+   }
+  }
+ }
+}
+
 bool obstacle(vector<Point> &mapPoints, Point robotPoint, Point targetPoint, int obstacleDetectionRange) {
  int n = 0;
 
@@ -1039,14 +1097,14 @@ bool addNodeAndLinks(vector<Point> &mapPoints, vector<Point> &nodes, vector<arra
  }
 
  int closest = closestPoint(nodes, node);
- if(sqDist(node, nodes[closest]) < LINKSSIZEMIN * LINKSSIZEMIN)
+ if(sqDist(node, nodes[closest]) < LINKSLENGTHMIN * LINKSLENGTHMIN)
   return false;
 
  vector<array<int, 2>> linksBuffer;
  for(int i = 0; i < nodes.size(); i++) {
   int dist = sqDist(node, nodes[i]);
 
-  if(dist <= LINKSSIZEMAX * LINKSSIZEMAX)
+  if(dist <= LINKSLENGTHMAX * LINKSLENGTHMAX)
    linksBuffer.push_back({int(nodes.size()), i});
  }
 
@@ -1155,7 +1213,7 @@ void graphing(vector<PolarPoint> &polarPoints, vector<Point> &mapPoints, vector<
 
  bool added = false;
  for(int i = 0; i < polarPoints.size(); i++) {
-  for(int j = polarPoints[i].distance - LINKSSIZEMIN; j > LINKSSIZEMIN; j -= LINKSSIZEMIN / 2) {
+  for(int j = polarPoints[i].distance - LINKSLENGTHMIN; j > LINKSLENGTHMIN; j -= LINKSLENGTHMIN / 2) {
    Point closerPoint = Point(j * sin16(polarPoints[i].theta) / ONE16,
                              j * cos16(polarPoints[i].theta) / ONE16);
 
@@ -1377,6 +1435,13 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   case SELECTNONE:
    drawRobot(image, robotIcon, 1, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
+   {
+    vector<Point> robotPoints;
+    vector<uint16_t> robotThetas;
+    computeLocalizations(robotLinesAxes, map, robotPoints, robotThetas);
+    for(int i = 0; i < robotPoints.size(); i++)
+     drawRobot(image, robotIcon, FILLED, robotPoints[i] - offsetPoint, robotThetas[i], mapDivFixed);
+   }
    sprintf(text, "");
    break;
 
