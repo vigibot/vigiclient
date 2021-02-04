@@ -714,18 +714,17 @@ void splitAxes(vector<Line> &robotLines, vector<Line> robotLinesAxes[]) {
 }
 
 void localization(vector<Line> robotLinesAxes[], vector<Line> &map, int confidences[], Point &robotPoint, uint16_t &robotTheta) {
- vector<Line> mapLinesAxe;
  static int c[AXES] = {0};
 
  for(int i = 0; i < NBITERATIONS; i++) {
   for(int j = 0; j < AXES; j++) {
-   mapLinesAxe.clear();
-   robotToMap(robotLinesAxes[j], mapLinesAxe, robotPoint, robotTheta);
-
+   vector<Line> mapLinesAxe;
+   int distTolerance;
    Point pointError;
    double angularError;
    int confidence;
-   int distTolerance;
+
+   robotToMap(robotLinesAxes[j], mapLinesAxe, robotPoint, robotTheta);
 
    if(c[j] <= RECOVERYCONFIDENCE)
     distTolerance = RECOVERYDISTTOLERANCE;
@@ -934,8 +933,8 @@ void drawIntersects(Mat &image, vector<Line> &map, Point robotPoint, uint16_t ro
  }
 }*/
 
-bool computeLocalization(Line mapRef1, Line mapRef2, Line robotLine1, Line robotLine2,
-                         Point distance1, Point distance2, Line &mapLine1, Line &mapLine2, Point &robotPoint, uint16_t &robotTheta) {
+bool computePose(Line mapRef1, Line mapRef2, Line robotLine1, Line robotLine2,
+                 Point distance1, Point distance2, Line &mapLine1, Line &mapLine2, Point &robotPoint, uint16_t &robotTheta) {
 
  if(sqDist(mapRef1) < sqDist(robotLine1) * LINELENGTHTOLERANCEPERCENT / 100 ||
     sqDist(mapRef2) < sqDist(robotLine2) * LINELENGTHTOLERANCEPERCENT / 100)
@@ -952,12 +951,14 @@ bool computeLocalization(Line mapRef1, Line mapRef2, Line robotLine1, Line robot
  return true;
 }
 
-void computeLocalizations(vector<Line> robotLinesAxes[], vector<Line> &map, vector<Point> &robotPoints, vector<uint16_t> &robotThetas) {
+bool probabilisticLocalization(vector<Line> robotLinesAxes[], vector<Line> &map, Point &robotPointFound, uint16_t &robotThetaFound) {
  Line robotLine1 = robotLinesAxes[0][0];
  Line robotLine2 = robotLinesAxes[1][0];
  double refAngle = diffAngle(robotLine1, robotLine2);
  Point distance1 = pointDistancePointLine({0, 0}, robotLine1);
  Point distance2 = pointDistancePointLine({0, 0}, robotLine2);
+ int confidenceMax = 0;
+ bool found = false;
 
  for(int i = 0; i < map.size(); i++) {
   for(int j = i + 1; j < map.size(); j++) {
@@ -969,22 +970,45 @@ void computeLocalizations(vector<Line> robotLinesAxes[], vector<Line> &map, vect
    uint16_t robotTheta;
 
    if(fabs(angle - refAngle) < LARGEANGULARTOLERANCE)
-    ok = computeLocalization(map[i], map[j], robotLine1, robotLine2,
-                             distance1, distance2, mapLine1, mapLine2, robotPoint, robotTheta);
+    ok = computePose(map[i], map[j], robotLine1, robotLine2,
+                     distance1, distance2, mapLine1, mapLine2, robotPoint, robotTheta);
    else if(fabs(angle + refAngle) < LARGEANGULARTOLERANCE)
-    ok = computeLocalization(map[j], map[i], robotLine1, robotLine2,
-                             distance1, distance2, mapLine2, mapLine1, robotPoint, robotTheta);
+    ok = computePose(map[j], map[i], robotLine1, robotLine2,
+                     distance1, distance2, mapLine2, mapLine1, robotPoint, robotTheta);
 
    if(ok &&
       testPointLine(mapLine1.a, map[i], LARGEDISTTOLERANCE, LARGEDISTTOLERANCE) &&
       testPointLine(mapLine1.b, map[i], LARGEDISTTOLERANCE, LARGEDISTTOLERANCE) &&
       testPointLine(mapLine2.a, map[j], LARGEDISTTOLERANCE, LARGEDISTTOLERANCE) &&
       testPointLine(mapLine2.b, map[j], LARGEDISTTOLERANCE, LARGEDISTTOLERANCE)) {
-    robotPoints.push_back(robotPoint);
-    robotThetas.push_back(robotTheta);
+
+    int confidenceSum = 0;
+    for(int k = 0; k < AXES; k++) {
+     vector<Line> mapLinesAxe;
+     Point pointError;
+     double angularError;
+     int confidence;
+
+     robotToMap(robotLinesAxes[k], mapLinesAxe, robotPoint, robotTheta);
+     computeErrors(mapLinesAxe, map, pointError, angularError, confidence,
+                   LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE);
+
+     confidenceSum += confidence;
+    }
+    confidenceSum /= AXES;
+
+    if(confidenceSum > confidenceMax) {
+     confidenceMax = confidenceSum;
+     robotPointFound = robotPoint;
+     robotThetaFound = robotTheta;
+     found = true;
+    }
    }
+
   }
  }
+
+ return found;
 }
 
 bool obstacle(vector<Point> &mapPoints, Point robotPoint, Point targetPoint, int obstacleDetectionRange) {
@@ -1436,11 +1460,10 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawRobot(image, robotIcon, 1, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    {
-    vector<Point> robotPoints;
-    vector<uint16_t> robotThetas;
-    computeLocalizations(robotLinesAxes, map, robotPoints, robotThetas);
-    for(int i = 0; i < robotPoints.size(); i++)
-     drawRobot(image, robotIcon, FILLED, robotPoints[i] - offsetPoint, robotThetas[i], mapDivFixed);
+    Point robotPointFound;
+    uint16_t robotThetaFound;
+    if(probabilisticLocalization(robotLinesAxes, map, robotPointFound, robotThetaFound))
+     drawRobot(image, robotIcon, FILLED, robotPointFound - offsetPoint, robotThetaFound, mapDivFixed);
    }
    sprintf(text, "");
    break;
