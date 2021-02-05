@@ -1099,21 +1099,6 @@ int closestPoint(vector<Point> &points, Point point) {
  return closest;
 }
 
-int closestPointWithoutObstacle(vector<Point> &mapPoints, vector<Point> &points, Point robotPoint) {
- int distMin = INT_MAX;
- int closest = -1;
-
- for(int i = 0; i < points.size(); i++) {
-  int dist = sqDist(robotPoint, points[i]);
-  if(dist < distMin && !obstacle(mapPoints, robotPoint, points[i], int(sqrt(dist)) + OBSTACLEROBOTLENGTH)) {
-   distMin = dist;
-   closest = i;
-  }
- }
-
- return closest;
-}
-
 bool addNodeAndLinks(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, Point node) {
  if(nodes.empty()) {
   nodes.push_back(node);
@@ -1399,7 +1384,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     if(addNodeAndLinks(mapPoints, nodes, links, targetPoint)) {
      targetNode = closestPoint(nodes, targetPoint);
      computePaths(nodes, links, targetNode, paths, dists);
-     closestRobot = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
+     closestRobot = closestPoint(nodes, robotPoint);
     }
    }
 
@@ -1414,7 +1399,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     if(!nodes.empty()) {
      targetNode = closestPoint(nodes, targetPoint);
      computePaths(nodes, links, targetNode, paths, dists);
-     closestRobot = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
+     closestRobot = closestPoint(nodes, robotPoint);
     }
    } else if(select == SELECTFIXEDDEBUGMAP || select == SELECTDEBUGMAP) {
     for(int i = 0; i < map.size(); i++) {
@@ -1843,7 +1828,7 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
     if(!nodes.empty()) {
      targetNode = closestPoint(nodes, targetPoint);
      computePaths(nodes, links, targetNode, paths, dists);
-     currentNode = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
+     currentNode = closestPoint(nodes, robotPoint);
     }
    } else if(gotoPoint(nodes[currentNode], vy, vz, robotPoint, robotTheta)) {
     if(currentNode == targetNode)
@@ -2093,7 +2078,7 @@ int main(int argc, char* argv[]) {
      graphing(polarPoints, mapPoints, nodes, links, paths, dists, targetPoint, targetNode, robotPoint, robotTheta);
    }
 
-   closestRobot = closestPointWithoutObstacle(mapPoints, nodes, robotPoint);
+   closestRobot = closestPoint(nodes, robotPoint);
   }
 
   ui(image, robotPoints, robotLinesAxes, mapLines, map, mapPoints,
