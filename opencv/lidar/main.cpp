@@ -315,13 +315,13 @@ bool testPointLine(Point point, Line line, int distTolerance, int lengthMargin) 
 bool testLines(Line line1, Line line2, int distTolerance, double angularTolerance, int lengthMargin,
                Point &pointError, double &angularError, int &distError) {
 
- angularError = diffAngle(line1, line2);
- if(fabs(angularError) > angularTolerance)
-  return false;
-
  pointError = pointDistancePointLine((line1.a + line1.b) / 2, line2);
  distError = int(sqrt(sqNorm(pointError)));
  if(distError > distTolerance)
+  return false;
+
+ angularError = diffAngle(line1, line2);
+ if(fabs(angularError) > angularTolerance)
   return false;
 
  int refNorm = int(sqrt(sqDist(line2)));
@@ -338,13 +338,13 @@ bool testLines(Line line1, Line line2, int distTolerance, double angularToleranc
 bool testLines(Line line1, Line line2, int distTolerance, double angularTolerance, int lengthMargin,
                Point &pointError, double &angularError, int &distError, int &length) {
 
- angularError = diffAngle(line1, line2);
- if(fabs(angularError) > angularTolerance)
-  return false;
-
  pointError = pointDistancePointLine((line1.a + line1.b) / 2, line2);
  distError = int(sqrt(sqNorm(pointError)));
  if(distError > distTolerance)
+  return false;
+
+ angularError = diffAngle(line1, line2);
+ if(fabs(angularError) > angularTolerance)
   return false;
 
  int refNorm = int(sqrt(sqDist(line2)));
