@@ -1444,7 +1444,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   case SELECTNONE:
    drawRobot(image, robotIcon, 1, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
-   {
+   if(!nodes.empty()) {
     Point robotPointFound;
     uint16_t robotThetaFound;
     if(probabilisticLocalization(robotLinesAxes, map, robotPointFound, robotThetaFound))
