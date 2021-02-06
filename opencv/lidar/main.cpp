@@ -1965,9 +1965,9 @@ int main(int argc, char* argv[]) {
  vector<vector<Point>> robotRawLines;
  vector<Line> robotLines;
  vector<Line> robotLinesAxes[AXES];
+ vector<Point> mapPoints;
  vector<Line> mapLines;
  vector<Line> map;
- vector<Point> mapPoints;
  vector<Point> nodes;
  vector<array<int, 2>> links;
  vector<int> paths;
