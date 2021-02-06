@@ -1502,10 +1502,10 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    {
     int thetaDeg = robotTheta * 180 / PI16;
     if(nodes.empty())
-     sprintf(text, "X %04d/%04d mm | Y %04d/%04d mm | Theta %03d | Graph %s",
+     sprintf(text, "X %06d/%06d mm | Y %06d/%06d mm | Theta %03d | Graph %s",
              robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, thetaDeg, OFFON[graphingEnabled]);
     else
-     sprintf(text, "Nodes %04d | Links %05d | X %04d | Y %04d | Theta %03d | Graph %s",
+     sprintf(text, "Nodes %04d | Links %05d | X %06d | Y %06d | Theta %03d | Graph %s",
              nodes.size(), links.size(), robotPoint.x, robotPoint.y, thetaDeg, OFFON[graphingEnabled]);
    }
    break;
@@ -1575,10 +1575,10 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    {
     int thetaDeg = robotTheta * 180 / PI16;
     if(nodes.empty())
-     sprintf(text, "X %04d/%04d mm | Y %04d/%04d mm | Theta %03d | Graph %s",
+     sprintf(text, "X %06d/%06d mm | Y %06d/%06d mm | Theta %03d | Graph %s",
              robotPoint.x, targetPoint.x, robotPoint.y, targetPoint.y, thetaDeg, OFFON[graphingEnabled]);
     else
-     sprintf(text, "Nodes %04d | Links %05d | X %04d | Y %04d | Theta %03d | Graph %s",
+     sprintf(text, "Nodes %04d | Links %05d | X %06d | Y %06d | Theta %03d | Graph %s",
              nodes.size(), links.size(), robotPoint.x, robotPoint.y, thetaDeg, OFFON[graphingEnabled]);
    }
    break;
