@@ -2078,7 +2078,8 @@ int main(int argc, char* argv[]) {
      graphing(polarPoints, mapPoints, nodes, links, paths, dists, targetPoint, targetNode, robotPoint, robotTheta);
    }
 
-   closestRobot = closestPoint(nodes, robotPoint);
+   if(!nodes.empty())
+    closestRobot = closestPoint(nodes, robotPoint);
   }
 
   ui(image, robotPoints, robotLinesAxes, mapLines, map, mapPoints,
