@@ -933,84 +933,6 @@ void drawIntersects(Mat &image, vector<Line> &map, Point robotPoint, uint16_t ro
  }
 }*/
 
-bool computePose(Line mapRef1, Line mapRef2, Line robotLine1, Line robotLine2,
-                 Point distance1, Point distance2, Line &mapLine1, Line &mapLine2, Point &robotPoint, uint16_t &robotTheta) {
-
- if(sqDist(mapRef1) < sqDist(robotLine1) * LINELENGTHTOLERANCEPERCENT / 100 ||
-    sqDist(mapRef2) < sqDist(robotLine2) * LINELENGTHTOLERANCEPERCENT / 100)
-  return false;
-
- robotTheta = int(diffAngle(lineAngle(robotLine1), lineAngle(mapRef1)) * double(PI16) / M_PI);
-
- robotPoint = -pointDistancePointLine({0, 0}, mapRef1) + rotate(distance1, robotTheta) +
-              -pointDistancePointLine({0, 0}, mapRef2) + rotate(distance2, robotTheta);
-
- robotToMap(robotLine1, mapLine1, robotPoint, robotTheta);
- robotToMap(robotLine2, mapLine2, robotPoint, robotTheta);
-
- return true;
-}
-
-bool probabilisticLocalization(vector<Line> robotLinesAxes[], vector<Line> &map, Point &robotPointFound, uint16_t &robotThetaFound) {
- Line robotLine1 = robotLinesAxes[0][0];
- Line robotLine2 = robotLinesAxes[1][0];
- double refAngle = diffAngle(robotLine1, robotLine2);
- Point distance1 = pointDistancePointLine({0, 0}, robotLine1);
- Point distance2 = pointDistancePointLine({0, 0}, robotLine2);
- int confidenceMax = 0;
- bool found = false;
-
- for(int i = 0; i < map.size(); i++) {
-  for(int j = i + 1; j < map.size(); j++) {
-   double angle = diffAngle(map[i], map[j]);
-   bool ok = false;
-   Line mapLine1;
-   Line mapLine2;
-   Point robotPoint;
-   uint16_t robotTheta;
-
-   if(fabs(angle - refAngle) < LARGEANGULARTOLERANCE)
-    ok = computePose(map[i], map[j], robotLine1, robotLine2,
-                     distance1, distance2, mapLine1, mapLine2, robotPoint, robotTheta);
-   else if(fabs(angle + refAngle) < LARGEANGULARTOLERANCE)
-    ok = computePose(map[j], map[i], robotLine1, robotLine2,
-                     distance1, distance2, mapLine2, mapLine1, robotPoint, robotTheta);
-
-   if(ok &&
-      testPointLine(mapLine1.a, map[i], LARGEDISTTOLERANCE, LARGEDISTTOLERANCE) &&
-      testPointLine(mapLine1.b, map[i], LARGEDISTTOLERANCE, LARGEDISTTOLERANCE) &&
-      testPointLine(mapLine2.a, map[j], LARGEDISTTOLERANCE, LARGEDISTTOLERANCE) &&
-      testPointLine(mapLine2.b, map[j], LARGEDISTTOLERANCE, LARGEDISTTOLERANCE)) {
-
-    int confidenceSum = 0;
-    for(int k = 0; k < AXES; k++) {
-     vector<Line> mapLinesAxe;
-     Point pointError;
-     double angularError;
-     int confidence;
-
-     robotToMap(robotLinesAxes[k], mapLinesAxe, robotPoint, robotTheta);
-     computeErrors(mapLinesAxe, map, pointError, angularError, confidence,
-                   LARGEDISTTOLERANCE, LARGEANGULARTOLERANCE);
-
-     confidenceSum += confidence;
-    }
-    confidenceSum /= AXES;
-
-    if(confidenceSum > confidenceMax) {
-     confidenceMax = confidenceSum;
-     robotPointFound = robotPoint;
-     robotThetaFound = robotTheta;
-     found = true;
-    }
-   }
-
-  }
- }
-
- return found;
-}
-
 bool obstacle(vector<Point> &mapPoints, Point robotPoint, Point targetPoint, int obstacleDetectionRange) {
  int n = 0;
 
@@ -1444,12 +1366,6 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   case SELECTNONE:
    drawRobot(image, robotIcon, 1, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
-   if(!nodes.empty()) {
-    Point robotPointFound;
-    uint16_t robotThetaFound;
-    if(probabilisticLocalization(robotLinesAxes, map, robotPointFound, robotThetaFound))
-     drawRobot(image, robotIcon, FILLED, robotPointFound - offsetPoint, robotThetaFound, mapDivFixed);
-   }
    sprintf(text, "");
    break;
 
