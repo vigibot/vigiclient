@@ -1059,6 +1059,36 @@ bool addNodeAndLinks(vector<Point> &mapPoints, vector<Point> &nodes, vector<arra
  return false;
 }
 
+bool addNodeAndLinks(vector<Point> &nodes, vector<array<int, 2>> &links, Point node) {
+ if(nodes.empty()) {
+  nodes.push_back(node);
+  return true;
+ }
+
+ int closest = closestPoint(nodes, node);
+ if(sqDist(node, nodes[closest]) < LINKSLENGTHMIN * LINKSLENGTHMIN)
+  return false;
+
+ vector<array<int, 2>> linksBuffer;
+ for(int i = 0; i < nodes.size(); i++) {
+  int dist = sqDist(node, nodes[i]);
+
+  if(dist <= LINKSLENGTHMAX * LINKSLENGTHMAX)
+   linksBuffer.push_back({int(nodes.size()), i});
+ }
+
+ if(!linksBuffer.empty()) {
+  fprintf(stderr, "Adding the node %d with %d link(s)\n", nodes.size(), linksBuffer.size());
+  nodes.push_back(node);
+  for(int i = 0; i < linksBuffer.size(); i++)
+   links.push_back(linksBuffer[i]);
+
+  return true;
+ }
+
+ return false;
+}
+
 void delNodeAndLinks(vector<Point> &nodes, vector<array<int, 2>> &links, int nodeIndex) {
  fprintf(stderr, "Deleting the node %d\n", nodeIndex);
 
@@ -1303,7 +1333,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   if(buttonOkCount < BUTTONSLONGPRESS) {
 
    if(select == SELECTFIXEDFULL || select == SELECTFULL) {
-    if(addNodeAndLinks(mapPoints, nodes, links, targetPoint)) {
+    if(addNodeAndLinks(nodes, links, targetPoint)) {
      targetNode = closestPoint(nodes, targetPoint);
      computePaths(nodes, links, targetNode, paths, dists);
      closestRobot = closestPoint(nodes, robotPoint);
