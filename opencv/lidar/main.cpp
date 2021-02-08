@@ -1192,7 +1192,7 @@ void graphing(vector<PolarPoint> &polarPoints, vector<Point> &mapPoints, vector<
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], vector<Line> &mapLines, vector<Line> &map, vector<Point> &mapPoints,
                     vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, vector<int> &dists, vector<Point> &wayPoints, Point &targetPoint,
                     int &targetNode, int &closestRobot, Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
-                    bool &mappingEnabled, bool &graphingEnabled, bool &running, int &select, int &mapDiv, int confidences[], int time) {
+                    bool &mappingEnabled, bool &graphingEnabled, bool &running, bool &patrolling, int &select, int &mapDiv, int confidences[], int time) {
 
  int xmin = INT_MAX;
  int xmax = INT_MIN;
@@ -1274,6 +1274,12 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     case SELECTFIXEDAUTOPILOT:
     case SELECTAUTOPILOT:
      running = !running;
+     break;
+
+    case SELECTFIXEDWAYPOINTS:
+    case SELECTWAYPOINTS:
+     running = !running;
+     patrolling = !patrolling;
      break;
 
     case SELECTFIXEDGRAPHING:
@@ -1475,7 +1481,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawWayPoints(image, wayPoints, 0, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
-   sprintf(text, "Way points %d", wayPoints.size());
+   sprintf(text, "Way points %d | Patrolling %s", wayPoints.size(), OFFON[patrolling]);
    break;
 
   case SELECTFIXEDGRAPHING:
@@ -1558,7 +1564,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawWayPoints(image, wayPoints, 0, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
-   sprintf(text, "Way points %d", wayPoints.size());
+   sprintf(text, "Way points %d | Patrolling %s", wayPoints.size(), OFFON[patrolling]);
    break;
 
   case SELECTGRAPHING:
@@ -1805,7 +1811,7 @@ bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
 }*/
 
 void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, vector<int> &dists,
-               Point targetPoint, int &targetNode, int closestRobot, Point &robotPoint, uint16_t &robotTheta, bool &running) {
+               Point targetPoint, int &targetNode, int closestRobot, Point &robotPoint, uint16_t &robotTheta, bool &running, bool &patrolling) {
 
  static int state = GOTOPOINT;
  static Point oldTargetPoint = robotPoint;
@@ -1814,8 +1820,10 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
  static int8_t vy = 0;
  static int8_t vz = 0;
 
- if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz)
+ if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz) {
   running = false;
+  patrolling = false;
+ }
 
  if(!running) {
   telemetryFrame.vx = remoteFrame.vx;
@@ -2002,6 +2010,7 @@ int main(int argc, char* argv[]) {
  int targetNode = 0;
  int closestRobot = -1;
  bool running = false;
+ bool patrolling = false;
  int select = SELECTFIXEDGRAPHING;
  int mapDiv = MAPDIV;
  int confidences[AXES] = {0};
@@ -2106,10 +2115,10 @@ int main(int argc, char* argv[]) {
   ui(image, robotPoints, robotLinesAxes, mapLines, map, mapPoints,
      nodes, links, paths, dists, wayPoints, targetPoint,
      targetNode, closestRobot, robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
-     mappingEnabled, graphingEnabled, running, select, mapDiv, confidences, time);
+     mappingEnabled, graphingEnabled, running, patrolling, select, mapDiv, confidences, time);
 
   autopilot(mapPoints, nodes, links, paths, dists,
-            targetPoint, targetNode, closestRobot, robotPoint, robotTheta, running);
+            targetPoint, targetNode, closestRobot, robotPoint, robotTheta, running, patrolling);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
