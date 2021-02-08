@@ -883,9 +883,9 @@ void drawNodes(Mat &image, vector<Point> &nodes, Point robotPoint, uint16_t robo
  }
 }
 
-/*void drawNumbers(Mat &image, vector<Point> &nodes, int targetNode, Point robotPoint, uint16_t robotTheta, int mapDiv) {
- for(int i = 0; i < nodes.size(); i++) {
-  Point point = rescaleTranslate(rotate(nodes[i] - robotPoint, -robotTheta), mapDiv);
+void drawWayPoints(Mat &image, vector<Point> &wayPoints, int targetWayPoint, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+ for(int i = 0; i < wayPoints.size(); i++) {
+  Point point = rescaleTranslate(rotate(wayPoints[i] - robotPoint, -robotTheta), mapDiv);
 
   char text[8];
   sprintf(text, "%d", i);
@@ -897,14 +897,14 @@ void drawNodes(Mat &image, vector<Point> &nodes, Point robotPoint, uint16_t robo
   putText(image, text, textPoint, FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
   putText(image, text, textPoint + Point(1, 1), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
 
-  if(i == targetNode) {
+  if(i == targetWayPoint) {
    circle(image, point, textSize.width / 2 + 3, Scalar::all(0), 1, LINE_AA);
    circle(image, point + Point(1, 1), textSize.width / 2 + 3, Scalar::all(255), 1, LINE_AA);
   }
  }
 }
 
-void drawLinks(Mat &image, vector<Point> &nodes, vector<array<int, 2>> &links, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+/*void drawLinks(Mat &image, vector<Point> &nodes, vector<array<int, 2>> &links, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  for(int i = 0; i < links.size(); i++) {
   Point point1 = rescaleTranslate(rotate(nodes[links[i][0]] - robotPoint, -robotTheta), mapDiv);
   Point point2 = rescaleTranslate(rotate(nodes[links[i][1]] - robotPoint, -robotTheta), mapDiv);
@@ -1190,8 +1190,8 @@ void graphing(vector<PolarPoint> &polarPoints, vector<Point> &mapPoints, vector<
 }
 
 void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], vector<Line> &mapLines, vector<Line> &map, vector<Point> &mapPoints,
-                    vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, vector<int> &dists, Point &targetPoint, int &targetNode, int &closestRobot,
-                    Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
+                    vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, vector<int> &dists, vector<Point> &wayPoints, Point &targetPoint,
+                    int &targetNode, int &closestRobot, Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
                     bool &mappingEnabled, bool &graphingEnabled, bool &running, int &select, int &mapDiv, int confidences[], int time) {
 
  int xmin = INT_MAX;
@@ -1270,42 +1270,63 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   buttonOkCount++;
   if(buttonOkCount == BUTTONSLONGPRESS) {
 
-   if(select == SELECTFIXEDGRAPHING || select == SELECTGRAPHING)
-    graphingEnabled = !graphingEnabled;
-   else if(select == SELECTFIXEDMAPPING || select == SELECTMAPPING) {
-    mappingEnabled = !mappingEnabled;
-    for(int i = 0; i < map.size(); i++) {
-     if(map[i].validation < VALIDATIONFILTERKEEP) {
-      map.erase(map.begin() + i);
-      i--;
+   switch(select) {
+    case SELECTFIXEDAUTOPILOT:
+    case SELECTAUTOPILOT:
+     running = !running;
+     break;
+
+    case SELECTFIXEDGRAPHING:
+    case SELECTGRAPHING:
+     graphingEnabled = !graphingEnabled;
+     break;
+
+    case SELECTFIXEDMAPPING:
+    case SELECTMAPPING:
+     mappingEnabled = !mappingEnabled;
+     for(int i = 0; i < map.size(); i++) {
+      if(map[i].validation < VALIDATIONFILTERKEEP) {
+       map.erase(map.begin() + i);
+       i--;
+      }
      }
-    }
-   } else
-    running = !running;
+     break;
+   }
 
   }
  } else if(buttonCancel) {
   buttonCancelCount++;
   if(buttonCancelCount == BUTTONSLONGPRESS) {
 
-   if(select == SELECTFIXEDGRAPHING || select == SELECTGRAPHING) {
-    running = false;
-    nodes.clear();
-    links.clear();
-    paths.clear();
-    paths.push_back(-1);
-   } else if(select == SELECTFIXEDMAPPING || select == SELECTMAPPING) {
-    map.clear();
-    if(nodes.empty()) {
-     robotPoint = Point(0, 0);
-     oldRobotPoint = Point(0, 0);
-     robotTheta = 0;
-     oldRobotTheta = 0;
+   switch(select) {
+    case SELECTFIXEDWAYPOINTS:
+    case SELECTWAYPOINTS:
+     wayPoints.clear();
+     break;
+
+    case SELECTFIXEDGRAPHING:
+    case SELECTGRAPHING:
+     running = false;
+     nodes.clear();
+     links.clear();
+     paths.clear();
+     paths.push_back(-1);
+     break;
+
+    case SELECTFIXEDMAPPING:
+    case SELECTMAPPING:
+     map.clear();
+     if(nodes.empty()) {
+      robotPoint = Point(0, 0);
+      oldRobotPoint = Point(0, 0);
+      robotTheta = 0;
+      oldRobotTheta = 0;
 #ifdef IMU
-     imu->resetFusion();
-     robotThetaCorrector = 0;
+      imu->resetFusion();
+      robotThetaCorrector = 0;
 #endif
-    }
+     }
+     break;
    }
 
   }
@@ -1332,12 +1353,20 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  } else if(!buttonOk && oldButtonOk) {
   if(buttonOkCount < BUTTONSLONGPRESS) {
 
-   if(select == SELECTFIXEDGRAPHING || select == SELECTGRAPHING) {
-    if(addNodeAndLinks(nodes, links, targetPoint)) {
-     targetNode = closestPoint(nodes, targetPoint);
-     computePaths(nodes, links, targetNode, paths, dists);
-     closestRobot = closestPoint(nodes, robotPoint);
-    }
+   switch(select) {
+    case SELECTFIXEDWAYPOINTS:
+    case SELECTWAYPOINTS:
+     wayPoints.push_back(targetPoint);
+     break;
+
+    case SELECTFIXEDGRAPHING:
+    case SELECTGRAPHING:
+     if(addNodeAndLinks(nodes, links, targetPoint)) {
+      targetNode = closestPoint(nodes, targetPoint);
+      computePaths(nodes, links, targetNode, paths, dists);
+      closestRobot = closestPoint(nodes, robotPoint);
+     }
+     break;
    }
 
   }
@@ -1345,21 +1374,33 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  } else if(!buttonCancel && oldButtonCancel) {
   if(buttonCancelCount < BUTTONSLONGPRESS) {
 
-   if(select == SELECTFIXEDGRAPHING || select == SELECTGRAPHING) {
-    if(!nodes.empty())
-     delNodeAndLinks(nodes, links, targetNode);
-    if(!nodes.empty()) {
-     targetNode = closestPoint(nodes, targetPoint);
-     computePaths(nodes, links, targetNode, paths, dists);
-     closestRobot = closestPoint(nodes, robotPoint);
-    }
-   } else if(select == SELECTFIXEDMAPPING || select == SELECTMAPPING) {
-    for(int i = 0; i < map.size(); i++) {
-     if(testPointLine(targetPoint, {map[i].a, map[i].b}, DISTFROMOBSTACLE, DISTFROMOBSTACLE)) {
-      map.erase(map.begin() + i);
-      break;
+   switch(select) {
+    case SELECTFIXEDWAYPOINTS:
+    case SELECTWAYPOINTS:
+     if(!wayPoints.empty())
+      wayPoints.pop_back();
+     break;
+
+    case SELECTFIXEDGRAPHING:
+    case SELECTGRAPHING:
+     if(!nodes.empty())
+      delNodeAndLinks(nodes, links, targetNode);
+     if(!nodes.empty()) {
+      targetNode = closestPoint(nodes, targetPoint);
+      computePaths(nodes, links, targetNode, paths, dists);
+      closestRobot = closestPoint(nodes, robotPoint);
      }
-    }
+     break;
+
+    case SELECTFIXEDMAPPING:
+    case SELECTMAPPING:
+     for(int i = 0; i < map.size(); i++) {
+      if(testPointLine(targetPoint, {map[i].a, map[i].b}, DISTFROMOBSTACLE, DISTFROMOBSTACLE)) {
+       map.erase(map.begin() + i);
+       break;
+      }
+     }
+     break;
    }
 
   }
@@ -1425,6 +1466,16 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
       sprintf(text, "Target %05d mm | No route | Autopilot %s", dist, OFFON[running]);
     }
    }
+   break;
+
+  case SELECTFIXEDWAYPOINTS:
+   drawHist(image, robotPoint, offsetPoint, 0, mapDivFixed);
+   drawLidarPoints(image, mapPoints, false, Point(0, 0), offsetPoint, mapDivFixed);
+   drawMap(image, map, true, offsetPoint, 0, mapDivFixed);
+   drawWayPoints(image, wayPoints, 0, offsetPoint, 0, mapDivFixed);
+   drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
+   drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
+   sprintf(text, "Way points %d", wayPoints.size());
    break;
 
   case SELECTFIXEDGRAPHING:
@@ -1498,6 +1549,16 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
       sprintf(text, "Target %05d mm | No route | Autopilot %s", dist, OFFON[running]);
     }
    }
+   break;
+
+  case SELECTWAYPOINTS:
+   drawHist(image, robotPoint, robotPoint, robotTheta, mapDiv);
+   drawLidarPoints(image, robotPoints, false, Point(0, 0), Point(0, 0), mapDiv);
+   drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
+   drawWayPoints(image, wayPoints, 0, robotPoint, robotTheta, mapDiv);
+   drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
+   drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
+   sprintf(text, "Way points %d", wayPoints.size());
    break;
 
   case SELECTGRAPHING:
@@ -1918,6 +1979,7 @@ int main(int argc, char* argv[]) {
  vector<array<int, 2>> links;
  vector<int> paths;
  vector<int> dists;
+ vector<Point> wayPoints;
 
  Point robotPoint = Point(0, 0);
  uint16_t robotTheta = 0;
@@ -2029,8 +2091,8 @@ int main(int argc, char* argv[]) {
   }
 
   ui(image, robotPoints, robotLinesAxes, mapLines, map, mapPoints,
-     nodes, links, paths, dists, targetPoint, targetNode, closestRobot,
-     robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
+     nodes, links, paths, dists, wayPoints, targetPoint,
+     targetNode, closestRobot, robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
      mappingEnabled, graphingEnabled, running, select, mapDiv, confidences, time);
 
   autopilot(mapPoints, nodes, links, paths, dists,
