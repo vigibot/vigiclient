@@ -1264,13 +1264,13 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    targetPoint.y = (remoteFramePoint.y * mapDiv / 10) * height / 65535;
    targetPoint = rotate(targetPoint, robotTheta) + robotPoint;
   }
- }
 
- if(!nodes.empty()) {
-  targetNode = closestPoint(nodes, targetPoint);
-  if(targetNode != oldTargetNode) {
-   oldTargetNode = targetNode;
-   computePaths(nodes, links, targetNode, paths, dists);
+  if(!nodes.empty()) {
+   targetNode = closestPoint(nodes, targetPoint);
+   if(targetNode != oldTargetNode) {
+    oldTargetNode = targetNode;
+    computePaths(nodes, links, targetNode, paths, dists);
+   }
   }
  }
 
@@ -1839,8 +1839,12 @@ bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
  return -1;
 }*/
 
-void patrol(vector<Point> &wayPoints, Point &targetPoint, Point robotPoint, bool patrolling) {
+void patrol(vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, vector<int> &dists,
+            vector<Point> &wayPoints, Point &targetPoint, int &targetNode, Point robotPoint, bool patrolling) {
+
  static int wayPoint = 0;
+ static Point oldTargetPoint = robotPoint;
+ static int oldTargetNode = 0;
 
  if(!patrolling || wayPoints.empty())
   return;
@@ -1852,6 +1856,15 @@ void patrol(vector<Point> &wayPoints, Point &targetPoint, Point robotPoint, bool
   wayPoint = 0;
 
  targetPoint = wayPoints[wayPoint];
+
+ if(!nodes.empty() && targetPoint != oldTargetPoint) {
+  oldTargetPoint = targetPoint;
+  targetNode = closestPoint(nodes, targetPoint);
+  if(targetNode != oldTargetNode) {
+   oldTargetNode = targetNode;
+   computePaths(nodes, links, targetNode, paths, dists);
+  }
+ }
 }
 
 void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, vector<int> &dists,
@@ -2156,7 +2169,7 @@ int main(int argc, char* argv[]) {
      targetNode, closestRobot, robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
      mappingEnabled, graphingEnabled, running, patrolling, select, mapDiv, confidences, time);
 
-  patrol(wayPoints, targetPoint, robotPoint, patrolling);
+  patrol(nodes, links, paths, dists, wayPoints, targetPoint, targetNode, robotPoint, patrolling);
 
   autopilot(mapPoints, nodes, links, paths, dists,
             targetPoint, targetNode, closestRobot, robotPoint, robotTheta, running);
