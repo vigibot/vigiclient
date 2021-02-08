@@ -1247,7 +1247,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  if(remoteFramePoint != oldRemoteFramePoint) {
   oldRemoteFramePoint = remoteFramePoint;
 
-  if(select >= SELECTNONE && select <= SELECTFIXEDDEBUGMAP) {
+  if(select >= SELECTFIXEDMINIMAL && select <= SELECTFIXEDMAPPING) {
    targetPoint.x = (remoteFramePoint.x * mapDivFixed / 10) * width / 65535;
    targetPoint.y = (remoteFramePoint.y * mapDivFixed / 10) * height / 65535;
    targetPoint += offsetPoint;
@@ -1270,9 +1270,9 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   buttonOkCount++;
   if(buttonOkCount == BUTTONSLONGPRESS) {
 
-   if(select == SELECTFIXEDFULL || select == SELECTFULL)
+   if(select == SELECTFIXEDGRAPHING || select == SELECTGRAPHING)
     graphingEnabled = !graphingEnabled;
-   else if(select == SELECTFIXEDDEBUGMAP || select == SELECTDEBUGMAP) {
+   else if(select == SELECTFIXEDMAPPING || select == SELECTMAPPING) {
     mappingEnabled = !mappingEnabled;
     for(int i = 0; i < map.size(); i++) {
      if(map[i].validation < VALIDATIONFILTERKEEP) {
@@ -1288,13 +1288,13 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   buttonCancelCount++;
   if(buttonCancelCount == BUTTONSLONGPRESS) {
 
-   if(select == SELECTFIXEDFULL || select == SELECTFULL) {
+   if(select == SELECTFIXEDGRAPHING || select == SELECTGRAPHING) {
     running = false;
     nodes.clear();
     links.clear();
     paths.clear();
     paths.push_back(-1);
-   } else if(select == SELECTFIXEDDEBUGMAP || select == SELECTDEBUGMAP) {
+   } else if(select == SELECTFIXEDMAPPING || select == SELECTMAPPING) {
     map.clear();
     if(nodes.empty()) {
      robotPoint = Point(0, 0);
@@ -1313,7 +1313,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   buttonMoreCount++;
   if(buttonMoreCount >= BUTTONSLONGPRESS) {
 
-   if(select >= SELECTLIGHT && select <= SELECTDEBUGLIDAR) {
+   if(select >= SELECTAUTOPILOT && select <= SELECTLIDARONLY) {
     if(mapDiv > MAPDIVMIN)
      mapDiv -= 2;
    }
@@ -1323,7 +1323,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
   buttonLessCount++;
   if(buttonLessCount >= BUTTONSLONGPRESS) {
 
-   if(select >= SELECTLIGHT && select <= SELECTDEBUGLIDAR) {
+   if(select >= SELECTAUTOPILOT && select <= SELECTLIDARONLY) {
     if(mapDiv < MAPDIVMAX)
      mapDiv += 2;
    }
@@ -1332,7 +1332,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  } else if(!buttonOk && oldButtonOk) {
   if(buttonOkCount < BUTTONSLONGPRESS) {
 
-   if(select == SELECTFIXEDFULL || select == SELECTFULL) {
+   if(select == SELECTFIXEDGRAPHING || select == SELECTGRAPHING) {
     if(addNodeAndLinks(nodes, links, targetPoint)) {
      targetNode = closestPoint(nodes, targetPoint);
      computePaths(nodes, links, targetNode, paths, dists);
@@ -1345,7 +1345,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  } else if(!buttonCancel && oldButtonCancel) {
   if(buttonCancelCount < BUTTONSLONGPRESS) {
 
-   if(select == SELECTFIXEDFULL || select == SELECTFULL) {
+   if(select == SELECTFIXEDGRAPHING || select == SELECTGRAPHING) {
     if(!nodes.empty())
      delNodeAndLinks(nodes, links, targetNode);
     if(!nodes.empty()) {
@@ -1353,7 +1353,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
      computePaths(nodes, links, targetNode, paths, dists);
      closestRobot = closestPoint(nodes, robotPoint);
     }
-   } else if(select == SELECTFIXEDDEBUGMAP || select == SELECTDEBUGMAP) {
+   } else if(select == SELECTFIXEDMAPPING || select == SELECTMAPPING) {
     for(int i = 0; i < map.size(); i++) {
      if(testPointLine(targetPoint, {map[i].a, map[i].b}, DISTFROMOBSTACLE, DISTFROMOBSTACLE)) {
       map.erase(map.begin() + i);
@@ -1367,20 +1367,20 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  } else if(!buttonMore && oldButtonMore) {
   if(buttonMoreCount < BUTTONSLONGPRESS) {
 
-   if(select < SELECTDEBUGLIDAR)
+   if(select < SELECTLIDARONLY)
     select++;
    else
-    select = SELECTNONE;
+    select = SELECTFIXEDMINIMAL;
 
   }
   buttonMoreCount = 0;
  } else if(!buttonLess && oldButtonLess) {
   if(buttonLessCount < BUTTONSLONGPRESS) {
 
-   if(select > SELECTNONE)
+   if(select > SELECTFIXEDMINIMAL)
     select--;
    else
-    select = SELECTDEBUGLIDAR;
+    select = SELECTLIDARONLY;
 
   }
   buttonLessCount = 0;
@@ -1393,13 +1393,13 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
 
  char text[80];
  switch(select) {
-  case SELECTNONE:
+  case SELECTFIXEDMINIMAL:
    drawRobot(image, robotIcon, 1, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    sprintf(text, "");
    break;
 
-  case SELECTFIXEDLIGHT:
+  case SELECTFIXEDAUTOPILOT:
    drawHist(image, robotPoint, offsetPoint, 0, mapDivFixed);
    drawLidarPoints(image, mapPoints, false, Point(0, 0), offsetPoint, mapDivFixed);
    drawMap(image, map, true, offsetPoint, 0, mapDivFixed);
@@ -1427,7 +1427,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    }
    break;
 
-  case SELECTFIXEDFULL:
+  case SELECTFIXEDGRAPHING:
    drawHist(image, robotPoint, offsetPoint, 0, mapDivFixed);
    drawLidarPoints(image, mapPoints, false, Point(0, 0), offsetPoint, mapDivFixed);
    drawMap(image, map, false, offsetPoint, 0, mapDivFixed);
@@ -1456,7 +1456,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    }
    break;
 
-  case SELECTFIXEDDEBUGMAP:
+  case SELECTFIXEDMAPPING:
    drawLidarPoints(image, mapPoints, true, rescaleTranslate(robotPoint - offsetPoint, mapDivFixed), offsetPoint, mapDivFixed);
    drawLidarLines(image, mapLines, offsetPoint, mapDivFixed);
    drawMap(image, map, false, offsetPoint, 0, mapDivFixed);
@@ -1472,7 +1472,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    }
    break;
 
-  case SELECTLIGHT:
+  case SELECTAUTOPILOT:
    drawHist(image, robotPoint, robotPoint, robotTheta, mapDiv);
    drawLidarPoints(image, robotPoints, false, Point(0, 0), Point(0, 0), mapDiv);
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
@@ -1500,7 +1500,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    }
    break;
 
-  case SELECTFULL:
+  case SELECTGRAPHING:
    drawHist(image, robotPoint, robotPoint, robotTheta, mapDiv);
    drawLidarPoints(image, robotPoints, false, Point(0, 0), Point(0, 0), mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
@@ -1529,7 +1529,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    }
    break;
 
-  case SELECTDEBUGMAP:
+  case SELECTMAPPING:
    drawLidarPoints(image, robotPoints, true, Point(width / 2, height / 2), Point(0, 0), mapDiv);
    drawLidarLines(image, robotLinesAxes, mapDiv);
    drawMap(image, map, false, robotPoint, robotTheta, mapDiv);
@@ -1545,7 +1545,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    }
    break;
 
-  case SELECTDEBUGLIDAR:
+  case SELECTLIDARONLY:
    drawLidarPoints(image, robotPoints, true, Point(width / 2, height / 2), Point(0, 0), mapDiv);
    drawLidarLines(image, robotLinesAxes, mapDiv);
    drawRobot(image, robotIcon, FILLED, Point(0, 0), 0, mapDiv);
@@ -1927,7 +1927,7 @@ int main(int argc, char* argv[]) {
  int targetNode = 0;
  int closestRobot = -1;
  bool running = false;
- int select = SELECTFIXEDFULL;
+ int select = SELECTFIXEDGRAPHING;
  int mapDiv = MAPDIV;
  int confidences[AXES] = {0};
  fprintf(stderr, "Reading map file\n");
