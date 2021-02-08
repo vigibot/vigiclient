@@ -1194,12 +1194,13 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
                     int &targetNode, int &closestRobot, Point &robotPoint, Point &oldRobotPoint, uint16_t &robotTheta, uint16_t &oldRobotTheta,
                     bool &mappingEnabled, bool &graphingEnabled, bool &running, bool &patrolling, int &select, int &mapDiv, int confidences[], int time) {
 
+ static int oldMapSize = 0;
  int xmin = INT_MAX;
  int xmax = INT_MIN;
  int ymin = INT_MAX;
  int ymax = INT_MIN;
- Point offsetPoint = Point(0, 0);
- int mapDivFixed = mapDiv;
+ static Point offsetPoint = Point(0, 0);
+ static int mapDivFixed = mapDiv;
  static Point oldRemoteFramePoint = robotPoint;
  static int oldTargetNode = 0;
  bool buttonLess = remoteFrame.switchs & 0b00010000;
@@ -1215,7 +1216,9 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  static int buttonOkCount = 0;
  static int buttonCancelCount = 0;
 
- if(!map.empty()) {
+ if(map.size() != oldMapSize) {
+  oldMapSize = map.size();
+
   for(int i = 0; i < map.size(); i++) {
    if(map[i].validation < VALIDATIONFILTERKEEP)
     continue;
@@ -1261,8 +1264,8 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  if(!nodes.empty()) {
   targetNode = closestPoint(nodes, targetPoint);
   if(targetNode != oldTargetNode) {
-   computePaths(nodes, links, targetNode, paths, dists);
    oldTargetNode = targetNode;
+   computePaths(nodes, links, targetNode, paths, dists);
   }
  }
 
@@ -1834,12 +1837,12 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
  }
 
  if(targetPoint != oldTargetPoint) {
+  oldTargetPoint = targetPoint;
   if(closestRobot != -1 && sqDist(robotPoint, nodes[closestRobot]) < sqDist(robotPoint, targetPoint)) {
    currentNode = paths[closestRobot];
    state = GOTONODE;
   } else
    state = GOTOPOINT;
-  oldTargetPoint = targetPoint;
  }
 
  if(state != GOTOWAITING && closestRobot == -1)
