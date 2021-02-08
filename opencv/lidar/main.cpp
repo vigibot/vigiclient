@@ -883,7 +883,7 @@ void drawNodes(Mat &image, vector<Point> &nodes, Point robotPoint, uint16_t robo
  }
 }
 
-void drawWayPoints(Mat &image, vector<Point> &wayPoints, int targetWayPoint, Point robotPoint, uint16_t robotTheta, int mapDiv) {
+void drawWayPoints(Mat &image, vector<Point> &wayPoints, Point targetPoint, Point robotPoint, uint16_t robotTheta, int mapDiv) {
  for(int i = 0; i < wayPoints.size(); i++) {
   Point point = rescaleTranslate(rotate(wayPoints[i] - robotPoint, -robotTheta), mapDiv);
 
@@ -897,7 +897,7 @@ void drawWayPoints(Mat &image, vector<Point> &wayPoints, int targetWayPoint, Poi
   putText(image, text, textPoint, FONT_HERSHEY_PLAIN, 1.0, Scalar::all(0), 1);
   putText(image, text, textPoint + Point(1, 1), FONT_HERSHEY_PLAIN, 1.0, Scalar::all(255), 1);
 
-  if(i == targetWayPoint) {
+  if(wayPoints[i] == targetPoint) {
    circle(image, point, textSize.width / 2 + 3, Scalar::all(0), 1, LINE_AA);
    circle(image, point + Point(1, 1), textSize.width / 2 + 3, Scalar::all(255), 1, LINE_AA);
   }
@@ -1216,6 +1216,11 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  static int buttonOkCount = 0;
  static int buttonCancelCount = 0;
 
+ if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz) {
+  running = false;
+  patrolling = false;
+ }
+
  if(map.size() != oldMapSize) {
   oldMapSize = map.size();
 
@@ -1277,12 +1282,14 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     case SELECTFIXEDAUTOPILOT:
     case SELECTAUTOPILOT:
      running = !running;
+     if(running == false)
+      patrolling = false;
      break;
 
     case SELECTFIXEDWAYPOINTS:
     case SELECTWAYPOINTS:
-     running = !running;
      patrolling = !patrolling;
+     running = patrolling;
      break;
 
     case SELECTFIXEDGRAPHING:
@@ -1316,6 +1323,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
     case SELECTFIXEDGRAPHING:
     case SELECTGRAPHING:
      running = false;
+     patrolling = false;
      nodes.clear();
      links.clear();
      paths.clear();
@@ -1481,7 +1489,16 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawHist(image, robotPoint, offsetPoint, 0, mapDivFixed);
    drawLidarPoints(image, mapPoints, false, Point(0, 0), offsetPoint, mapDivFixed);
    drawMap(image, map, true, offsetPoint, 0, mapDivFixed);
-   drawWayPoints(image, wayPoints, 0, offsetPoint, 0, mapDivFixed);
+   if(!nodes.empty()) {
+    if(closestRobot != -1) {
+     drawPath(image, nodes, paths, closestRobot, offsetPoint, 0, mapDivFixed);
+     drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), offsetPoint, 0, mapDivFixed);
+     if(paths[closestRobot] != -1)
+      drawColoredPoint(image, nodes[paths[closestRobot]], Scalar(0, 255, 255), offsetPoint, 0, mapDivFixed);
+    }
+    drawColoredPoint(image, nodes[targetNode], Scalar(0, 255, 0), offsetPoint, 0, mapDivFixed);
+   }
+   drawWayPoints(image, wayPoints, targetPoint, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
    sprintf(text, "Way points %d | Patrolling %s", wayPoints.size(), OFFON[patrolling]);
@@ -1564,7 +1581,16 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawHist(image, robotPoint, robotPoint, robotTheta, mapDiv);
    drawLidarPoints(image, robotPoints, false, Point(0, 0), Point(0, 0), mapDiv);
    drawMap(image, map, true, robotPoint, robotTheta, mapDiv);
-   drawWayPoints(image, wayPoints, 0, robotPoint, robotTheta, mapDiv);
+   if(!nodes.empty()) {
+    if(closestRobot != -1) {
+     drawPath(image, nodes, paths, closestRobot, robotPoint, robotTheta, mapDiv);
+     drawColoredPoint(image, nodes[closestRobot], Scalar(0, 0, 255), robotPoint, robotTheta, mapDiv);
+     if(paths[closestRobot] != -1)
+      drawColoredPoint(image, nodes[paths[closestRobot]], Scalar(0, 255, 255), robotPoint, robotTheta, mapDiv);
+    }
+    drawColoredPoint(image, nodes[targetNode], Scalar(0, 255, 0), robotPoint, robotTheta, mapDiv);
+   }
+   drawWayPoints(image, wayPoints, targetPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
    sprintf(text, "Way points %d | Patrolling %s", wayPoints.size(), OFFON[patrolling]);
@@ -1813,8 +1839,23 @@ bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint
  return -1;
 }*/
 
+void patrol(vector<Point> &wayPoints, Point &targetPoint, Point robotPoint, bool patrolling) {
+ static int wayPoint = 0;
+
+ if(!patrolling || wayPoints.empty())
+  return;
+
+ if(sqNorm(targetPoint - robotPoint) <= GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE)
+  wayPoint++;
+
+ if(wayPoint >= wayPoints.size())
+  wayPoint = 0;
+
+ targetPoint = wayPoints[wayPoint];
+}
+
 void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &paths, vector<int> &dists,
-               Point targetPoint, int &targetNode, int closestRobot, Point &robotPoint, uint16_t &robotTheta, bool &running, bool &patrolling) {
+               Point targetPoint, int &targetNode, int closestRobot, Point &robotPoint, uint16_t &robotTheta, bool running) {
 
  static int state = GOTOPOINT;
  static Point oldTargetPoint = robotPoint;
@@ -1822,11 +1863,6 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
  static int8_t vx = 0;
  static int8_t vy = 0;
  static int8_t vz = 0;
-
- if(remoteFrame.vx || remoteFrame.vy || remoteFrame.vz) {
-  running = false;
-  patrolling = false;
- }
 
  if(!running) {
   telemetryFrame.vx = remoteFrame.vx;
@@ -2120,8 +2156,10 @@ int main(int argc, char* argv[]) {
      targetNode, closestRobot, robotPoint, oldRobotPoint, robotTheta, oldRobotTheta,
      mappingEnabled, graphingEnabled, running, patrolling, select, mapDiv, confidences, time);
 
+  patrol(wayPoints, targetPoint, robotPoint, patrolling);
+
   autopilot(mapPoints, nodes, links, paths, dists,
-            targetPoint, targetNode, closestRobot, robotPoint, robotTheta, running, patrolling);
+            targetPoint, targetNode, closestRobot, robotPoint, robotTheta, running);
 
   if(updated) {
    for(int i = 0; i < NBCOMMANDS; i++) {
