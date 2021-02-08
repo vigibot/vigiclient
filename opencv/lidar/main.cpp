@@ -1653,8 +1653,8 @@ void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t robotTheta, uint16
  oldRobotPoint = robotPoint;
 }*/
 
-void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>> &links, Point robotPoint,
-                  uint16_t robotTheta, bool mappingEnabled, bool graphingEnabled, int select, int mapDiv) {
+void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>> &links, vector<Point> &wayPoints,
+                  Point robotPoint, uint16_t robotTheta, bool mappingEnabled, bool graphingEnabled, int select, int mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::WRITE);
 
  if(fs.isOpened()) {
@@ -1683,6 +1683,11 @@ void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>>
   }
   fs << "]";
 
+  fs << "wayPoints" << "[";
+  for(int i = 0; i < wayPoints.size(); i++)
+   fs << wayPoints[i];
+  fs << "]";
+
   fs << "robotPoint" << robotPoint;
   fs << "robotTheta" << robotTheta;
 
@@ -1696,8 +1701,8 @@ void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>>
   fprintf(stderr, "Error writing map file\n");
 }
 
-void readMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>> &links, Point &robotPoint,
-                 uint16_t &robotTheta, bool &mappingEnabled, bool &graphingEnabled, int &select, int &mapDiv) {
+void readMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>> &links, vector<Point> &wayPoints,
+                 Point &robotPoint, uint16_t &robotTheta, bool &mappingEnabled, bool &graphingEnabled, int &select, int &mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::READ);
 
  if(fs.isOpened()) {
@@ -1727,6 +1732,14 @@ void readMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>> 
    item[0] >> a;
    item[1] >> b;
    links.push_back({a, b});
+  }
+
+  FileNode fn4 = fs["wayPoints"];
+  for(FileNodeIterator it = fn4.begin(); it != fn4.end(); it++) {
+   FileNode item = *it;
+   Point point;
+   item >> point;
+   wayPoints.push_back(point);
   }
 
   fs["robotPoint"] >> robotPoint;
@@ -1993,7 +2006,7 @@ int main(int argc, char* argv[]) {
  int mapDiv = MAPDIV;
  int confidences[AXES] = {0};
  fprintf(stderr, "Reading map file\n");
- readMapFile(map, nodes, links, robotPoint, robotTheta, mappingEnabled, graphingEnabled, select, mapDiv);
+ readMapFile(map, nodes, links, wayPoints, robotPoint, robotTheta, mappingEnabled, graphingEnabled, select, mapDiv);
  Point oldRobotPoint = robotPoint;
  uint16_t oldRobotTheta = robotTheta;
  robotThetaCorrector = robotTheta;
@@ -2128,7 +2141,7 @@ int main(int argc, char* argv[]) {
  stopLidar(ld);
 
  fprintf(stderr, "Writing map file\n");
- writeMapFile(map, nodes, links, robotPoint, robotTheta, mappingEnabled, graphingEnabled, select, mapDiv);
+ writeMapFile(map, nodes, links, wayPoints, robotPoint, robotTheta, mappingEnabled, graphingEnabled, select, mapDiv);
 
  fprintf(stderr, "Stopping\n");
  return 0;
