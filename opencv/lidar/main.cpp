@@ -1252,7 +1252,7 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
  }
 
  Point remoteFramePoint = Point(remoteFrame.xy[GOTOTOOL][0], remoteFrame.xy[GOTOTOOL][1]);
- if(remoteFramePoint != oldRemoteFramePoint) {
+ if((!patrolling || wayPoints.empty()) && remoteFramePoint != oldRemoteFramePoint) {
   oldRemoteFramePoint = remoteFramePoint;
 
   if(select >= SELECTFIXEDMINIMAL && select <= SELECTFIXEDMAPPING) {
@@ -1844,10 +1844,11 @@ void patrol(vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &pat
 
  static int wayPoint = 0;
  static Point oldTargetPoint = robotPoint;
- static int oldTargetNode = 0;
 
- if(!patrolling || wayPoints.empty())
+ if(!patrolling || wayPoints.empty()) {
+  oldTargetPoint = robotPoint;
   return;
+ }
 
  if(sqNorm(targetPoint - robotPoint) <= GOTOPOINTDISTTOLERANCE * GOTOPOINTDISTTOLERANCE)
   wayPoint++;
@@ -1860,10 +1861,7 @@ void patrol(vector<Point> &nodes, vector<array<int, 2>> &links, vector<int> &pat
  if(!nodes.empty() && targetPoint != oldTargetPoint) {
   oldTargetPoint = targetPoint;
   targetNode = closestPoint(nodes, targetPoint);
-  if(targetNode != oldTargetNode) {
-   oldTargetNode = targetNode;
-   computePaths(nodes, links, targetNode, paths, dists);
-  }
+  computePaths(nodes, links, targetNode, paths, dists);
  }
 }
 
