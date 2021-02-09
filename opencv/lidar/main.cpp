@@ -1905,7 +1905,7 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
 
  if(targetPoint != oldTargetPoint) {
   oldTargetPoint = targetPoint;
-  if(closestRobot != -1 && sqDist(robotPoint, nodes[closestRobot]) < sqDist(robotPoint, targetPoint)) {
+  if(!nodes.empty() && closestRobot != -1 && sqDist(robotPoint, nodes[closestRobot]) < sqDist(robotPoint, targetPoint)) {
    currentNode = paths[closestRobot];
    state = GOTONODE;
   } else
