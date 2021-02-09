@@ -1501,7 +1501,17 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawWayPoints(image, wayPoints, targetPoint, offsetPoint, 0, mapDivFixed);
    drawRobot(image, robotIcon, FILLED, robotPoint - offsetPoint, robotTheta, mapDivFixed);
    drawTargetPoint(image, targetPoint, offsetPoint, 0, mapDivFixed);
-   sprintf(text, "Way points %d | Patrolling %s", wayPoints.size(), OFFON[patrolling]);
+   {
+    int dist = int(sqrt(sqDist(robotPoint, targetPoint)));
+    if(nodes.empty())
+     sprintf(text, "Target %05d mm | Way points %02d | Patrolling %s", dist, wayPoints.size(), OFFON[patrolling]);
+    else {
+     if(closestRobot != -1 && dists[closestRobot] != INT_MAX)
+      sprintf(text, "Target %05d mm | Route %05d mm | Way points %02d | Patrolling %s", dist, dists[closestRobot], wayPoints.size(), OFFON[patrolling]);
+     else
+      sprintf(text, "Target %05d mm | No route | Way points %02d | Patrolling %s", dist, wayPoints.size(), OFFON[patrolling]);
+    }
+   }
    break;
 
   case SELECTFIXEDGRAPHING:
@@ -1593,7 +1603,17 @@ void ui(Mat &image, vector<Point> &robotPoints, vector<Line> robotLinesAxes[], v
    drawWayPoints(image, wayPoints, targetPoint, robotPoint, robotTheta, mapDiv);
    drawRobot(image, robotIcon, 1, Point(0, 0), 0, mapDiv);
    drawTargetPoint(image, targetPoint, robotPoint, robotTheta, mapDiv);
-   sprintf(text, "Way points %d | Patrolling %s", wayPoints.size(), OFFON[patrolling]);
+   {
+    int dist = int(sqrt(sqDist(robotPoint, targetPoint)));
+    if(nodes.empty())
+     sprintf(text, "Target %05d mm | Way points %02d | Patrolling %s", dist, wayPoints.size(), OFFON[patrolling]);
+    else {
+     if(closestRobot != -1 && dists[closestRobot] != INT_MAX)
+      sprintf(text, "Target %05d mm | Route %05d mm | Way points %02d | Patrolling %s", dist, dists[closestRobot], wayPoints.size(), OFFON[patrolling]);
+     else
+      sprintf(text, "Target %05d mm | No route | Way points %02d | Patrolling %s", dist, wayPoints.size(), OFFON[patrolling]);
+    }
+   }
    break;
 
   case SELECTGRAPHING:
