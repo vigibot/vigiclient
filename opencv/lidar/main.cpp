@@ -419,8 +419,8 @@ bool intersectLine(Line line1, Line line2, Point &intersectPoint) {
  return false;
 }
 
-void sortLines(vector<Line> &map) {
- sort(map.begin(), map.end(), [](const Line &a, const Line &b) {
+void sortLines(vector<Line> &lines) {
+ sort(lines.begin(), lines.end(), [](const Line &a, const Line &b) {
   return sqDist(a) > sqDist(b);
  });
 }
@@ -633,7 +633,7 @@ void mapping(vector<Line> &mapLines, vector<Line> &map) {
 
    newLine = false;
 
-   if(map[j].validation < VALIDATIONFILTERKEEP) {
+   if(map[j].validation < VALIDATIONFILTERKEEP && distError <= LARGEDISTTOLERANCE) {
     map[j].intega += mapLines[i].a;
     map[j].integb += mapLines[i].b;
     map[j].integ++;
