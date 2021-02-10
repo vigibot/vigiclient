@@ -1697,7 +1697,8 @@ void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t robotTheta, uint16
 }*/
 
 void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>> &links, vector<Point> &wayPoints,
-                  Point robotPoint, uint16_t robotTheta, bool mappingEnabled, bool graphingEnabled, int select, int mapDiv) {
+                  Point robotPoint, uint16_t robotTheta, bool mappingEnabled, bool graphingEnabled,
+                  bool running, bool patrolling, int select, int mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::WRITE);
 
  if(fs.isOpened()) {
@@ -1736,6 +1737,8 @@ void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>>
 
   fs << "mappingEnabled" << mappingEnabled;
   fs << "graphingEnabled" << graphingEnabled;
+  fs << "running" << running;
+  fs << "patrolling" << patrolling;
   fs << "select" << select;
   fs << "mapDiv" << mapDiv;
 
@@ -1745,7 +1748,8 @@ void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>>
 }
 
 void readMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>> &links, vector<Point> &wayPoints,
-                 Point &robotPoint, uint16_t &robotTheta, bool &mappingEnabled, bool &graphingEnabled, int &select, int &mapDiv) {
+                 Point &robotPoint, uint16_t &robotTheta, bool &mappingEnabled, bool &graphingEnabled,
+                 bool &running, bool &patrolling, int &select, int &mapDiv) {
  FileStorage fs(MAPFILE, FileStorage::READ);
 
  if(fs.isOpened()) {
@@ -1790,6 +1794,8 @@ void readMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>> 
 
   fs["mappingEnabled"] >> mappingEnabled;
   fs["graphingEnabled"] >> graphingEnabled;
+  fs["running"] >> running;
+  fs["patrolling"] >> patrolling;
   fs["select"] >> select;
   fs["mapDiv"] >> mapDiv;
 
@@ -2073,7 +2079,7 @@ int main(int argc, char* argv[]) {
  int mapDiv = MAPDIV;
  int confidences[AXES] = {0};
  fprintf(stderr, "Reading map file\n");
- readMapFile(map, nodes, links, wayPoints, robotPoint, robotTheta, mappingEnabled, graphingEnabled, select, mapDiv);
+ readMapFile(map, nodes, links, wayPoints, robotPoint, robotTheta, mappingEnabled, graphingEnabled, running, patrolling, select, mapDiv);
  Point oldRobotPoint = robotPoint;
  uint16_t oldRobotTheta = robotTheta;
  robotThetaCorrector = robotTheta;
@@ -2210,7 +2216,7 @@ int main(int argc, char* argv[]) {
  stopLidar(ld);
 
  fprintf(stderr, "Writing map file\n");
- writeMapFile(map, nodes, links, wayPoints, robotPoint, robotTheta, mappingEnabled, graphingEnabled, select, mapDiv);
+ writeMapFile(map, nodes, links, wayPoints, robotPoint, robotTheta, mappingEnabled, graphingEnabled, running, patrolling, select, mapDiv);
 
  fprintf(stderr, "Stopping\n");
  return 0;
