@@ -1946,6 +1946,11 @@ void autopilot(vector<Point> &mapPoints, vector<Point> &nodes, vector<array<int,
    vx = 0;
    vy = 0;
    vz = 0;
+   if(!nodes.empty() && currentNode != targetNode) {
+    currentNode = paths[closestRobot];
+    if(currentNode != -1)
+     state = GOTONODE;
+   }
    break;
  }
 
