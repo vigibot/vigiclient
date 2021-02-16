@@ -742,7 +742,7 @@ void localization(vector<Line> robotLinesAxes[], vector<Line> &map, int confiden
 #endif
    }
 
-   if(i == 0)
+   if(i == ITERATIONCONFIDENCE)
     confidences[j] = confidence;
   }
  }
