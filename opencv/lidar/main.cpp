@@ -23,9 +23,6 @@ void signal_callback_handler(int signum) {
 void imuThread() {
  fprintf(stderr, "IMU thread starting\n");
 
- int oldStdout = dup(fileno(stdout));
- dup2(fileno(stderr), fileno(stdout));
-
  RTIMUSettings *settings = new RTIMUSettings("RTIMULib");
  imu = RTIMU::createIMU(settings);
  if(imu == NULL || imu->IMUType() == RTIMU_TYPE_NULL) {
@@ -40,7 +37,6 @@ void imuThread() {
  imu->setAccelEnable(true);
  imu->setCompassEnable(false);
 
- dup2(oldStdout, fileno(stdout));
  fprintf(stderr, "IMU thread initialization success\n");
  imuThreadStatus = STATUSSUCCESS;
 
@@ -2037,6 +2033,9 @@ int main(int argc, char* argv[]) {
   return 1;
  }
 
+ FILE *actualStdout = fdopen(dup(STDOUT_FILENO), "a");
+ dup2(STDERR_FILENO, STDOUT_FILENO);
+
 #ifdef IMU
  thread imuThr(imuThread);
  while(imuThreadStatus == STATUSWAITING);
@@ -2202,7 +2201,7 @@ int main(int argc, char* argv[]) {
    writeModem(fd, telemetryFrame);
   }
 
-  fwrite(image.data, size, 1, stdout);
+  fwrite(image.data, size, 1, actualStdout);
 
   tickMeter.stop();
   time = tickMeter.getTimeMilli();
