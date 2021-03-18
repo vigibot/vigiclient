@@ -1283,7 +1283,7 @@ function KernelExceptionWatchdog() {
 
  stdout.on("line", function(data) {
   if(!once && data.indexOf("Exception stack") != -1) {
-   trace("Following a Raspberry PI kernel exception, the system will be restarted automatically", true);
+   trace("Following a Raspberry PI kernel " + OS.release() + " exception, the system will be restarted automatically", true);
    setTimeout(function() {
     EXEC("reboot");
    }, 1000);
