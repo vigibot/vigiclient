@@ -1695,60 +1695,69 @@ void dedistortTheta(vector<PolarPoint> &polarPoints, uint16_t robotTheta, uint16
 void writeMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>> &links, vector<Point> &wayPoints,
                   Point robotPoint, uint16_t robotTheta, bool mappingEnabled, bool graphingEnabled,
                   bool running, bool patrolling, int select, int mapDiv) {
+
  FileStorage fs(MAPFILE, FileStorage::WRITE);
 
- if(fs.isOpened()) {
-  fs << "map" << "[";
-  for(int i = 0; i < map.size(); i++) {
-   if(map[i].validation < VALIDATIONFILTERKEEP)
-    continue;
-   fs << "{";
-   fs << "a" << map[i].a;
-   fs << "b" << map[i].b;
-   fs << "}";
-  }
-  fs << "]";
-
-  fs << "nodes" << "[";
-  for(int i = 0; i < nodes.size(); i++)
-   fs << nodes[i];
-  fs << "]";
-
-  fs << "links" << "[";
-  for(int i = 0; i < links.size(); i++) {
-   fs << "[";
-   fs << links[i][0];
-   fs << links[i][1];
-   fs << "]";
-  }
-  fs << "]";
-
-  fs << "wayPoints" << "[";
-  for(int i = 0; i < wayPoints.size(); i++)
-   fs << wayPoints[i];
-  fs << "]";
-
-  fs << "robotPoint" << robotPoint;
-  fs << "robotTheta" << robotTheta;
-
-  fs << "mappingEnabled" << mappingEnabled;
-  fs << "graphingEnabled" << graphingEnabled;
-  fs << "running" << running;
-  fs << "patrolling" << patrolling;
-  fs << "select" << select;
-  fs << "mapDiv" << mapDiv;
-
-  fs.release();
- } else
+ if(!fs.isOpened()) {
   fprintf(stderr, "Error writing map file\n");
+  return;
+ }
+
+ fs << "map" << "[";
+ for(int i = 0; i < map.size(); i++) {
+  if(map[i].validation < VALIDATIONFILTERKEEP)
+   continue;
+  fs << "{";
+  fs << "a" << map[i].a;
+  fs << "b" << map[i].b;
+  fs << "}";
+ }
+ fs << "]";
+
+ fs << "nodes" << "[";
+ for(int i = 0; i < nodes.size(); i++)
+  fs << nodes[i];
+ fs << "]";
+
+ fs << "links" << "[";
+ for(int i = 0; i < links.size(); i++) {
+  fs << "[";
+  fs << links[i][0];
+  fs << links[i][1];
+  fs << "]";
+ }
+ fs << "]";
+
+ fs << "wayPoints" << "[";
+ for(int i = 0; i < wayPoints.size(); i++)
+  fs << wayPoints[i];
+ fs << "]";
+
+ fs << "robotPoint" << robotPoint;
+ fs << "robotTheta" << robotTheta;
+
+ fs << "mappingEnabled" << mappingEnabled;
+ fs << "graphingEnabled" << graphingEnabled;
+ fs << "running" << running;
+ fs << "patrolling" << patrolling;
+ fs << "select" << select;
+ fs << "mapDiv" << mapDiv;
+
+ fs.release();
 }
 
 void readMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>> &links, vector<Point> &wayPoints,
                  Point &robotPoint, uint16_t &robotTheta, bool &mappingEnabled, bool &graphingEnabled,
                  bool &running, bool &patrolling, int &select, int &mapDiv) {
- FileStorage fs(MAPFILE, FileStorage::READ);
 
- if(fs.isOpened()) {
+ try {
+  FileStorage fs(MAPFILE, FileStorage::READ);
+
+  if(!fs.isOpened()) {
+   fprintf(stderr, "Error reading map file\n");
+   return;
+  }
+
   FileNode fn1 = fs["map"];
   for(FileNodeIterator it = fn1.begin(); it != fn1.end(); it++) {
    FileNode item = *it;
@@ -1796,8 +1805,9 @@ void readMapFile(vector<Line> &map, vector<Point> &nodes, vector<array<int, 2>> 
   fs["mapDiv"] >> mapDiv;
 
   fs.release();
- } else
+ } catch(Exception &e) {
   fprintf(stderr, "Error reading map file\n");
+ }
 }
 
 bool gotoPoint(Point targetPoint, int8_t &vy, int8_t &vz, Point robotPoint, uint16_t robotTheta) {
