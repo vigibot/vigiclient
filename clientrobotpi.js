@@ -615,7 +615,12 @@ USER.SERVERS.forEach(function(server, index) {
     break;
    case "reboot":
     trace("Restart the system", true);
-    EXEC("reboot");
+    setTimeout(function() {
+     EXEC("reboot");
+    }, 1000);
+    setTimeout(function() {
+     EXEC("echo b > /proc/sysrq-trigger");
+    }, 10000);
     break;
    case "poweroff":
     trace("Power off the system", true);
@@ -1287,6 +1292,9 @@ function KernelExceptionWatchdog() {
    setTimeout(function() {
     EXEC("reboot");
    }, 1000);
+   setTimeout(function() {
+    EXEC("echo b > /proc/sysrq-trigger");
+   }, 10000);
    once = true;
   }
  });
