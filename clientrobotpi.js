@@ -332,18 +332,8 @@ function configurationVideo(callback) {
 
 function diffusion() {
  trace("Starting the H.264 video broadcast stream", false);
- exec("Diffusion", cmdDiffusion, function(code) {
-  if(code != 255) {
-   trace("Failure of The H.264 video broadcast stream", true);
-   cmdDiffusion = USER.CMDDIFFUSION[1].join("").replace(new RegExp("WIDTH", "g"), confVideo.WIDTH
-                                              ).replace(new RegExp("HEIGHT", "g"), confVideo.HEIGHT
-                                              ).replace(new RegExp("FPS", "g"), confVideo.FPS
-                                              ).replace(new RegExp("BITRATE", "g"), confVideo.BITRATE
-                                              ).replace(new RegExp("ROTATE", "g"), confVideo.ROTATE
-                                              ).replace(new RegExp("VIDEOLOCALPORT", "g"), SYS.VIDEOLOCALPORT);
-   diffusion();
-  } else
-   trace("Stopping the H.264 video broadcast stream", false);
+ exec("Diffusion", cmdDiffusion, function() {
+  trace("Stopping the H.264 video broadcast stream", false);
  });
 }
 
