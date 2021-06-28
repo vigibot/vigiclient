@@ -17,6 +17,7 @@ const GPIO = require("pigpio").Gpio;
 const I2C = require("i2c-bus");
 const PCA9685 = require("pca9685");
 const GPS = require("gps");
+const INA219 = require("ina219");
 
 const FRAME0 = "$".charCodeAt();
 const FRAME1S = "S".charCodeAt();
@@ -124,7 +125,15 @@ try {
    gaugeType = "BQ27441";
   } catch(err) {
    i2c.closeSync();
-   gaugeType = "";
+   try {
+    gaugeType = "INA219";
+    INA219.init(SYS.INA219ADDRESS);
+    INA219.enableLogging(true);
+    INA219.calibrate32V2A(function() {
+    });
+   } catch(err) {
+    gaugeType = "";
+   }
   }
  }
 }
@@ -1107,6 +1116,21 @@ switch(gaugeType) {
     voltage = milliVolts / 1000;
     i2c.readByte(SYS.BQ27441ADDRESS, 0x1c, function(err, pourcents) {
      battery = pourcents;
+    });
+   });
+  }, SYS.GAUGERATE);
+  break;
+
+ case "INA219":
+  setInterval(function() {
+   if(!initDone)
+    return;
+   INA219.calibrate32V2A(function() {
+    INA219.getBusVoltage_V(function(v) {
+     voltage = v;
+     INA219.getCurrent_mA(function(ma) {
+      battery = ma / 1000;
+     });
     });
    });
   }, SYS.GAUGERATE);
