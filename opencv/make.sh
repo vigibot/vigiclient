@@ -59,7 +59,8 @@ do
  -lopencv_videoio \
  -lwiringPi \
  -lpthread \
- -lRTIMULib && \
+ -lRTIMULib \
+ -lopencv_aruco && \
  trace "Success to compile $cur and $sub to $bin" || \
  trace "Failed to compile $cur and $sub to $bin"
 done
