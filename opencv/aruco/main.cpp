@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
  vector<Vec3d> rvecs;
  vector<Vec3d> tvecs;
 
- Ptr<Dictionary> dictionary = getPredefinedDictionary(DICT_6X6_50);
+ Ptr<Dictionary> dictionary = getPredefinedDictionary(DICT_4X4_50);
 
  Mat cameraMatrix = (Mat1d(3, 3) << 3.1785284097755920e+02,
                                     0.0,
