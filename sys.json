@@ -4,6 +4,7 @@
  "SECUREMOTEPORT": 8042,
  "VIDEOLOCALPORT": 8043,
  "AUDIOLOCALPORT": 8044,
+ "VIDEOTAPPORT": 8045,
 
  "LOGFILE": "/var/log/vigiclient.log",
 

@@ -34,6 +34,12 @@ let up = false;
 let engine = false;
 let upTimeout;
 
+// Frigate/go2rtc video tap (see the video-tap TCP server below).
+// videoTapClients holds the currently connected tap consumers; frigateUp is true when the
+// camera diffusion is running solely to feed those consumers (i.e. no vigibot.com operator).
+let videoTapClients = new Set();
+let frigateUp = false;
+
 let initDone = false;
 let initVideo = false;
 let initUart = false;
@@ -247,7 +253,16 @@ function wake(server) {
 
  writeOutputs();
 
- if(hard.SNAPSHOTSINTERVAL) {
+ if(frigateUp) {
+  // The camera is already streaming for a Frigate video-tap client. Take ownership under
+  // the operator session by cleanly restarting it with the operator's current video config.
+  frigateUp = false;
+  sigterms(function() {
+   configurationVideo(function() {
+    diffusion();
+   });
+  });
+ } else if(hard.SNAPSHOTSINTERVAL) {
   sigterm("Raspistill", "raspistill", function(code) {
    diffusion();
   });
@@ -294,6 +309,15 @@ function sleep() {
    floatTargets1[i] = conf.TX.COMMANDS1[i].INIT;
 
  sigterms(function() {
+  // The operator is gone, but if Frigate video-tap clients are still connected, keep the
+  // camera running for them instead of leaving the broadcast stopped.
+  if(videoTapClients.size > 0) {
+   frigateUp = true;
+   trace("Operator gone, video tap still active: keeping camera for Frigate", false);
+   configurationVideo(function() {
+    diffusion();
+   });
+  }
  });
 
  sigterm("DiffAudio", USER.CMDDIFFAUDIO[0], function() {
@@ -301,6 +325,34 @@ function sleep() {
 
  currentServer = "";
  up = false;
+}
+
+// Activity condition n°2: a connected Frigate/go2rtc video-tap client keeps the camera awake,
+// independently of any vigibot.com operator. frigateWake() starts the broadcast when a tap
+// client appears (and no operator owns the camera); frigateSleep() stops it once the last tap
+// client leaves. Both are no-ops when an operator session is active (up) — the operator owns
+// the camera then, and sleep() will hand it back to Frigate on operator timeout if needed.
+function frigateWake() {
+ if(up || frigateUp || !initVideo || videoTapClients.size == 0)
+  return;
+
+ frigateUp = true;
+ trace("Video tap client connected: starting camera for Frigate", false);
+ sigterms(function() {
+  configurationVideo(function() {
+   diffusion();
+  });
+ });
+}
+
+function frigateSleep() {
+ if(!frigateUp || up || videoTapClients.size > 0)
+  return;
+
+ frigateUp = false;
+ trace("Last video tap client gone: stopping camera", false);
+ sigterms(function() {
+ });
 }
 
 function configurationVideo(callback) {
@@ -524,6 +576,8 @@ USER.SERVERS.forEach(function(server, index) {
      configurationVideo(function() {
       initVideo = true;
       setInit();
+      // Config now ready: start the camera if Frigate tap clients are already waiting.
+      frigateWake();
      });
     }
    }, 200);
@@ -796,8 +850,10 @@ function setServos(n, value) {
 function setPwm(n, gpio, pwm) {
  let pcaId = hard.OUTPUTS[n].ADRESSE;
 
- if(pcaId == SYS.UNUSED)
-  gpioOutputs[n][gpio].pwmWrite(Math.abs(map(pwm, -100, 100, -255, 255)));
+ if(pcaId == SYS.UNUSED) {
+  let range = gpioOutputs[n][gpio].getPwmRange();
+  gpioOutputs[n][gpio].pwmWrite(Math.min(range, Math.abs(map(pwm, -100, 100, -range, range))));
+ }
  else
   pca9685Driver[pcaId].setDutyCycle(hard.OUTPUTS[n].GPIOS[gpio], Math.abs(pwm / 100));
 }
@@ -836,14 +892,20 @@ function setPwmDir(n, value) {
 
 function setPwmDirDir(n, value) {
  let pwm = computeOut(n, value);
+ let name = hard.OUTPUTS[n].NAME;
+ let gpios = hard.OUTPUTS[n].GPIOS;
+ let dir1, dir2;
 
  if(pwm > 0) {
+  dir1 = 1; dir2 = 0;
   setGpio(n, 1, 1);
   setGpio(n, 2, 0);
  } else if(pwm < 0) {
+  dir1 = 0; dir2 = 1;
   setGpio(n, 1, 0);
   setGpio(n, 2, 1);
  } else {
+  dir1 = 1; dir2 = 1;
   setGpio(n, 1, 1);
   setGpio(n, 2, 1);
  }
@@ -1247,11 +1309,38 @@ setInterval(function() {
  }
 }, 60000);
 
+// Re-broadcast the raw H.264 stream to external consumers (e.g. Frigate/go2rtc on the LAN).
+// A TCP server that any number of clients can connect to; each connected client receives the
+// exact byte stream produced by the diffusion process (Annex-B H.264 with repeated SPS/PPS,
+// so late joiners resynchronise at the next keyframe). This tap is independent of the
+// vigibot.com uplink, so Frigate keeps receiving video even during a latency alarm.
+NET.createServer(function(socket) {
+ trace("Video tap client connected from " + socket.remoteAddress + ":" + socket.remotePort, false);
+ videoTapClients.add(socket);
+ frigateWake();
+ socket.on("error", function() {
+  videoTapClients.delete(socket);
+  frigateSleep();
+ });
+ socket.on("close", function() {
+  videoTapClients.delete(socket);
+  trace("Video tap client disconnected", false);
+  frigateSleep();
+ });
+}).listen(SYS.VIDEOTAPPORT || 8045);
+
 NET.createServer(function(socket) {
  const SEPARATEURNALU = new Buffer.from([0, 0, 0, 1]);
  const SPLITTER = new SPLIT(SEPARATEURNALU);
 
  trace("H.264 video streaming process is connected to tcp://127.0.0.1:" + SYS.VIDEOLOCALPORT, false);
+
+ socket.on("data", function(data) {
+  for(const client of videoTapClients) {
+   if(client.writable)
+    client.write(data);
+  }
+ });
 
  SPLITTER.on("data", function(data) {
 
